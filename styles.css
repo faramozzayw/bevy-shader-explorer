@@ -1,0 +1,102 @@
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f8f9fa;
+}
+h1 {
+  color: #2c3e50;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 10px;
+}
+.function {
+  background-color: white;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+.function-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.function-name {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #2980b9;
+}
+.visibility-badge {
+  font-size: 0.8em;
+  background-color: #3498db;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+.attribute-badge {
+  font-size: 0.8em;
+  background-color: #e74c3c;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 3px;
+  margin-right: 5px;
+}
+.signature {
+  font-family: monospace;
+  background-color: #f0f0f0;
+  padding: 10px;
+  border-radius: 3px;
+  overflow-x: auto;
+}
+.params-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+.params-table th,
+.params-table td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+.params-table th {
+  background-color: #f2f2f2;
+}
+.return-type {
+  margin-top: 10px;
+  font-style: italic;
+}
+.function-comment {
+  background-color: #eafaf1;
+  padding: 10px;
+  border-left: 4px solid #2ecc71;
+  margin: 10px 0;
+  white-space: pre-line;
+}
+.kw {
+  color: #8e44ad;
+  font-weight: bold;
+}
+.fn-name {
+  color: #2980b9;
+}
+.param-name {
+  color: #2c3e50;
+}
+.param-type {
+  color: #27ae60;
+}
+.return-type-val {
+  color: #d35400;
+}
+.count-summary {
+  background-color: #ecf0f1;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  font-weight: bold;
+}

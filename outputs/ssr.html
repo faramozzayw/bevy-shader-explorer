@@ -1,0 +1,119 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WGSL Function Documentation</title>
+    <link rel="stylesheet" href="./../styles.css" />
+  </head>
+  <body>
+    <h1>WGSL Function Documentation</h1>
+    <div class="count-summary">
+      Found
+      2
+      functions
+    </div>
+
+      <div class="function">
+        <div class="function-header">
+          <span class="function-name">evaluate_ssr</span>
+          <div>
+            
+            
+          </div>
+        </div>
+
+          <div class="function-comment">Returns the reflected color in the RGB channel and the specular occlusion in
+the alpha channel.
+
+The general approach here is similar to [1]. We first project the reflection
+ray into screen space. Then we perform uniform steps along that screen-space
+reflected ray, converting each step to view space.
+
+The arguments are:
+
+* &#x60;R_world&#x60;: The reflection vector in world space.
+
+* &#x60;P_world&#x60;: The current position in world space.
+
+[1]: https://lettier.github.io/3d-game-shaders-for-beginners/screen-space-reflection.html</div>
+
+        <div class="signature">
+          <span class="kw">fn</span>
+          <span class="fn-name">evaluate_ssr</span>(
+          <span>
+              <span class="param-name">R_world</span>:
+                <span class="param-type">vec3&lt;f32&gt;</span>, 
+              <span class="param-name">P_world</span>:
+                <span class="param-type">vec3&lt;f32&gt;</span>
+          </span>
+          )
+            ->
+            <span class="return-type-val">vec4&lt;f32&gt;</span>
+        </div>
+
+          <table class="params-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+                <tr>
+                  <td>R_world</td>
+                  <td>vec3&lt;f32&gt;</td>
+                </tr>
+                <tr>
+                  <td>P_world</td>
+                  <td>vec3&lt;f32&gt;</td>
+                </tr>
+            </tbody>
+          </table>
+
+          <div class="return-type">Returns:
+            <span class="return-type-val">vec4&lt;f32&gt;</span></div>
+      </div>
+      <div class="function">
+        <div class="function-header">
+          <span class="function-name">fragment</span>
+          <div>
+            <span
+                class="attribute-badge"
+              >@fragment</span>
+            
+          </div>
+        </div>
+
+
+        <div class="signature">
+          <span class="kw">fn</span>
+          <span class="fn-name">fragment</span>(
+          <span>
+              <span class="param-name">in</span>:
+                <span class="param-type">FullscreenVertexOutput</span>
+          </span>
+          )
+            ->
+            <span class="return-type-val">@location(0) vec4&lt;f32&gt;</span>
+        </div>
+
+          <table class="params-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+                <tr>
+                  <td>in</td>
+                  <td>FullscreenVertexOutput</td>
+                </tr>
+            </tbody>
+          </table>
+
+          <div class="return-type">Returns:
+            <span class="return-type-val">@location(0) vec4&lt;f32&gt;</span></div>
+      </div>
+  </body>
+</html>

@@ -1,0 +1,77 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WGSL Function Documentation</title>
+    <link rel="stylesheet" href="./../styles.css" />
+  </head>
+  <body>
+    <h1>WGSL Function Documentation</h1>
+    <div class="count-summary">
+      Found
+      {{functions.length}}
+      function{{#unless (eq functions.length 1)}}s{{/unless}}
+    </div>
+
+    {{#each functions}}
+      <div class="function">
+        <div class="function-header">
+          <span class="function-name">{{name}}</span>
+          <div>
+            {{#if attributes}}<span
+                class="attribute-badge"
+              >{{attributes}}</span>{{/if}}
+            {{#if visibility}}<span
+                class="visibility-badge"
+              >{{visibility}}</span>{{/if}}
+          </div>
+        </div>
+
+        {{#if comment}}
+          <div class="function-comment">{{comment}}</div>
+        {{/if}}
+
+        <div class="signature">
+          <span class="kw">{{#if visibility}}{{visibility}} {{/if}}fn</span>
+          <span class="fn-name">{{name}}</span>(
+          <span>
+            {{#each params}}
+              <span class="param-name">{{name}}</span>{{#if type}}:
+                <span class="param-type">{{type}}</span>{{/if}}{{#unless
+                @last
+              }}, {{/unless}}
+            {{/each}}
+          </span>
+          )
+          {{#if (neq returnType "void")}}
+            ->
+            <span class="return-type-val">{{returnType}}</span>{{/if}}
+        </div>
+
+        {{#if params.length}}
+          <table class="params-table">
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#each params}}
+                <tr>
+                  <td>{{name}}</td>
+                  <td>{{#if type}}{{type}}{{else}}-{{/if}}</td>
+                </tr>
+              {{/each}}
+            </tbody>
+          </table>
+        {{/if}}
+
+        {{#if (neq returnType "void")}}
+          <div class="return-type">Returns:
+            <span class="return-type-val">{{returnType}}</span></div>
+        {{/if}}
+      </div>
+    {{/each}}
+  </body>
+</html>
