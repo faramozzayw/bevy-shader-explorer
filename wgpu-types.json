@@ -1,0 +1,14 @@
+{
+  "vec2": "https://www.w3.org/TR/WGSL/#vec2-builtin",
+  "vec3": "https://www.w3.org/TR/WGSL/#vec3-builtin",
+  "vec4": "https://www.w3.org/TR/WGSL/#vec4-builtin",
+  "mat2x2": "https://www.w3.org/TR/WGSL/#mat2x2-builtin",
+  "mat2x3": "https://www.w3.org/TR/WGSL/#mat2x3-builtin",
+  "mat2x4": "https://www.w3.org/TR/WGSL/#mat2x4-builtin",
+  "mat3x2": "https://www.w3.org/TR/WGSL/#mat3x2-builtin",
+  "mat3x3": "https://www.w3.org/TR/WGSL/#mat3x3-builtin",
+  "mat3x4": "https://www.w3.org/TR/WGSL/#mat3x4-builtin",
+  "mat4x2": "https://www.w3.org/TR/WGSL/#mat4x2-builtin",
+  "mat4x3": "https://www.w3.org/TR/WGSL/#mat4x3-builtin",
+  "mat4x4": "https://www.w3.org/TR/WGSL/#mat4x4-builtin"
+}

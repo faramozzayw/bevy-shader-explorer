@@ -16,15 +16,16 @@
     {{#each functions}}
       <div class="function">
         <div class="function-header">
-          <span class="function-name">{{name}}</span>
           <div>
-            {{#if attributes}}<span
-                class="attribute-badge"
-              >{{attributes}}</span>{{/if}}
-            {{#if visibility}}<span
-                class="visibility-badge"
-              >{{visibility}}</span>{{/if}}
+            <h3 class="function-name" id="{{name}}">{{name}}</h3>
+            <a href="#{{name}}">#</a>
           </div>
+
+          {{#if attributes}}
+            <div>
+              <span class="attribute-badge">{{attributes}}</span>
+            </div>
+          {{/if}}
         </div>
 
         {{#if comment}}
@@ -60,7 +61,18 @@
               {{#each params}}
                 <tr>
                   <td>{{name}}</td>
-                  <td>{{#if type}}{{type}}{{else}}-{{/if}}</td>
+                  <td class="param-type">
+                    {{#if typeLink}}
+                      <a
+                        href="{{typeLink}}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="param-type"
+                      >{{type}}</a>
+                    {{else}}
+                      {{type}}
+                    {{/if}}
+                  </td>
                 </tr>
               {{/each}}
             </tbody>
@@ -69,7 +81,17 @@
 
         {{#if (neq returnType "void")}}
           <div class="return-type">Returns:
-            <span class="return-type-val">{{returnType}}</span></div>
+            {{#if returnTypeLink}}
+              <a
+                href="{{returnTypeLink}}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="return-type-val"
+              >{{returnType}}</a>
+            {{else}}
+              <span class="return-type-val">{{returnType}}</span>
+            {{/if}}</div>
+
         {{/if}}
       </div>
     {{/each}}
