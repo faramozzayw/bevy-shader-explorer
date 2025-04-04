@@ -4,13 +4,21 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { exec } = require("node:child_process");
 const Handlebars = require("handlebars");
+const Fuse = require("fuse.js");
 
 const wgpuTypes = JSON.parse(fs.readFileSync("./wgpu-types.json", "utf-8"));
 
 Handlebars.registerHelper("eq", (a, b) => a === b);
 Handlebars.registerHelper("neq", (a, b) => a !== b);
 
-const TEMPLATE_SOURCE = fs.readFileSync("template.hbs", "utf-8");
+const WGSL_DOC_TEMPLATE_SOURCE = fs.readFileSync(
+  "./templates/wgsl-doc.hbs",
+  "utf-8",
+);
+const HOME_DOC_TEMPLATE_SOURCE = fs.readFileSync(
+  "./templates/home.hbs",
+  "utf-8",
+);
 const FUNCTION_PATTERN =
   /(@[^;]*\s+)?(vertex|fragment|compute\s+)?fn\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)(\s*->\s*([^{]*))?/g;
 const OUTPUT_DIR = "./outputs";
@@ -143,20 +151,25 @@ function getFunctionComments(lineNumber, lineComments) {
   return comments;
 }
 
-function generateFunctionDocsHTML(functions) {
-  return Handlebars.compile(TEMPLATE_SOURCE)({ functions });
+function generateFunctionDocsHTML(functions, filename) {
+  return Handlebars.compile(WGSL_DOC_TEMPLATE_SOURCE)({ functions, filename });
 }
 
 function processWGSLFile(wgslFilePath) {
   const wgslCode = fs.readFileSync(wgslFilePath, "utf-8");
   const functions = extractWGSLFunctions(wgslCode);
-  const output = generateFunctionDocsHTML(functions);
-  const filename = path.parse(wgslFilePath).name;
+  const fileInfo = path.parse(wgslFilePath);
+
+  const output = generateFunctionDocsHTML(functions, fileInfo.base);
 
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-  fs.writeFileSync(path.join(OUTPUT_DIR, `${filename}.html`), output, {
+  fs.writeFileSync(path.join(OUTPUT_DIR, `${fileInfo.name}.html`), output, {
     encoding: "utf-8",
   });
+  return {
+    filename: fileInfo.base,
+    functions,
+  };
 }
 
 const GREP_WGSL = `grep -rl --include="*.wgsl" .`;
@@ -172,8 +185,46 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
   }
 
   const filePaths = stdout.trim().split("\n");
+  const shadersFunctions = [];
 
   for (const filePath of filePaths) {
-    processWGSLFile(filePath);
+    const shaderFunctions = processWGSLFile(filePath);
+    shadersFunctions.push(shaderFunctions);
   }
+
+  fs.writeFileSync(
+    `./outputs/search-info.json`,
+    JSON.stringify(shadersFunctions, null, 2),
+    "utf-8",
+  );
+
+  const homeOutput = Handlebars.compile(HOME_DOC_TEMPLATE_SOURCE)({
+    files: filePaths.map((v) => ({
+      file: v.split("wgsls/").at(-1),
+    })),
+  });
+
+  fs.writeFileSync(path.join(OUTPUT_DIR, `home.html`), homeOutput, {
+    encoding: "utf-8",
+  });
+
+  search(shadersFunctions);
 });
+
+function search() {
+  const shadersFunctions = JSON.parse(
+    fs.readFileSync(`./outputs/search-info.json`, "utf-8"),
+  );
+
+  const fuseOptions = {
+    includeMatches: true,
+    useExtendedSearch: true,
+    includeScore: true,
+    keys: ["filename", "functions.name"],
+  };
+  const fuse = new Fuse(shadersFunctions, fuseOptions);
+
+  const searchPattern = "ndc";
+
+  console.log(JSON.stringify(fuse.search(searchPattern), null, 2));
+}

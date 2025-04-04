@@ -6,12 +6,7 @@
     <link rel="stylesheet" href="./../styles.css" />
   </head>
   <body>
-    <h1>WGSL Function Documentation</h1>
-    <div class="count-summary">
-      Found
-      {{functions.length}}
-      function{{#unless (eq functions.length 1)}}s{{/unless}}
-    </div>
+    <h1><code>{{filename}}</code></h1>
 
     {{#each functions}}
       <div class="function">
