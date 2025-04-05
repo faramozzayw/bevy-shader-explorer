@@ -4,12 +4,22 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { exec } = require("node:child_process");
 const Handlebars = require("handlebars");
-const Fuse = require("fuse.js");
 
 const wgpuTypes = JSON.parse(fs.readFileSync("./wgpu-types.json", "utf-8"));
 
 Handlebars.registerHelper("eq", (a, b) => a === b);
 Handlebars.registerHelper("neq", (a, b) => a !== b);
+Handlebars.registerHelper("linkify", function (text) {
+  const urlPattern = /(?:https?|ftp):\/\/[\n\S]+/g;
+  return text.replace(urlPattern, function (url) {
+    return `<a href="${url}" target="_blank">${url}</a>`;
+  });
+});
+Handlebars.registerHelper("code-highlight", function (text) {
+  return text.replace(/`(.*)`/g, function (_, v) {
+    return `<code>${v}</code>`;
+  });
+});
 
 const WGSL_DOC_TEMPLATE_SOURCE = fs.readFileSync(
   "./templates/wgsl-doc.hbs",
@@ -21,7 +31,7 @@ const HOME_DOC_TEMPLATE_SOURCE = fs.readFileSync(
 );
 const FUNCTION_PATTERN =
   /(@[^;]*\s+)?(vertex|fragment|compute\s+)?fn\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)(\s*->\s*([^{]*))?/g;
-const OUTPUT_DIR = "./outputs";
+const OUTPUT_DIR_ROOT = "./dist";
 
 function extractWGSLFunctions(wgslCode) {
   const normalizedCode = wgslCode.replace(/\r\n/g, "\n");
@@ -159,16 +169,21 @@ function processWGSLFile(wgslFilePath) {
   const wgslCode = fs.readFileSync(wgslFilePath, "utf-8");
   const functions = extractWGSLFunctions(wgslCode);
   const fileInfo = path.parse(wgslFilePath);
+  const filename = fileInfo.base;
 
-  const output = generateFunctionDocsHTML(functions, fileInfo.base);
+  const innerPath = fileInfo.dir.replace("wgsls", "").replace("wgsls/", "");
 
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-  fs.writeFileSync(path.join(OUTPUT_DIR, `${fileInfo.name}.html`), output, {
-    encoding: "utf-8",
-  });
+  const output = generateFunctionDocsHTML(functions, filename);
+  const outputDir = path.join(OUTPUT_DIR_ROOT, innerPath);
+  const outputPath = path.join(outputDir, `${fileInfo.name}.html`);
+
+  fs.mkdirSync(outputDir, { recursive: true });
+  fs.writeFileSync(outputPath, output, "utf-8");
+
   return {
-    filename: fileInfo.base,
+    filename,
     functions,
+    link: path.join(innerPath, `${fileInfo.name}.html`),
   };
 }
 
@@ -185,46 +200,57 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
   }
 
   const filePaths = stdout.trim().split("\n");
-  const shadersFunctions = [];
+  let shadersFunctions = [];
 
   for (const filePath of filePaths) {
     const shaderFunctions = processWGSLFile(filePath);
-    shadersFunctions.push(shaderFunctions);
+    shadersFunctions = shadersFunctions.concat(
+      shaderFunctions.functions.map((func) =>
+        Object.assign(
+          {
+            link: shaderFunctions.link,
+            filename: shaderFunctions.filename,
+          },
+          func,
+        ),
+      ),
+    );
   }
 
+  fs.mkdirSync(path.join(OUTPUT_DIR_ROOT, "public"), { recursive: true });
   fs.writeFileSync(
-    `./outputs/search-info.json`,
+    path.join(OUTPUT_DIR_ROOT, "public", "search-info.json"),
     JSON.stringify(shadersFunctions, null, 2),
     "utf-8",
   );
 
   const homeOutput = Handlebars.compile(HOME_DOC_TEMPLATE_SOURCE)({
     files: filePaths.map((v) => ({
-      file: v.split("wgsls/").at(-1),
+      file: v.split("wgsls/").at(-1).replace(".wgsl", ".html"),
     })),
   });
 
-  fs.writeFileSync(path.join(OUTPUT_DIR, `home.html`), homeOutput, {
+  fs.writeFileSync(path.join(OUTPUT_DIR_ROOT, `index.html`), homeOutput, {
     encoding: "utf-8",
   });
 
-  search(shadersFunctions);
-});
-
-function search() {
-  const shadersFunctions = JSON.parse(
-    fs.readFileSync(`./outputs/search-info.json`, "utf-8"),
+  fs.mkdirSync(path.join(OUTPUT_DIR_ROOT, "public"), { recursive: true });
+  fs.copyFileSync(
+    "./styles.css",
+    path.join(OUTPUT_DIR_ROOT, "public", "styles.css"),
+  );
+  fs.copyFileSync(
+    "./favicon.ico",
+    path.join(OUTPUT_DIR_ROOT, "public", "favicon.ico"),
+  );
+  fs.copyFileSync(
+    "./templates/search-result.hbs",
+    path.join(OUTPUT_DIR_ROOT, "public", "search-result.hbs"),
+  );
+  fs.copyFileSync(
+    "./search.js",
+    path.join(OUTPUT_DIR_ROOT, "public", "search.js"),
   );
 
-  const fuseOptions = {
-    includeMatches: true,
-    useExtendedSearch: true,
-    includeScore: true,
-    keys: ["filename", "functions.name"],
-  };
-  const fuse = new Fuse(shadersFunctions, fuseOptions);
-
-  const searchPattern = "ndc";
-
-  console.log(JSON.stringify(fuse.search(searchPattern), null, 2));
-}
+  fs.copyFileSync("./serve.json", path.join(OUTPUT_DIR_ROOT, "serve.json"));
+});
