@@ -14,12 +14,7 @@ struct ShowPrepassSettings {
 @group(2) @binding(0) var<uniform> settings: ShowPrepassSettings;
 
 @fragment
-fn fragment(
-#ifdef MULTISAMPLED
-    @builtin(sample_index) sample_index: u32,
-#endif
-    mesh: VertexOutput,
-) -> @location(0) vec4<f32> {
+fn fragment(sample_index: u32, mesh: VertexOutput) -> @location(0) vec4<f32> {
 #ifndef MULTISAMPLED
     let sample_index = 0u;
 #endif
