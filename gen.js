@@ -271,7 +271,9 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
     const functions = shaderFunctions.functions.map((func) =>
       Object.assign(
         {
-          link: shaderFunctions.link,
+          link: shaderFunctions.link.startsWith("/")
+            ? shaderFunctions.link
+            : "/" + shaderFunctions.link,
           filename: shaderFunctions.filename,
         },
         func,
@@ -280,7 +282,9 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
     const structures = shaderFunctions.structures.map((struct) =>
       Object.assign(
         {
-          link: shaderFunctions.link,
+          link: shaderFunctions.link.startsWith("/")
+            ? shaderFunctions.link
+            : "/" + shaderFunctions.link,
           filename: shaderFunctions.filename,
         },
         struct,
