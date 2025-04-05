@@ -38,7 +38,7 @@ const HOME_DOC_TEMPLATE_SOURCE = fs.readFileSync(
 );
 
 const FUNCTION_PATTERN =
-  /(@[^;]*\s+)?(vertex|fragment|compute\s+)?fn\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)(\s*->\s*([^{]*))?/g;
+  /(@[^;]*\s+)?(vertex|fragment|compute\s+)?fn\s+([a-zA-Z0-9_]+)[\s\S]*?\{/g;
 const STRUCTURE_PATTERN = /struct\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{([^}]*)\}/g;
 const ANNOTATION_PATTERN =
   /(@[a-zA-Z0-9\(\)\-_]+)?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*([a-zA-Z0-9\[\]<>,]*)/;
@@ -156,27 +156,60 @@ function extractFunctions(normalizedCode, lineComments) {
   let match;
 
   while ((match = FUNCTION_PATTERN.exec(fullCode)) !== null) {
-    const attributes = match[1] ? match[1].trim() : "";
-    const name = match[3];
-    const params = match[4]
-      .split(",")
-      .map((param) => param.trim())
-      .filter((p) => p);
-    const returnType = match[6] ? match[6].trim() : "void";
+    const signature = match[0].replace("{", "").trim();
+
+    const stageAttribute =
+      signature.match(/@(vertex|fragment|compute)/)?.[1] ?? null;
+    const matchNameAndParams = signature.match(
+      signature.includes("->")
+        ? /fn\s+(\w+)\(([\s\S]+)?\)\s+->/
+        : /fn\s+(\w+)\(([\s\S]+)?\).*/,
+    );
+    const name = matchNameAndParams[1];
+    let rawParams = matchNameAndParams?.[2];
+
+    const defsMatches = rawParams
+      ? [...rawParams.matchAll(/#ifdef\s+(\w+)/g)]
+      : [];
+    const defs = defsMatches.map((match) => match[1]);
+    rawParams = rawParams
+      ?.replaceAll(/#ifdef\s+\w+/g, "")
+      ?.replaceAll("#endif", "")
+      ?.replaceAll("#else", "")
+      ?.replaceAll(/\s/g, "")
+      ?.trim();
+
+    const params =
+      rawParams
+        ?.split(",")
+        ?.filter(Boolean)
+        ?.map((v) => {
+          const match = v.match(/(@\w+\([^)]+\))?(\w+):(\w+)/);
+          return {
+            attr: match?.[1] ?? null,
+            name: match[2],
+            type: match[3],
+            typeLink: wgpuTypes?.[match[3].split("<")[0]] ?? null,
+          };
+        }) ?? [];
+    const returnType = signature.match(/->(.*)/)?.[1]?.trim() ?? null;
+
+    // console.log(stageAttribute, name, defs, params, returnType);
 
     const positionInCode = match.index;
     const codeBeforeMatch = fullCode.substring(0, positionInCode);
     const lineNumber = codeBeforeMatch.split("\n").length;
 
     const comments = getFunctionComments(lineNumber, lineComments);
-    const formattedParams = getFunctionParams(params);
 
-    const returnTypeLink = wgpuTypes?.[returnType.split("<")[0]] ?? null;
+    const returnTypeLink = returnType
+      ? (wgpuTypes?.[returnType.split("<")[0]] ?? null)
+      : null;
 
     functions.push({
-      attributes,
+      stageAttribute,
       name,
-      params: formattedParams,
+      params,
       returnType,
       returnTypeLink,
       comment: comments.join("\n"),
@@ -185,21 +218,6 @@ function extractFunctions(normalizedCode, lineComments) {
     lastFunctionLine = lineNumber;
   }
   return functions;
-}
-
-function getFunctionParams(params) {
-  return params.map((param) => {
-    const parts = param.split(":");
-
-    const type = parts[1].trim();
-    const maybeGenericType = type.split("<")[0];
-
-    return {
-      name: parts[0].trim(),
-      type,
-      typeLink: wgpuTypes?.[maybeGenericType] ?? null,
-    };
-  });
 }
 
 function getFunctionComments(lineNumber, lineComments) {
@@ -267,31 +285,35 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
   let searchInfo = [];
 
   for (const filePath of filePaths) {
-    const shaderFunctions = processWGSLFile(filePath);
-    const functions = shaderFunctions.functions.map((func) =>
-      Object.assign(
-        {
-          link: shaderFunctions.link.startsWith("/")
-            ? shaderFunctions.link
-            : "/" + shaderFunctions.link,
-          filename: shaderFunctions.filename,
-        },
-        func,
-      ),
-    );
-    const structures = shaderFunctions.structures.map((struct) =>
-      Object.assign(
-        {
-          link: shaderFunctions.link.startsWith("/")
-            ? shaderFunctions.link
-            : "/" + shaderFunctions.link,
-          filename: shaderFunctions.filename,
-        },
-        struct,
-      ),
-    );
-    searchInfo = searchInfo.concat(functions);
-    searchInfo = searchInfo.concat(structures);
+    try {
+      const shaderFunctions = processWGSLFile(filePath);
+      const functions = shaderFunctions.functions.map((func) =>
+        Object.assign(
+          {
+            link: shaderFunctions.link.startsWith("/")
+              ? shaderFunctions.link
+              : "/" + shaderFunctions.link,
+            filename: shaderFunctions.filename,
+          },
+          func,
+        ),
+      );
+      const structures = shaderFunctions.structures.map((struct) =>
+        Object.assign(
+          {
+            link: shaderFunctions.link.startsWith("/")
+              ? shaderFunctions.link
+              : "/" + shaderFunctions.link,
+            filename: shaderFunctions.filename,
+          },
+          struct,
+        ),
+      );
+      searchInfo = searchInfo.concat(functions);
+      searchInfo = searchInfo.concat(structures);
+    } catch (error) {
+      console.log(`Cannot build for ${filePath}, error: `, error);
+    }
   }
 
   const homeOutput = Handlebars.compile(HOME_DOC_TEMPLATE_SOURCE)({
