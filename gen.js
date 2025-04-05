@@ -217,13 +217,6 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
     );
   }
 
-  fs.mkdirSync(path.join(OUTPUT_DIR_ROOT, "public"), { recursive: true });
-  fs.writeFileSync(
-    path.join(OUTPUT_DIR_ROOT, "public", "search-info.json"),
-    JSON.stringify(shadersFunctions, null, 2),
-    "utf-8",
-  );
-
   const homeOutput = Handlebars.compile(HOME_DOC_TEMPLATE_SOURCE)({
     files: filePaths.map((v) => ({
       file: v.split("wgsls/").at(-1).replace(".wgsl", ".html"),
@@ -235,6 +228,11 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
   });
 
   fs.mkdirSync(path.join(OUTPUT_DIR_ROOT, "public"), { recursive: true });
+  fs.writeFileSync(
+    path.join(OUTPUT_DIR_ROOT, "public", "search-info.json"),
+    JSON.stringify(shadersFunctions, null, 2),
+    "utf-8",
+  );
   fs.copyFileSync(
     "./styles.css",
     path.join(OUTPUT_DIR_ROOT, "public", "styles.css"),

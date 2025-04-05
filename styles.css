@@ -130,3 +130,7 @@ h1 {
 .search-input::placeholder {
   color: #aaa;
 }
+.search-result-item {
+  list-style-type: "👉";
+  padding-inline-start: 1ch;
+}

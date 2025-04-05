@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "serve": "serve ./dist",
+    "build": "./gen.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
