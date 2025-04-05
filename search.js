@@ -5,7 +5,7 @@ const fuseOptions = {
 };
 
 async function loadTemplate() {
-  const response = await fetch("public/search-result.hbs");
+  const response = await fetch("/public/search-result.hbs");
   const templateSource = await response.text();
   const template = Handlebars.compile(templateSource);
   return template;

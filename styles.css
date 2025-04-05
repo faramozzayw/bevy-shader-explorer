@@ -12,12 +12,24 @@ body {
   color: #333;
   max-width: 1000px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 0px 20px;
   background-color: #f8f9fa;
 }
 header {
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+header div:first-child {
+  padding: 10px 10px;
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+header a {
+  display: flex;
+  gap: 5px;
   align-items: center;
 }
 h1 {
@@ -108,8 +120,16 @@ h1 {
 .param-type {
   color: #27ae60;
 }
+.img-link {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
 .return-type-val {
   color: #d35400;
+}
+.annotation {
+  color: #8d008d;
 }
 .search-input {
   width: 100%;

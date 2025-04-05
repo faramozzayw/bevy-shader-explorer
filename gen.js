@@ -20,6 +20,13 @@ Handlebars.registerHelper("code-highlight", function (text) {
     return `<code>${v}</code>`;
   });
 });
+Handlebars.registerHelper("contains", function (needle, haystack, options) {
+  return haystack.indexOf(needle) > -1
+    ? options.fn(this)
+    : options.inverse(this);
+});
+
+const GREP_WGSL = `grep -rl --include="*.wgsl" .`;
 
 const WGSL_DOC_TEMPLATE_SOURCE = fs.readFileSync(
   "./templates/wgsl-doc.hbs",
@@ -29,15 +36,19 @@ const HOME_DOC_TEMPLATE_SOURCE = fs.readFileSync(
   "./templates/home.hbs",
   "utf-8",
 );
+
 const FUNCTION_PATTERN =
   /(@[^;]*\s+)?(vertex|fragment|compute\s+)?fn\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)(\s*->\s*([^{]*))?/g;
+const STRUCTURE_PATTERN = /struct\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{([^}]*)\}/g;
+const ANNOTATION_PATTERN =
+  /(@[a-zA-Z0-9\(\)\-_]+)?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*([a-zA-Z0-9\[\]<>,]*)/;
+
 const OUTPUT_DIR_ROOT = "./dist";
 
-function extractWGSLFunctions(wgslCode) {
+function extractWGSLItems(wgslCode) {
   const normalizedCode = wgslCode.replace(/\r\n/g, "\n");
   const lines = normalizedCode.split("\n");
 
-  const functions = [];
   const lineComments = {};
 
   // First pass: collect comments
@@ -89,6 +100,57 @@ function extractWGSLFunctions(wgslCode) {
   }
 
   // Second pass: match functions and associate comments
+  const functions = extractFunctions(normalizedCode, lineComments);
+  const structures = extractStructures(normalizedCode);
+
+  return {
+    functions,
+    structures,
+  };
+}
+
+function extractStructures(normalizedCode) {
+  let match;
+  const structures = [];
+  let hasAnnotations = false;
+
+  while ((match = STRUCTURE_PATTERN.exec(normalizedCode)) !== null) {
+    const name = match[1];
+    const fieldsString = match[2].trim();
+    const fields = fieldsString
+      .split(",")
+      .map((field) => field.trim())
+      .filter(Boolean)
+      .map((field) => {
+        const annotationMatch = field.match(ANNOTATION_PATTERN);
+
+        if (annotationMatch) {
+          const annotation = annotationMatch[1] || "";
+          const name = annotationMatch[2];
+          const type = annotationMatch[3];
+          const typeLink = wgpuTypes?.[type.split("<")[0]] ?? null;
+
+          if (annotation) {
+            hasAnnotations = true;
+          }
+
+          return { annotation, name, type, typeLink };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    structures.push({
+      hasAnnotations,
+      name,
+      fields,
+    });
+  }
+  return structures;
+}
+
+function extractFunctions(normalizedCode, lineComments) {
+  const functions = [];
   let lastFunctionLine = -1;
   let fullCode = normalizedCode;
   let match;
@@ -122,7 +184,6 @@ function extractWGSLFunctions(wgslCode) {
 
     lastFunctionLine = lineNumber;
   }
-
   return functions;
 }
 
@@ -161,19 +222,23 @@ function getFunctionComments(lineNumber, lineComments) {
   return comments;
 }
 
-function generateFunctionDocsHTML(functions, filename) {
-  return Handlebars.compile(WGSL_DOC_TEMPLATE_SOURCE)({ functions, filename });
+function generateFunctionDocsHTML(params) {
+  return Handlebars.compile(WGSL_DOC_TEMPLATE_SOURCE)(params);
 }
 
 function processWGSLFile(wgslFilePath) {
   const wgslCode = fs.readFileSync(wgslFilePath, "utf-8");
-  const functions = extractWGSLFunctions(wgslCode);
+  const { functions, structures } = extractWGSLItems(wgslCode);
   const fileInfo = path.parse(wgslFilePath);
   const filename = fileInfo.base;
 
   const innerPath = fileInfo.dir.replace("wgsls", "").replace("wgsls/", "");
 
-  const output = generateFunctionDocsHTML(functions, filename);
+  const output = generateFunctionDocsHTML({
+    functions,
+    structures,
+    filename,
+  });
   const outputDir = path.join(OUTPUT_DIR_ROOT, innerPath);
   const outputPath = path.join(outputDir, `${fileInfo.name}.html`);
 
@@ -183,11 +248,10 @@ function processWGSLFile(wgslFilePath) {
   return {
     filename,
     functions,
+    structures,
     link: path.join(innerPath, `${fileInfo.name}.html`),
   };
 }
-
-const GREP_WGSL = `grep -rl --include="*.wgsl" .`;
 
 exec(GREP_WGSL, (error, stdout, stderr) => {
   if (error) {
@@ -200,21 +264,30 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
   }
 
   const filePaths = stdout.trim().split("\n");
-  let shadersFunctions = [];
+  let searchInfo = [];
 
   for (const filePath of filePaths) {
     const shaderFunctions = processWGSLFile(filePath);
-    shadersFunctions = shadersFunctions.concat(
-      shaderFunctions.functions.map((func) =>
-        Object.assign(
-          {
-            link: shaderFunctions.link,
-            filename: shaderFunctions.filename,
-          },
-          func,
-        ),
+    const functions = shaderFunctions.functions.map((func) =>
+      Object.assign(
+        {
+          link: shaderFunctions.link,
+          filename: shaderFunctions.filename,
+        },
+        func,
       ),
     );
+    const structures = shaderFunctions.structures.map((struct) =>
+      Object.assign(
+        {
+          link: shaderFunctions.link,
+          filename: shaderFunctions.filename,
+        },
+        struct,
+      ),
+    );
+    searchInfo = searchInfo.concat(functions);
+    searchInfo = searchInfo.concat(structures);
   }
 
   const homeOutput = Handlebars.compile(HOME_DOC_TEMPLATE_SOURCE)({
@@ -230,25 +303,25 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
   fs.mkdirSync(path.join(OUTPUT_DIR_ROOT, "public"), { recursive: true });
   fs.writeFileSync(
     path.join(OUTPUT_DIR_ROOT, "public", "search-info.json"),
-    JSON.stringify(shadersFunctions, null, 2),
+    JSON.stringify(searchInfo, null, 2),
     "utf-8",
   );
-  fs.copyFileSync(
-    "./styles.css",
-    path.join(OUTPUT_DIR_ROOT, "public", "styles.css"),
-  );
-  fs.copyFileSync(
-    "./favicon.ico",
-    path.join(OUTPUT_DIR_ROOT, "public", "favicon.ico"),
-  );
-  fs.copyFileSync(
+
+  const copyToPublic = [
+    "styles.css",
+    "favicon.ico",
+    "search.js",
+    "wgsl.png",
+    "github.png",
     "./templates/search-result.hbs",
-    path.join(OUTPUT_DIR_ROOT, "public", "search-result.hbs"),
-  );
-  fs.copyFileSync(
-    "./search.js",
-    path.join(OUTPUT_DIR_ROOT, "public", "search.js"),
-  );
+  ];
+
+  for (const file of copyToPublic) {
+    fs.copyFileSync(
+      file,
+      path.join(OUTPUT_DIR_ROOT, "public", path.basename(file)),
+    );
+  }
 
   fs.copyFileSync("./serve.json", path.join(OUTPUT_DIR_ROOT, "serve.json"));
 });

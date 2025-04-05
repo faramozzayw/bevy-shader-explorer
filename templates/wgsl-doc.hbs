@@ -7,7 +7,7 @@
     <script
       src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.min.js"
     ></script>
-    <script src="public/search.js" type="text/javascript"></script>
+    <script src="/public/search.js" type="text/javascript"></script>
 
     <link rel="stylesheet" href="/public/styles.css" />
     <link rel="icon" href="/public/favicon.ico" type="image/svg+xml" />
@@ -15,21 +15,91 @@
   <body>
 
     <header>
-      <a href="/">Back home</a>
-      <input
-        type="text"
-        id="search-input"
-        class="search-input"
-        placeholder="Search..."
-      />
+      <div>
+        <a href="/">Back home 🏡</a>
+        <a
+          href="https://www.w3.org/TR/WGSL"
+          target="_blank"
+          rel="noopener noreferrer"
+        >WGSL Spec <img src="/public/wgsl.png" width="20" height="20" /></a>
+        <a
+          href="https://github.com/bevyengine/bevy"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Bevy <img src="/public/github.png" width="20" height="20" /></a>
+        <input
+          type="text"
+          id="search-input"
+          class="search-input"
+          placeholder="Search... 🔍"
+        />
+      </div>
+      <div id="results"></div>
     </header>
-    <div id="results"></div>
 
     <h1><code>{{filename}}</code></h1>
 
-    <h3>Structures</h3>
+    {{#if structures.length}}
+      <h3>Structures</h3>
+    {{/if}}
 
-    <h3>Functions</h3>
+    {{#each structures}}
+      <div class="function">
+        <div class="function-header">
+          <div>
+            <h3 class="function-name" id="{{name}}">{{name}}</h3>
+            <a href="#{{name}}">#</a>
+          </div>
+
+        </div>
+
+        {{#if fields.length}}
+          <table class="params-table">
+            <thead>
+              <tr>
+                {{#if hasAnnotations}}<th>Annotation</th>{{/if}}
+                <th>Name</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#each fields}}
+                <tr>
+                  {{#if annotation.length}}
+                    <td class="annotation">
+                      {{annotation}}
+                    </td>
+                  {{/if}}
+                  <td>{{name}}</td>
+                  <td class="param-type param-type-table">
+                    {{#if typeLink}}
+                      <a
+                        href="{{typeLink}}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="param-type img-link"
+                      >
+                        {{type}}
+                        {{#contains "w3.org" typeLink}}
+                          <img src="/public/wgsl.png" width="20" height="20" />
+                        {{/contains}}
+                      </a>
+                    {{else}}
+                      {{type}}
+                    {{/if}}
+                  </td>
+                </tr>
+              {{/each}}
+            </tbody>
+          </table>
+        {{/if}}
+
+      </div>
+    {{/each}}
+
+    {{#if functions.length}}
+      <h3>Functions</h3>
+    {{/if}}
 
     {{#each functions}}
       <div class="function">
@@ -87,8 +157,13 @@
                         href="{{typeLink}}"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="param-type"
-                      >{{type}}</a>
+                        class="param-type img-link"
+                      >
+                        {{type}}
+                        {{#contains "w3.org" typeLink}}
+                          <img src="/public/wgsl.png" width="20" height="20" />
+                        {{/contains}}
+                      </a>
                     {{else}}
                       {{type}}
                     {{/if}}
@@ -106,8 +181,13 @@
                 href="{{returnTypeLink}}"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="return-type-val"
-              >{{returnType}}</a>
+                class="return-type-val img-link"
+              >
+                {{returnType}}
+                {{#contains "w3.org" returnTypeLink}}
+                  <img src="/public/wgsl.png" width="20" height="20" />
+                {{/contains}}
+              </a>
             {{else}}
               <span class="return-type-val">{{returnType}}</span>
             {{/if}}</div>
