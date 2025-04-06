@@ -103,7 +103,7 @@ function extractWGSLItems(wgslCode) {
 
   // Second pass: match functions and associate comments
   const functions = extractFunctions(normalizedCode, lineComments);
-  const structures = extractStructures(normalizedCode);
+  const structures = extractStructures(normalizedCode, lineComments);
 
   return {
     functions,
@@ -167,8 +167,9 @@ function parseTypesString(str) {
   return result;
 }
 
-function extractStructures(normalizedCode) {
+function extractStructures(normalizedCode, lineComments) {
   let match;
+  let fullCode = normalizedCode;
   const structures = [];
 
   while ((match = STRUCTURE_PATTERN.exec(normalizedCode)) !== null) {
@@ -176,10 +177,18 @@ function extractStructures(normalizedCode) {
     const fieldsString = match[2].trim().replaceAll(/\/{1,3}.*/g, "");
     const fields = parseTypesString(fieldsString);
 
+    const positionInCode = match.index;
+    const codeBeforeMatch = fullCode.substring(0, positionInCode);
+    const lineNumber = codeBeforeMatch.split("\n").length;
+
+    const comments = getFunctionComments(lineNumber, lineComments);
+
     structures.push({
       hasAnnotations: fields.some((v) => Boolean(v.annotation)),
       name,
       fields,
+      lineNumber,
+      comment: comments.join("\n"),
     });
   }
   return structures;
@@ -225,6 +234,7 @@ function extractFunctions(normalizedCode, lineComments) {
     functions.push({
       stageAttribute,
       name,
+      lineNumber,
       params,
       returnType,
       returnTypeLink,

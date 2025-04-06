@@ -58,9 +58,21 @@
               {{name}}
             </h3>
             <a href="#{{name}}">#</a>
+            <a
+              href="{{@root.githubLink}}#L{{lineNumber}}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img src="/public/github.png" width="20" height="20" />
+            </a>
           </div>
-
         </div>
+
+        {{#if comment}}
+          <div class="function-comment">{{{linkify
+              (code-highlight comment)
+            }}}</div>
+        {{/if}}
 
         {{#if fields.length}}
           <table class="params-table">
@@ -116,6 +128,13 @@
           <div>
             <h3 class="function-name" id="{{name}}">{{name}}</h3>
             <a href="#{{name}}">#</a>
+            <a
+              href="{{@root.githubLink}}#L{{lineNumber}}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img src="/public/github.png" width="20" height="20" />
+            </a>
           </div>
 
           {{#if stageAttribute}}
