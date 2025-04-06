@@ -2,8 +2,17 @@
   {{#each this}}
     <li class="search-result-item">
       <a class="function-name" href="{{link}}#{{name}}">{{name}}</a>
-      (from
-      <i>{{filename}}</i>)
+      <span>[
+        {{#if stageAttribute}}
+          <b>{{type}}</b>
+          <span
+            class="attribute-badge {{stageAttribute}}-badge"
+          >@{{stageAttribute}}</span>
+        {{else}}
+          <b>{{type}}</b>
+        {{/if}}]</span>
+
+      <span>(from <i>{{filename}}</i>)</span>
     </li>
   {{/each}}
 </ul>

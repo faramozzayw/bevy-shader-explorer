@@ -55,6 +55,7 @@ h1 {
 .function-header > div {
   display: flex;
   gap: 10px;
+  align-items: center;
 }
 .function-name {
   font-size: 1.2em;
@@ -110,6 +111,8 @@ h1 {
 .return-type {
   margin-top: 10px;
   font-style: italic;
+  gap: 5px;
+  display: flex;
 }
 .function-comment {
   background-color: #eafaf1;
@@ -165,4 +168,9 @@ h1 {
 .search-result-item {
   list-style-type: "👉";
   padding-inline-start: 1ch;
+  border-top: 1px dashed #444175;
+  width: 95%;
+}
+.search-result-item:first-child {
+  border-top: none;
 }

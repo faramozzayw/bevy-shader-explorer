@@ -1,7 +1,7 @@
 const fuseOptions = {
   includeMatches: true,
   useExtendedSearch: true,
-  keys: ["filename", "name", "comment"],
+  keys: ["filename", "name", "comment", "stageAttribute"],
 };
 
 async function loadTemplate() {

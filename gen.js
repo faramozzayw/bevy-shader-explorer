@@ -46,14 +46,25 @@ const STRUCTURE_PATTERN = /struct\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{([^}]*)\}/g;
 const TYPE_PATTERN_GLOBAL = /(@\w+\([^)]+\))?(\w+):\s+(\S+[^,]+)?/g;
 
 const OUTPUT_DIR_ROOT = "./dist";
+const PUBLIC_FOLDER = path.join(OUTPUT_DIR_ROOT, "public");
 
 function extractWGSLItems(wgslCode) {
   const normalizedCode = wgslCode.replace(/\r\n/g, "\n");
   const lines = normalizedCode.split("\n");
 
-  const lineComments = {};
+  const lineComments = getComments(lines);
 
-  // First pass: collect comments
+  const functions = extractFunctions(normalizedCode, lineComments);
+  const structures = extractStructures(normalizedCode, lineComments);
+
+  return {
+    functions,
+    structures,
+  };
+}
+
+function getComments(lines) {
+  const lineComments = {};
   let commentBuffer = [];
   let isCollectingComment = false;
 
@@ -100,15 +111,7 @@ function extractWGSLItems(wgslCode) {
       }
     }
   }
-
-  // Second pass: match functions and associate comments
-  const functions = extractFunctions(normalizedCode, lineComments);
-  const structures = extractStructures(normalizedCode, lineComments);
-
-  return {
-    functions,
-    structures,
-  };
+  return lineComments;
 }
 
 function splitParams(str) {
@@ -320,6 +323,7 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
               ? shaderFunctions.link
               : "/" + shaderFunctions.link,
             filename: shaderFunctions.filename,
+            type: "function",
           },
           func,
         ),
@@ -331,6 +335,7 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
               ? shaderFunctions.link
               : "/" + shaderFunctions.link,
             filename: shaderFunctions.filename,
+            type: "struct",
           },
           struct,
         ),
@@ -352,10 +357,10 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
     encoding: "utf-8",
   });
 
-  fs.mkdirSync(path.join(OUTPUT_DIR_ROOT, "public"), { recursive: true });
+  fs.mkdirSync(PUBLIC_FOLDER, { recursive: true });
   fs.writeFileSync(
-    path.join(OUTPUT_DIR_ROOT, "public", "search-info.json"),
-    JSON.stringify(searchInfo, null, 2),
+    path.join(PUBLIC_FOLDER, "search-info.json"),
+    JSON.stringify(searchInfo),
     "utf-8",
   );
 
@@ -369,10 +374,7 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
   ];
 
   for (const file of copyToPublic) {
-    fs.copyFileSync(
-      file,
-      path.join(OUTPUT_DIR_ROOT, "public", path.basename(file)),
-    );
+    fs.copyFileSync(file, path.join(PUBLIC_FOLDER, path.basename(file)));
   }
 
   fs.copyFileSync("./serve.json", path.join(OUTPUT_DIR_ROOT, "serve.json"));
