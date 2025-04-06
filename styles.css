@@ -148,7 +148,7 @@ h1 {
 }
 .search-input {
   width: 100%;
-  max-width: 600px;
+  max-width: 400px;
   padding: 10px 15px;
   border: 1px solid #ddd;
   border-radius: 5px;
@@ -173,4 +173,42 @@ h1 {
 }
 .search-result-item:first-child {
   border-top: none;
+}
+.importPath {
+  background-color: #ffffff;
+  padding: 15px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 25px;
+  max-width: max-content;
+}
+.importPath h3 {
+  font-size: 1.4em;
+  color: #2c3e50;
+  margin: 0;
+}
+.importPath button {
+  background-color: #3498db;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  font-size: 1em;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  cursor: pointer;
+  transition:
+    background-color 0.3s ease,
+    transform 0.2s ease;
+}
+.importPath button:hover {
+  background-color: #2980b9;
+  transform: scale(1.05);
+}
+.importPath button:focus {
+  outline: none;
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.6);
 }

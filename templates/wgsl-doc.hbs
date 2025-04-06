@@ -13,7 +13,6 @@
     <link rel="icon" href="/public/favicon.ico" type="image/svg+xml" />
   </head>
   <body>
-
     <header>
       <div>
         <a href="/" class="header-link">Back home 🏡</a>
@@ -29,6 +28,12 @@
           rel="noopener noreferrer"
           class="header-link"
         >Bevy <img src="/public/github.png" width="20" height="20" /></a>
+        <a
+          href="https://webgpufundamentals.org/webgpu/lessons/webgpu-wgsl-function-reference.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="header-link"
+        >WGSL Functions</a>
         <input
           type="text"
           id="search-input"
@@ -45,6 +50,16 @@
         <img src="/public/github.png" width="20" height="20" />
       </a>
     </h1>
+
+    {{#if importPath.length}}
+      <div class="importPath">
+        <h3>Import path</h3>
+        <button onclick="navigator.clipboard.writeText('{{importPath}}')">
+          {{importPath}}
+          <small>(click to copy)</small>
+        </button>
+      </div>
+    {{/if}}
 
     {{#if structures.length}}
       <h3>Structures</h3>

@@ -10,5 +10,6 @@
   "mat3x4": "https://www.w3.org/TR/WGSL/#mat3x4-builtin",
   "mat4x2": "https://www.w3.org/TR/WGSL/#mat4x2-builtin",
   "mat4x3": "https://www.w3.org/TR/WGSL/#mat4x3-builtin",
-  "mat4x4": "https://www.w3.org/TR/WGSL/#mat4x4-builtin"
+  "mat4x4": "https://www.w3.org/TR/WGSL/#mat4x4-builtin",
+  "ptr": "https://www.w3.org/TR/WGSL/#ref-ptr-types"
 }

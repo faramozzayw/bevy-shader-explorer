@@ -13,6 +13,9 @@
         {{/if}}]</span>
 
       <span>(from <i>{{filename}}</i>)</span>
+      {{#if exportable}}
+        <small>exportable</small>
+      {{/if}}
     </li>
   {{/each}}
 </ul>

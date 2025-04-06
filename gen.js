@@ -43,7 +43,6 @@ const HOME_DOC_TEMPLATE_SOURCE = fs.readFileSync(
 const FUNCTION_PATTERN =
   /(@[^;]*\s+)?(vertex|fragment|compute\s+)?\bfn\b\s+([a-zA-Z0-9_]+)[\s\S]*?\{/g;
 const STRUCTURE_PATTERN = /struct\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{([^}]*)\}/g;
-const TYPE_PATTERN_GLOBAL = /(@\w+\([^)]+\))?(\w+):\s+(\S+[^,]+)?/g;
 
 const OUTPUT_DIR_ROOT = "./dist";
 const PUBLIC_FOLDER = path.join(OUTPUT_DIR_ROOT, "public");
@@ -54,12 +53,16 @@ function extractWGSLItems(wgslCode) {
 
   const lineComments = getComments(lines);
 
+  const importPath =
+    normalizedCode.match(/#define_import_path\s+(.*)/)?.[1] ?? null;
+
   const functions = extractFunctions(normalizedCode, lineComments);
   const structures = extractStructures(normalizedCode, lineComments);
 
   return {
     functions,
     structures,
+    importPath,
   };
 }
 
@@ -275,13 +278,14 @@ function generateFunctionDocsHTML(params) {
 
 function processWGSLFile(wgslFilePath) {
   const wgslCode = fs.readFileSync(wgslFilePath, "utf-8");
-  const { functions, structures } = extractWGSLItems(wgslCode);
+  const { functions, structures, importPath } = extractWGSLItems(wgslCode);
   const { base: basename, name: filename, dir } = path.parse(wgslFilePath);
   const innerPath = path.relative(source, dir);
 
   const output = generateFunctionDocsHTML({
     functions,
     structures,
+    importPath,
     githubLink: new URL(path.join(innerPath, basename), bevyUrl).toString(),
     filename: basename,
   });
@@ -294,6 +298,7 @@ function processWGSLFile(wgslFilePath) {
   return {
     filename: basename,
     functions,
+    importPath,
     structures,
     link: path.join(innerPath, `${filename}.html`),
   };
@@ -323,6 +328,7 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
               ? shaderFunctions.link
               : "/" + shaderFunctions.link,
             filename: shaderFunctions.filename,
+            exportable: !!shaderFunctions.importPath,
             type: "function",
           },
           func,
@@ -335,6 +341,7 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
               ? shaderFunctions.link
               : "/" + shaderFunctions.link,
             filename: shaderFunctions.filename,
+            exportable: !!shaderFunctions.importPath,
             type: "struct",
           },
           struct,
