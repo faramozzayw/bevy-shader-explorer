@@ -4,7 +4,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { exec } = require("node:child_process");
 const Handlebars = require("handlebars");
-const { argv } = require("node:process");
 
 const wgpuTypes = JSON.parse(fs.readFileSync("./wgpu-types.json", "utf-8"));
 
@@ -42,8 +41,8 @@ const HOME_DOC_TEMPLATE_SOURCE = fs.readFileSync(
 const FUNCTION_PATTERN =
   /(@[^;]*\s+)?(vertex|fragment|compute\s+)?fn\s+([a-zA-Z0-9_]+)[\s\S]*?\{/g;
 const STRUCTURE_PATTERN = /struct\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{([^}]*)\}/g;
-const ANNOTATION_PATTERN =
-  /(@[a-zA-Z0-9\(\)\-_]+)?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*([a-zA-Z0-9\[\]<>,]*)/;
+const TYPE_PATTERN = /(@\w+\([^)]+\))?(\w+):(.*)/;
+const TYPE_PATTERN_GLOBAL = /(@\w+\([^)]+\))?(\w+):(.*)/g;
 
 const OUTPUT_DIR_ROOT = "./dist";
 
@@ -118,27 +117,23 @@ function extractStructures(normalizedCode) {
 
   while ((match = STRUCTURE_PATTERN.exec(normalizedCode)) !== null) {
     const name = match[1];
-    const fieldsString = match[2].trim();
-    const fields = fieldsString
-      .split(",")
-      .map((field) => field.trim())
-      .filter(Boolean)
-      .map((field) => {
-        const annotationMatch = field.match(ANNOTATION_PATTERN);
+    const fieldsString = match[2].trim().replaceAll(/\/{1,3}.*/g, "");
+    const fields = [...fieldsString.matchAll(TYPE_PATTERN_GLOBAL)]
+      .map((match) => {
+        const annotation = match?.[1]?.trim() ?? null;
 
-        if (annotationMatch) {
-          const annotation = annotationMatch[1] || "";
-          const name = annotationMatch[2];
-          const type = annotationMatch[3];
-          const typeLink = wgpuTypes?.[type.split("<")[0]] ?? null;
-
-          if (annotation) {
-            hasAnnotations = true;
-          }
-
-          return { annotation, name, type, typeLink };
+        if (annotation) {
+          hasAnnotations = true;
         }
-        return null;
+
+        const type = match[3].trim();
+
+        return {
+          annotation,
+          name: match[2].trim(),
+          type,
+          typeLink: wgpuTypes?.[type.split("<")[0]] ?? null,
+        };
       })
       .filter(Boolean);
 
@@ -186,7 +181,8 @@ function extractFunctions(normalizedCode, lineComments) {
         ?.split(",")
         ?.filter(Boolean)
         ?.map((v) => {
-          const match = v.match(/(@\w+\([^)]+\))?(\w+):(\w+)/);
+          const match = v.match(TYPE_PATTERN);
+
           return {
             attr: match?.[1] ?? null,
             name: match[2],
