@@ -39,10 +39,9 @@ const HOME_DOC_TEMPLATE_SOURCE = fs.readFileSync(
 );
 
 const FUNCTION_PATTERN =
-  /(@[^;]*\s+)?(vertex|fragment|compute\s+)?fn\s+([a-zA-Z0-9_]+)[\s\S]*?\{/g;
+  /(@[^;]*\s+)?(vertex|fragment|compute\s+)?\bfn\b\s+([a-zA-Z0-9_]+)[\s\S]*?\{/g;
 const STRUCTURE_PATTERN = /struct\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{([^}]*)\}/g;
-const TYPE_PATTERN = /(@\w+\([^)]+\))?(\w+):(.*)/;
-const TYPE_PATTERN_GLOBAL = /(@\w+\([^)]+\))?(\w+):(.*)/g;
+const TYPE_PATTERN_GLOBAL = /(@\w+\([^)]+\))?(\w+):\s+([^,]+)?/g;
 
 const OUTPUT_DIR_ROOT = "./dist";
 
@@ -173,26 +172,18 @@ function extractFunctions(normalizedCode, lineComments) {
       ?.replaceAll(/#ifdef\s+\w+/g, "")
       ?.replaceAll("#endif", "")
       ?.replaceAll("#else", "")
-      ?.replaceAll(/\s/g, "")
       ?.trim();
 
     const params =
-      rawParams
-        ?.split(",")
-        ?.filter(Boolean)
-        ?.map((v) => {
-          const match = v.match(TYPE_PATTERN);
-
-          return {
-            attr: match?.[1] ?? null,
-            name: match[2],
-            type: match[3],
-            typeLink: wgpuTypes?.[match[3].split("<")[0]] ?? null,
-          };
-        }) ?? [];
+      [...(rawParams ?? "").matchAll(TYPE_PATTERN_GLOBAL)]?.map((match) => {
+        return {
+          attr: match?.[1] ?? null,
+          name: match[2],
+          type: match[3],
+          typeLink: wgpuTypes?.[match[3].split("<")[0]] ?? null,
+        };
+      }) ?? [];
     const returnType = signature.match(/->(.*)/)?.[1]?.trim() ?? "void";
-
-    // console.log(stageAttribute, name, defs, params, returnType);
 
     const positionInCode = match.index;
     const codeBeforeMatch = fullCode.substring(0, positionInCode);
