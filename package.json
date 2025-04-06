@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "serve": "serve ./dist",
-    "build": "./gen.js --source ./wgsls/"
+    "build": "./gen.js --source ./wgsls/",
+    "clone-bevy": "[ ! -d \"bevy\" ] && git clone  --depth=1 git@github.com:bevyengine/bevy.git && rm -rf ./bevy/.git || true",
+    "build-bevy": "npm run clone-bevy && ./gen.js --source ./bevy/"
   },
   "keywords": [],
   "author": "",
