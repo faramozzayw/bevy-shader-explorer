@@ -61,6 +61,52 @@
       </div>
     {{/if}}
 
+    {{#if consts.length}}
+      <h3>Constants</h3>
+    {{/if}}
+
+    {{#if consts.length}}
+      <div class="function">
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+
+          {{#each consts}}
+            <tbody>
+              <tr>
+                <td>{{name}}
+                  <a href="#{{name}}">#</a>
+                </td>
+                <td class="param-type param-type-table">
+                  {{#if typeLink}}
+                    <a
+                      href="{{typeLink}}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="param-type img-link"
+                    >
+                      {{type}}
+                      {{#contains "w3.org" typeLink}}
+                        <img src="/public/wgsl.png" width="20" height="20" />
+                      {{/contains}}
+                    </a>
+                  {{else}}
+                    {{type}}
+                  {{/if}}
+                </td>
+                <td>{{value}}</td>
+              </tr>
+            </tbody>
+          {{/each}}
+        </table>
+      </div>
+    {{/if}}
+
     {{#if structures.length}}
       <h3>Structures</h3>
     {{/if}}

@@ -43,6 +43,7 @@ const HOME_DOC_TEMPLATE_SOURCE = fs.readFileSync(
 const FUNCTION_PATTERN =
   /(@[^;]*\s+)?(vertex|fragment|compute\s+)?\bfn\b\s+([a-zA-Z0-9_]+)[\s\S]*?\{/g;
 const STRUCTURE_PATTERN = /struct\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{([^}]*)\}/g;
+const CONST_PATTERN = /const\s+(\w+)\s{0,}(?::\s{0,}(.*))?=\s+(.*);/g;
 
 const OUTPUT_DIR_ROOT = "./dist";
 const PUBLIC_FOLDER = path.join(OUTPUT_DIR_ROOT, "public");
@@ -56,14 +57,27 @@ function extractWGSLItems(wgslCode) {
   const importPath =
     normalizedCode.match(/#define_import_path\s+(.*)/)?.[1] ?? null;
 
+  const consts = extractConsts(normalizedCode);
   const functions = extractFunctions(normalizedCode, lineComments);
   const structures = extractStructures(normalizedCode, lineComments);
 
   return {
+    consts,
     functions,
     structures,
     importPath,
   };
+}
+
+function extractConsts(normalizedCode) {
+  return [...normalizedCode.matchAll(CONST_PATTERN)].map((match) => {
+    return {
+      name: match[1],
+      type: match?.[2] ?? null,
+      value: match[3],
+      typeLink: wgpuTypes?.[match[2]?.trim()?.split("<")?.[0]] ?? null,
+    };
+  });
 }
 
 function getComments(lines) {
@@ -278,7 +292,8 @@ function generateFunctionDocsHTML(params) {
 
 function processWGSLFile(wgslFilePath) {
   const wgslCode = fs.readFileSync(wgslFilePath, "utf-8");
-  const { functions, structures, importPath } = extractWGSLItems(wgslCode);
+  const { functions, structures, consts, importPath } =
+    extractWGSLItems(wgslCode);
   const { base: basename, name: filename, dir } = path.parse(wgslFilePath);
   const innerPath = path.relative(source, dir);
 
@@ -286,6 +301,7 @@ function processWGSLFile(wgslFilePath) {
     functions,
     structures,
     importPath,
+    consts,
     githubLink: new URL(path.join(innerPath, basename), bevyUrl).toString(),
     filename: basename,
   });
@@ -300,6 +316,7 @@ function processWGSLFile(wgslFilePath) {
     functions,
     importPath,
     structures,
+    consts,
     link: path.join(innerPath, `${filename}.html`),
   };
 }
@@ -347,8 +364,18 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
           struct,
         ),
       );
+      const consts = shaderFunctions.consts.map((wgslConst) => ({
+        link: shaderFunctions.link.startsWith("/")
+          ? shaderFunctions.link
+          : "/" + shaderFunctions.link,
+        filename: shaderFunctions.filename,
+        exportable: !!shaderFunctions.importPath,
+        type: "const",
+        name: wgslConst.name,
+      }));
       searchInfo = searchInfo.concat(functions);
       searchInfo = searchInfo.concat(structures);
+      searchInfo = searchInfo.concat(consts);
     } catch (error) {
       console.log(`Cannot build for ${filePath}, error: `, error);
     }
