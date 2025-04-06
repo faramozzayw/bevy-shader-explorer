@@ -44,7 +44,7 @@ h1 {
   padding: 15px;
   margin-bottom: 20px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  overflow: scroll;
+  overflow: auto;
 }
 .function-header {
   display: flex;
@@ -76,6 +76,15 @@ h1 {
   padding: 3px 8px;
   border-radius: 3px;
   margin-right: 5px;
+}
+.fragment-badge {
+  background-color: #800080;
+}
+.vertex-badge {
+  background-color: #32cd32;
+}
+.compute-badge {
+  background-color: #1e90ff;
 }
 .signature {
   font-family: monospace;

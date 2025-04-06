@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { exec } = require("node:child_process");
 const Handlebars = require("handlebars");
+const { argv } = require("node:process");
 
 const wgpuTypes = JSON.parse(fs.readFileSync("./wgpu-types.json", "utf-8"));
 
@@ -26,7 +27,8 @@ Handlebars.registerHelper("contains", function (needle, haystack, options) {
     : options.inverse(this);
 });
 
-const GREP_WGSL = `grep -rl --include="*.wgsl" .`;
+const { source } = require("minimist")(process.argv.slice(2));
+const GREP_WGSL = `find ${source} -type f  -name "*.wgsl"`;
 
 const WGSL_DOC_TEMPLATE_SOURCE = fs.readFileSync(
   "./templates/wgsl-doc.hbs",
@@ -192,7 +194,7 @@ function extractFunctions(normalizedCode, lineComments) {
             typeLink: wgpuTypes?.[match[3].split("<")[0]] ?? null,
           };
         }) ?? [];
-    const returnType = signature.match(/->(.*)/)?.[1]?.trim() ?? null;
+    const returnType = signature.match(/->(.*)/)?.[1]?.trim() ?? "void";
 
     // console.log(stageAttribute, name, defs, params, returnType);
 
@@ -247,30 +249,29 @@ function generateFunctionDocsHTML(params) {
 function processWGSLFile(wgslFilePath) {
   const wgslCode = fs.readFileSync(wgslFilePath, "utf-8");
   const { functions, structures } = extractWGSLItems(wgslCode);
-  const fileInfo = path.parse(wgslFilePath);
-  const filename = fileInfo.base;
-
-  const innerPath = fileInfo.dir.replace("wgsls", "").replace("wgsls/", "");
+  const { base: basename, name: filename, dir } = path.parse(wgslFilePath);
+  const innerPath = path.relative(source, dir);
 
   const output = generateFunctionDocsHTML({
     functions,
     structures,
-    filename,
+    filename: basename,
   });
   const outputDir = path.join(OUTPUT_DIR_ROOT, innerPath);
-  const outputPath = path.join(outputDir, `${fileInfo.name}.html`);
+  const outputPath = path.join(outputDir, `${filename}.html`);
 
   fs.mkdirSync(outputDir, { recursive: true });
   fs.writeFileSync(outputPath, output, "utf-8");
 
   return {
-    filename,
+    filename: basename,
     functions,
     structures,
-    link: path.join(innerPath, `${fileInfo.name}.html`),
+    link: path.join(innerPath, `${filename}.html`),
   };
 }
 
+// entrypoint
 exec(GREP_WGSL, (error, stdout, stderr) => {
   if (error) {
     console.error(`❌ Error: ${error.message}`);
@@ -318,7 +319,7 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
 
   const homeOutput = Handlebars.compile(HOME_DOC_TEMPLATE_SOURCE)({
     files: filePaths.map((v) => ({
-      file: v.split("wgsls/").at(-1).replace(".wgsl", ".html"),
+      file: path.relative(source, v).replace(".wgsl", ".html"),
     })),
   });
 
@@ -339,7 +340,7 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
     "search.js",
     "wgsl.png",
     "github.png",
-    "./templates/search-result.hbs",
+    "templates/search-result.hbs",
   ];
 
   for (const file of copyToPublic) {
