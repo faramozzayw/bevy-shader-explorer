@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "serve": "serve ./dist",
-    "clone-bevy": "[ ! -d \"bevy\" ] && git clone  --depth=1 https://github.com/bevyengine/bevy.git && rm -rf ./bevy/.git || true",
+    "clean": "rm -rf ./bevy && rm -rf ./dist",
+    "clone-bevy": "[ ! -d \"bevy\" ] && git clone --branch release-0.15.3 --depth=1 https://github.com/bevyengine/bevy.git && rm -rf ./bevy/.git || true",
     "build-bevy": "npm run clone-bevy && ./gen.js --source ./bevy/"
   },
   "keywords": [],

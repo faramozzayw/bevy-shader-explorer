@@ -39,7 +39,12 @@
       <div id="results"></div>
     </header>
 
-    <h1><code>{{filename}}</code></h1>
+    <h1>
+      <code>{{filename}}</code>
+      <a href="{{githubLink}}" target="_blank" rel="noopener noreferrer">
+        <img src="/public/github.png" width="20" height="20" />
+      </a>
+    </h1>
 
     {{#if structures.length}}
       <h3>Structures</h3>
@@ -49,7 +54,9 @@
       <div class="function">
         <div class="function-header">
           <div>
-            <h3 class="function-name" id="{{name}}">{{name}}</h3>
+            <h3 class="function-name" id="{{name}}">
+              {{name}}
+            </h3>
             <a href="#{{name}}">#</a>
           </div>
 

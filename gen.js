@@ -5,6 +5,8 @@ const path = require("node:path");
 const { exec } = require("node:child_process");
 const Handlebars = require("handlebars");
 
+const CURRENT_VERSION = "release-0.15.3";
+const bevyUrl = `https://github.com/bevyengine/bevy/tree/${CURRENT_VERSION}/`;
 const wgpuTypes = JSON.parse(fs.readFileSync("./wgpu-types.json", "utf-8"));
 
 Handlebars.registerHelper("eq", (a, b) => a === b);
@@ -267,6 +269,7 @@ function processWGSLFile(wgslFilePath) {
   const output = generateFunctionDocsHTML({
     functions,
     structures,
+    githubLink: new URL(path.join(innerPath, basename), bevyUrl).toString(),
     filename: basename,
   });
   const outputDir = path.join(OUTPUT_DIR_ROOT, innerPath);
