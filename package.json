@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "serve": "serve ./dist",
-    "build": "./gen.js"
+    "build": "./gen.js --source ./wgsls/"
   },
   "keywords": [],
   "author": "",
