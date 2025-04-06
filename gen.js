@@ -41,7 +41,7 @@ const HOME_DOC_TEMPLATE_SOURCE = fs.readFileSync(
 const FUNCTION_PATTERN =
   /(@[^;]*\s+)?(vertex|fragment|compute\s+)?\bfn\b\s+([a-zA-Z0-9_]+)[\s\S]*?\{/g;
 const STRUCTURE_PATTERN = /struct\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{([^}]*)\}/g;
-const TYPE_PATTERN_GLOBAL = /(@\w+\([^)]+\))?(\w+):\s+([^,]+)?/g;
+const TYPE_PATTERN_GLOBAL = /(@\w+\([^)]+\))?(\w+):\s+(\S+[^,]+)?/g;
 
 const OUTPUT_DIR_ROOT = "./dist";
 
@@ -109,35 +109,73 @@ function extractWGSLItems(wgslCode) {
   };
 }
 
+function splitParams(str) {
+  if (!str) return [];
+
+  const parts = [];
+  let current = "";
+  let depth = 0;
+
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+
+    if (char === "<") depth++;
+    else if (char === ">") depth--;
+    else if (char === "," && depth === 0) {
+      parts.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (current.trim()) parts.push(current.trim());
+  return parts;
+}
+
+function parseTypesString(str) {
+  if (!str) return [];
+
+  str = str
+    ?.replaceAll(/#ifdef\s+\w+/g, "")
+    ?.replaceAll("#endif", "")
+    ?.replaceAll("#else", "")
+    ?.replaceAll(/\n/g, "")
+    ?.trim();
+
+  const entries = splitParams(str);
+  const result = [];
+
+  const regex = /^(?:@([^\s]+)\s+)?([a-zA-Z_]\w*):(.+)$/;
+
+  for (const entry of entries) {
+    const match = entry.match(regex);
+    if (!match) continue;
+    const [, annotation, name, type] = match;
+
+    result.push({
+      annotation: annotation ?? null,
+      name,
+      type: type.trim(),
+      typeLink: wgpuTypes?.[type.trim().split("<")[0]] ?? null,
+    });
+  }
+
+  return result;
+}
+
 function extractStructures(normalizedCode) {
   let match;
   const structures = [];
-  let hasAnnotations = false;
 
   while ((match = STRUCTURE_PATTERN.exec(normalizedCode)) !== null) {
     const name = match[1];
     const fieldsString = match[2].trim().replaceAll(/\/{1,3}.*/g, "");
-    const fields = [...fieldsString.matchAll(TYPE_PATTERN_GLOBAL)]
-      .map((match) => {
-        const annotation = match?.[1]?.trim() ?? null;
-
-        if (annotation) {
-          hasAnnotations = true;
-        }
-
-        const type = match[3].trim();
-
-        return {
-          annotation,
-          name: match[2].trim(),
-          type,
-          typeLink: wgpuTypes?.[type.split("<")[0]] ?? null,
-        };
-      })
-      .filter(Boolean);
+    const fields = parseTypesString(fieldsString);
 
     structures.push({
-      hasAnnotations,
+      hasAnnotations: fields.some((v) => Boolean(v.annotation)),
       name,
       fields,
     });
@@ -158,8 +196,8 @@ function extractFunctions(normalizedCode, lineComments) {
       signature.match(/@(vertex|fragment|compute)/)?.[1] ?? null;
     const matchNameAndParams = signature.match(
       signature.includes("->")
-        ? /fn\s+(\w+)\(([\s\S]+)?\)\s+->/
-        : /fn\s+(\w+)\(([\s\S]+)?\).*/,
+        ? /\bfn\b\s+(\w+)\(([\s\S]+)?\)\s+->/
+        : /\bfn\b\s+(\w+)\(([\s\S]+)?\).*/,
     );
     const name = matchNameAndParams[1];
     let rawParams = matchNameAndParams?.[2];
@@ -168,21 +206,8 @@ function extractFunctions(normalizedCode, lineComments) {
       ? [...rawParams.matchAll(/#ifdef\s+(\w+)/g)]
       : [];
     const defs = defsMatches.map((match) => match[1]);
-    rawParams = rawParams
-      ?.replaceAll(/#ifdef\s+\w+/g, "")
-      ?.replaceAll("#endif", "")
-      ?.replaceAll("#else", "")
-      ?.trim();
 
-    const params =
-      [...(rawParams ?? "").matchAll(TYPE_PATTERN_GLOBAL)]?.map((match) => {
-        return {
-          attr: match?.[1] ?? null,
-          name: match[2],
-          type: match[3],
-          typeLink: wgpuTypes?.[match[3].split("<")[0]] ?? null,
-        };
-      }) ?? [];
+    const params = parseTypesString(rawParams);
     const returnType = signature.match(/->(.*)/)?.[1]?.trim() ?? "void";
 
     const positionInCode = match.index;

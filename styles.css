@@ -135,6 +135,7 @@ h1 {
   display: flex;
   gap: 5px;
   align-items: center;
+  width: max-content;
 }
 .return-type-val {
   color: #d35400;
