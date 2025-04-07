@@ -165,6 +165,10 @@ function getTypeLink(type) {
   return wgpuTypes?.[type.trim().split("<")[0]] ?? null;
 }
 
+function normalizeLink(link) {
+  return link.startsWith("/") ? link : "/" + link;
+}
+
 /**
  * @param str {string}
  */
@@ -398,45 +402,47 @@ exec(GREP_WGSL, (error, stdout, stderr) => {
 
   for (const filePath of filePaths) {
     try {
-      const shaderFunctions = processWGSLFile(filePath);
-      const functions = shaderFunctions.functions.map((func) =>
-        Object.assign(
-          {
-            link: shaderFunctions.link.startsWith("/")
-              ? shaderFunctions.link
-              : "/" + shaderFunctions.link,
-            filename: shaderFunctions.filename,
-            exportable: !!shaderFunctions.importPath,
-            type: "function",
-          },
-          func,
-        ),
+      const {
+        importPath,
+        filename,
+        link: baseLink,
+        ...shaderFunctions
+      } = processWGSLFile(filePath);
+      const common = {
+        link: normalizeLink(baseLink),
+        filename,
+        exportable: !!importPath,
+      };
+
+      const functions = shaderFunctions.functions.map(
+        ({ name, stageAttribute, comment }) => ({
+          ...common,
+          name,
+          stageAttribute,
+          comment,
+          type: "function",
+        }),
       );
-      const structures = shaderFunctions.structures.map((struct) =>
-        Object.assign(
-          {
-            link: shaderFunctions.link.startsWith("/")
-              ? shaderFunctions.link
-              : "/" + shaderFunctions.link,
-            filename: shaderFunctions.filename,
-            exportable: !!shaderFunctions.importPath,
-            type: "struct",
-          },
-          struct,
-        ),
-      );
-      const consts = shaderFunctions.consts.map((wgslConst) => ({
-        link: shaderFunctions.link.startsWith("/")
-          ? shaderFunctions.link
-          : "/" + shaderFunctions.link,
-        filename: shaderFunctions.filename,
-        exportable: !!shaderFunctions.importPath,
-        type: "const",
-        name: wgslConst.name,
+      const structures = shaderFunctions.structures.map(({ name }) => ({
+        ...common,
+        name,
+        type: "struct",
       }));
-      searchInfo = searchInfo.concat(functions);
-      searchInfo = searchInfo.concat(structures);
-      searchInfo = searchInfo.concat(consts);
+      const consts = shaderFunctions.consts.map(({ name }) => ({
+        ...common,
+        name,
+        type: "const",
+      }));
+      const bindings = shaderFunctions.bindings.map(({ name }) => ({
+        ...common,
+        type: "binding",
+        name,
+      }));
+      searchInfo = searchInfo
+        .concat(functions)
+        .concat(structures)
+        .concat(consts)
+        .concat(bindings);
     } catch (error) {
       console.log(`Cannot build for ${filePath}, error: `, error);
     }

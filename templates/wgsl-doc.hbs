@@ -164,7 +164,7 @@
                     {{type}}
                   {{/if}}
                 </td>
- 
+
               </tr>
             </tbody>
           {{/each}}
@@ -280,16 +280,12 @@
 
         <div class="signature">
           <span class="kw">{{#if visibility}}{{visibility}} {{/if}}fn</span>
-          <span class="fn-name">{{name}}</span>(
-          <span>
-            {{#each params}}
-              <span class="param-name">{{name}}</span>{{#if type}}:
+          <span class="fn-name">{{name}}</span>(<span>{{#each params}}<span
+                class="param-name"
+              >{{name}}</span>{{#if type}}:
                 <span class="param-type">{{type}}</span>{{/if}}{{#unless
                 @last
-              }}, {{/unless}}
-            {{/each}}
-          </span>
-          )
+              }}, {{/unless}}{{/each}}</span>)
           {{#if (neq returnType "void")}}
             ->
             <span class="return-type-val">{{returnType}}</span>{{/if}}

@@ -1,7 +1,7 @@
 const fuseOptions = {
   includeMatches: true,
   useExtendedSearch: true,
-  keys: ["filename", "name", "comment", "stageAttribute"],
+  keys: ["filename", "name", "comment", "stageAttribute", "type"],
 };
 
 const currentUrl = new URL(window.location);
