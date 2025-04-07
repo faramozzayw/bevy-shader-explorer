@@ -44,6 +44,12 @@ const FUNCTION_PATTERN =
   /(@[^;]*\s+)?(vertex|fragment|compute\s+)?\bfn\b\s+([a-zA-Z0-9_]+)[\s\S]*?\{/g;
 const STRUCTURE_PATTERN = /struct\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{([^}]*)\}/g;
 const CONST_PATTERN = /const\s+(\w+)\s{0,}(?::\s{0,}(.*))?=\s+(.*);/g;
+const TYPES_STRING_PATTERN = /^(?:@([^\s]+)\s+)?([a-zA-Z_]\w*):(.+)$/;
+const FUNCTION_SIG_WITH_RET_TYPE_PATTERN = /\bfn\b\s+(\w+)\(([\s\S]+)?\)\s+->/;
+const FUNCTION_SIG_WITHOUT_RET_TYPE_PATTERN = /\bfn\b\s+(\w+)\(([\s\S]+)?\).*/;
+// @see https://regex101.com/r/grsB5b/1
+const BINDING_PATTERN =
+  /@group\((\d+)\)\s{0,}@binding\((\d+)\)\s{0,}var\s{0,}(?:(<.*?>))?\s{0,}(\w+):\s{0,}(.*);/g;
 
 const OUTPUT_DIR_ROOT = "./dist";
 const PUBLIC_FOLDER = path.join(OUTPUT_DIR_ROOT, "public");
@@ -52,35 +58,21 @@ function extractWGSLItems(wgslCode) {
   const normalizedCode = wgslCode.replace(/\r\n/g, "\n");
   const lines = normalizedCode.split("\n");
 
-  const lineComments = getComments(lines);
+  const lineComments = extractComments(lines);
 
   const importPath =
     normalizedCode.match(/#define_import_path\s+(.*)/)?.[1] ?? null;
 
-  const consts = extractConsts(normalizedCode);
-  const functions = extractFunctions(normalizedCode, lineComments);
-  const structures = extractStructures(normalizedCode, lineComments);
-
   return {
-    consts,
-    functions,
-    structures,
+    consts: extractConsts(normalizedCode),
+    bindings: extractBindings(normalizedCode),
+    functions: extractFunctions(normalizedCode, lineComments),
+    structures: extractStructures(normalizedCode, lineComments),
     importPath,
   };
 }
 
-function extractConsts(normalizedCode) {
-  return [...normalizedCode.matchAll(CONST_PATTERN)].map((match) => {
-    return {
-      name: match[1],
-      type: match?.[2] ?? null,
-      value: match[3],
-      typeLink: wgpuTypes?.[match[2]?.trim()?.split("<")?.[0]] ?? null,
-    };
-  });
-}
-
-function getComments(lines) {
+function extractComments(lines) {
   const lineComments = {};
   let commentBuffer = [];
   let isCollectingComment = false;
@@ -131,6 +123,14 @@ function getComments(lines) {
   return lineComments;
 }
 
+function removePath(str) {
+  return str?.trim()?.split("::")?.at(-1) ?? "";
+}
+
+/**
+ * @param str {string}
+ */
+
 function splitParams(str) {
   if (!str) return [];
 
@@ -156,6 +156,18 @@ function splitParams(str) {
   return parts;
 }
 
+function getLineNumber(fullCode, matchIndex) {
+  const codeBeforeMatch = fullCode.substring(0, matchIndex);
+  return codeBeforeMatch.split("\n").length;
+}
+
+function getTypeLink(type) {
+  return wgpuTypes?.[type.trim().split("<")[0]] ?? null;
+}
+
+/**
+ * @param str {string}
+ */
 function parseTypesString(str) {
   if (!str) return [];
 
@@ -169,24 +181,85 @@ function parseTypesString(str) {
   const entries = splitParams(str);
   const result = [];
 
-  const regex = /^(?:@([^\s]+)\s+)?([a-zA-Z_]\w*):(.+)$/;
-
   for (const entry of entries) {
-    const match = entry.match(regex);
+    const match = entry.match(TYPES_STRING_PATTERN);
     if (!match) continue;
-    const [, annotation, name, type] = match;
+    let [, annotation, name, type] = match;
+    type = removePath(type);
 
     result.push({
       annotation: annotation ?? null,
       name,
-      type: type.trim(),
-      typeLink: wgpuTypes?.[type.trim().split("<")[0]] ?? null,
+      type: type,
+      typeLink: getTypeLink(type),
     });
   }
 
   return result;
 }
 
+/**
+ * @param normalizedCode {string}
+ */
+function extractBindings(normalizedCode) {
+  let fullCode = normalizedCode;
+
+  return [...normalizedCode.matchAll(BINDING_PATTERN)].map((match) => {
+    let [_, groupIndex, bindingIndex, bindingType, name, type] = match;
+    const lineNumber = getLineNumber(fullCode, match.index);
+    type = removePath(type);
+
+    return {
+      lineNumber,
+      name,
+      groupIndex,
+      bindingIndex,
+      bindingType,
+      type,
+      typeLink: getTypeLink(type),
+    };
+  });
+}
+
+/**
+ * @param normalizedCode {string}
+ */
+
+function extractConsts(normalizedCode) {
+  let fullCode = normalizedCode;
+
+  return [...normalizedCode.matchAll(CONST_PATTERN)].map((match) => {
+    const lineNumber = getLineNumber(fullCode, match.index);
+    let [, name, type, value] = match;
+
+    if (!type) {
+      const vecRegex = /(vec\d(?:<.*>))/;
+      if (/^\d+\.\d+/.test(value)) {
+        type = "AbstractFloat";
+      } else if (vecRegex.test(value)) {
+        type = value.match(vecRegex)[1];
+      } else if (/\d+u$/.test(value)) {
+        type = "u32";
+      } else if (/\d+$/.test(value)) {
+        type = "AbstractInt";
+      }
+    }
+    type = removePath(type);
+
+    return {
+      lineNumber,
+      name,
+      type,
+      value,
+      typeLink: getTypeLink(type),
+    };
+  });
+}
+
+/**
+ * @param normalizedCode {string}
+ * @param lineComments {}
+ */
 function extractStructures(normalizedCode, lineComments) {
   let match;
   let fullCode = normalizedCode;
@@ -196,12 +269,8 @@ function extractStructures(normalizedCode, lineComments) {
     const name = match[1];
     const fieldsString = match[2].trim().replaceAll(/\/{1,3}.*/g, "");
     const fields = parseTypesString(fieldsString);
-
-    const positionInCode = match.index;
-    const codeBeforeMatch = fullCode.substring(0, positionInCode);
-    const lineNumber = codeBeforeMatch.split("\n").length;
-
-    const comments = getFunctionComments(lineNumber, lineComments);
+    const lineNumber = getLineNumber(fullCode, match.index);
+    const comments = getItemComments(lineNumber, lineComments);
 
     structures.push({
       hasAnnotations: fields.some((v) => Boolean(v.annotation)),
@@ -214,6 +283,9 @@ function extractStructures(normalizedCode, lineComments) {
   return structures;
 }
 
+/**
+ * @param normalizedCode {string}
+ */
 function extractFunctions(normalizedCode, lineComments) {
   const functions = [];
   let lastFunctionLine = -1;
@@ -227,8 +299,8 @@ function extractFunctions(normalizedCode, lineComments) {
       signature.match(/@(vertex|fragment|compute)/)?.[1] ?? null;
     const matchNameAndParams = signature.match(
       signature.includes("->")
-        ? /\bfn\b\s+(\w+)\(([\s\S]+)?\)\s+->/
-        : /\bfn\b\s+(\w+)\(([\s\S]+)?\).*/,
+        ? FUNCTION_SIG_WITH_RET_TYPE_PATTERN
+        : FUNCTION_SIG_WITHOUT_RET_TYPE_PATTERN,
     );
     const name = matchNameAndParams[1];
     let rawParams = matchNameAndParams?.[2];
@@ -240,12 +312,8 @@ function extractFunctions(normalizedCode, lineComments) {
 
     const params = parseTypesString(rawParams);
     const returnType = signature.match(/->(.*)/)?.[1]?.trim() ?? "void";
-
-    const positionInCode = match.index;
-    const codeBeforeMatch = fullCode.substring(0, positionInCode);
-    const lineNumber = codeBeforeMatch.split("\n").length;
-
-    const comments = getFunctionComments(lineNumber, lineComments);
+    const lineNumber = getLineNumber(fullCode, match.index);
+    const comments = getItemComments(lineNumber, lineComments);
 
     const returnTypeLink = returnType
       ? (wgpuTypes?.[returnType.split("<")[0]] ?? null)
@@ -266,7 +334,7 @@ function extractFunctions(normalizedCode, lineComments) {
   return functions;
 }
 
-function getFunctionComments(lineNumber, lineComments) {
+function getItemComments(lineNumber, lineComments) {
   let comments = [];
   let currentLine = lineNumber;
 
@@ -292,16 +360,12 @@ function generateFunctionDocsHTML(params) {
 
 function processWGSLFile(wgslFilePath) {
   const wgslCode = fs.readFileSync(wgslFilePath, "utf-8");
-  const { functions, structures, consts, importPath } =
-    extractWGSLItems(wgslCode);
+  const items = extractWGSLItems(wgslCode);
   const { base: basename, name: filename, dir } = path.parse(wgslFilePath);
   const innerPath = path.relative(source, dir);
 
   const output = generateFunctionDocsHTML({
-    functions,
-    structures,
-    importPath,
-    consts,
+    ...items,
     githubLink: new URL(path.join(innerPath, basename), bevyUrl).toString(),
     filename: basename,
   });
@@ -312,11 +376,8 @@ function processWGSLFile(wgslFilePath) {
   fs.writeFileSync(outputPath, output, "utf-8");
 
   return {
+    ...items,
     filename: basename,
-    functions,
-    importPath,
-    structures,
-    consts,
     link: path.join(innerPath, `${filename}.html`),
   };
 }

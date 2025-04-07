@@ -79,8 +79,15 @@
           {{#each consts}}
             <tbody>
               <tr>
-                <td>{{name}}
+                <td class="flex-align-center">{{name}}
                   <a href="#{{name}}">#</a>
+                  <a
+                    href="{{@root.githubLink}}#L{{lineNumber}}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <img src="/public/github.png" width="20" height="20" />
+                  </a>
                 </td>
                 <td class="param-type param-type-table">
                   {{#if typeLink}}
@@ -100,6 +107,64 @@
                   {{/if}}
                 </td>
                 <td>{{value}}</td>
+              </tr>
+            </tbody>
+          {{/each}}
+        </table>
+      </div>
+    {{/if}}
+
+    {{#if bindings.length}}
+      <h3>Bindings</h3>
+    {{/if}}
+
+    {{#if bindings.length}}
+      <div class="function">
+        <table class="params-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Group</th>
+              <th>Binding index</th>
+              <th>Binding type</th>
+              <th>Type</th>
+            </tr>
+          </thead>
+
+          {{#each bindings}}
+            <tbody>
+              <tr>
+                <td class="flex-align-center">{{name}}
+                  <a href="#{{name}}">#</a>
+                  <a
+                    href="{{@root.githubLink}}#L{{lineNumber}}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <img src="/public/github.png" width="20" height="20" />
+                  </a>
+                </td>
+                <td>{{groupIndex}}</td>
+                <td>{{bindingIndex}}</td>
+                <td>{{bindingType}}</td>
+                <td class="param-type param-type-table">
+                  {{#if typeLink}}
+                    <a
+                      href="{{typeLink}}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="param-type img-link"
+                    >
+                      {{type}}
+                      {{#contains "w3.org" typeLink}}
+                        <img src="/public/wgsl.png" width="20" height="20" />
+                      {{/contains}}
+                    </a>
+                  {{else}}
+                    {{type}}
+                  {{/if}}
+                </td>
+ 
               </tr>
             </tbody>
           {{/each}}
