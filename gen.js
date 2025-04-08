@@ -11,6 +11,9 @@ const wgpuTypes = JSON.parse(fs.readFileSync("./wgpu-types.json", "utf-8"));
 
 Handlebars.registerHelper("eq", (a, b) => a === b);
 Handlebars.registerHelper("neq", (a, b) => a !== b);
+Handlebars.registerHelper("anyShaderDefs", (input) => {
+  return input.some((v) => v?.hasShaderDefs);
+});
 Handlebars.registerHelper("linkify", function (text) {
   const urlPattern = /(?:https?|ftp):\/\/[\n\S]+/g;
   return text.replace(urlPattern, function (url) {
@@ -27,9 +30,21 @@ Handlebars.registerHelper("contains", function (needle, haystack, options) {
     ? options.fn(this)
     : options.inverse(this);
 });
+Handlebars.registerPartial(
+  "shader-defs-list",
+  fs.readFileSync("./templates/partials/shader-defs-list.hbs", "utf-8"),
+);
+Handlebars.registerPartial(
+  "type",
+  fs.readFileSync("./templates/partials/type.hbs", "utf-8"),
+);
+Handlebars.registerPartial(
+  "gh-link",
+  fs.readFileSync("./templates/partials/gh-link.hbs", "utf-8"),
+);
 
 const { source } = require("minimist")(process.argv.slice(2));
-const GREP_WGSL = `find ${source} -type f  -name "*.wgsl"`;
+const FIND_WGSL = `find ${source} -type f  -name "*.wgsl"`;
 
 const WGSL_DOC_TEMPLATE_SOURCE = fs.readFileSync(
   "./templates/wgsl-doc.hbs",
@@ -54,6 +69,82 @@ const BINDING_PATTERN =
 const OUTPUT_DIR_ROOT = "./dist";
 const PUBLIC_FOLDER = path.join(OUTPUT_DIR_ROOT, "public");
 
+/**
+ *@param {string} code
+ */
+function extractShaderDefsBlocks(code) {
+  const lines = code.split("\n");
+  const blocks = [];
+  const stack = [];
+
+  lines.forEach((line, index) => {
+    line = line.trim();
+    const lineNum = index + 1;
+
+    if (line.includes("#ifdef")) {
+      stack.push({
+        defName: line.slice(6).trim(),
+        ifdefLine: lineNum,
+        elseLine: null,
+        endifLine: null,
+      });
+    } else if (line.includes("#else")) {
+      const current = stack[stack.length - 1];
+      if (current && current.elseLine === null) {
+        current.elseLine = lineNum;
+      }
+    } else if (line.includes("#endif")) {
+      const current = stack.pop();
+      if (!current) {
+        return;
+      }
+
+      blocks.push({
+        ...current,
+        endifLine: lineNum,
+      });
+    }
+  });
+
+  blocks.sort((a, b) => a.ifdefLine - b.ifdefLine);
+
+  return blocks;
+}
+
+function getShaderDefsByLine(shaderDefs, lineNumber) {
+  const results = [];
+
+  for (const shaderDef of shaderDefs) {
+    if (
+      lineNumber > shaderDef.ifdefLine &&
+      lineNumber < (shaderDef.elseLine || shaderDef.endifLine)
+    ) {
+      results.push({
+        defName: shaderDef.defName,
+        branch: "if",
+        lineNumber: shaderDef.ifdefLine,
+      });
+    }
+
+    if (
+      shaderDef.elseLine &&
+      lineNumber > shaderDef.elseLine &&
+      lineNumber < shaderDef.endifLine
+    ) {
+      results.push({
+        defName: shaderDef.defName,
+        branch: "else",
+        lineNumber: shaderDef.elseLine,
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * @param {string} wgslCode
+ */
 function extractWGSLItems(wgslCode) {
   const normalizedCode = wgslCode.replace(/\r\n/g, "\n");
   const lines = normalizedCode.split("\n");
@@ -62,12 +153,13 @@ function extractWGSLItems(wgslCode) {
 
   const importPath =
     normalizedCode.match(/#define_import_path\s+(.*)/)?.[1] ?? null;
+  const shaderDefs = extractShaderDefsBlocks(normalizedCode);
 
   return {
-    consts: extractConsts(normalizedCode),
-    bindings: extractBindings(normalizedCode),
-    functions: extractFunctions(normalizedCode, lineComments),
-    structures: extractStructures(normalizedCode, lineComments),
+    consts: extractConsts(normalizedCode, lineComments, shaderDefs),
+    bindings: extractBindings(normalizedCode, lineComments, shaderDefs),
+    functions: extractFunctions(normalizedCode, lineComments, shaderDefs),
+    structures: extractStructures(normalizedCode, lineComments, shaderDefs),
     importPath,
   };
 }
@@ -123,6 +215,9 @@ function extractComments(lines) {
   return lineComments;
 }
 
+/**
+  @param str {?string}
+ */
 function removePath(str) {
   return str?.trim()?.split("::")?.at(-1) ?? "";
 }
@@ -130,7 +225,6 @@ function removePath(str) {
 /**
  * @param str {string}
  */
-
 function splitParams(str) {
   if (!str) return [];
 
@@ -171,8 +265,9 @@ function normalizeLink(link) {
 
 /**
  * @param str {string}
+ * @param fullCode {string}
  */
-function parseTypesString(str) {
+function parseTypesString(str, fullCode, shaderDefs) {
   if (!str) return [];
 
   str = str
@@ -191,10 +286,16 @@ function parseTypesString(str) {
     let [, annotation, name, type] = match;
     type = removePath(type);
 
+    const regex = new RegExp(`\\b${name}\\s{0,}:`);
+    const lineNumber = getLineNumber(fullCode, fullCode.match(regex)?.index);
+    const thisShaderDefs = getShaderDefsByLine(shaderDefs, lineNumber);
+
     result.push({
       annotation: annotation ?? null,
       name,
       type: type,
+      hasShaderDefs: !!thisShaderDefs.length,
+      shaderDefs: thisShaderDefs,
       typeLink: getTypeLink(type),
     });
   }
@@ -205,13 +306,15 @@ function parseTypesString(str) {
 /**
  * @param normalizedCode {string}
  */
-function extractBindings(normalizedCode) {
+function extractBindings(normalizedCode, lineComments, shaderDefs) {
   let fullCode = normalizedCode;
 
   return [...normalizedCode.matchAll(BINDING_PATTERN)].map((match) => {
     let [_, groupIndex, bindingIndex, bindingType, name, type] = match;
     const lineNumber = getLineNumber(fullCode, match.index);
     type = removePath(type);
+
+    const thisShaderDefs = getShaderDefsByLine(shaderDefs, lineNumber);
 
     return {
       lineNumber,
@@ -220,6 +323,8 @@ function extractBindings(normalizedCode) {
       bindingIndex,
       bindingType,
       type,
+      hasShaderDefs: !!thisShaderDefs.length,
+      shaderDefs: thisShaderDefs,
       typeLink: getTypeLink(type),
     };
   });
@@ -229,12 +334,14 @@ function extractBindings(normalizedCode) {
  * @param normalizedCode {string}
  */
 
-function extractConsts(normalizedCode) {
+function extractConsts(normalizedCode, lineComments, shaderDefs) {
   let fullCode = normalizedCode;
 
   return [...normalizedCode.matchAll(CONST_PATTERN)].map((match) => {
     const lineNumber = getLineNumber(fullCode, match.index);
     let [, name, type, value] = match;
+
+    const thisShaderDefs = getShaderDefsByLine(shaderDefs, lineNumber);
 
     if (!type) {
       const vecRegex = /(vec\d(?:<.*>))/;
@@ -255,6 +362,8 @@ function extractConsts(normalizedCode) {
       name,
       type,
       value,
+      hasShaderDefs: !!thisShaderDefs.length,
+      shaderDefs: thisShaderDefs,
       typeLink: getTypeLink(type),
     };
   });
@@ -264,7 +373,7 @@ function extractConsts(normalizedCode) {
  * @param normalizedCode {string}
  * @param lineComments {}
  */
-function extractStructures(normalizedCode, lineComments) {
+function extractStructures(normalizedCode, lineComments, shaderDefs) {
   let match;
   let fullCode = normalizedCode;
   const structures = [];
@@ -272,25 +381,30 @@ function extractStructures(normalizedCode, lineComments) {
   while ((match = STRUCTURE_PATTERN.exec(normalizedCode)) !== null) {
     const name = match[1];
     const fieldsString = match[2].trim().replaceAll(/\/{1,3}.*/g, "");
-    const fields = parseTypesString(fieldsString);
+    const fields = parseTypesString(fieldsString, fullCode, shaderDefs);
     const lineNumber = getLineNumber(fullCode, match.index);
     const comments = getItemComments(lineNumber, lineComments);
+
+    const thisShaderDefs = getShaderDefsByLine(shaderDefs, lineNumber);
 
     structures.push({
       hasAnnotations: fields.some((v) => Boolean(v.annotation)),
       name,
       fields,
       lineNumber,
+      hasShaderDefs: !!thisShaderDefs.length,
+      shaderDefs: thisShaderDefs,
       comment: comments.join("\n"),
     });
   }
+
   return structures;
 }
 
 /**
  * @param normalizedCode {string}
  */
-function extractFunctions(normalizedCode, lineComments) {
+function extractFunctions(normalizedCode, lineComments, shaderDefs) {
   const functions = [];
   let lastFunctionLine = -1;
   let fullCode = normalizedCode;
@@ -309,15 +423,11 @@ function extractFunctions(normalizedCode, lineComments) {
     const name = matchNameAndParams[1];
     let rawParams = matchNameAndParams?.[2];
 
-    const defsMatches = rawParams
-      ? [...rawParams.matchAll(/#ifdef\s+(\w+)/g)]
-      : [];
-    const defs = defsMatches.map((match) => match[1]);
-
-    const params = parseTypesString(rawParams);
+    const params = parseTypesString(rawParams, fullCode, shaderDefs);
     const returnType = signature.match(/->(.*)/)?.[1]?.trim() ?? "void";
     const lineNumber = getLineNumber(fullCode, match.index);
     const comments = getItemComments(lineNumber, lineComments);
+    const thisShaderDefs = getShaderDefsByLine(shaderDefs, lineNumber);
 
     const returnTypeLink = returnType
       ? (wgpuTypes?.[returnType.split("<")[0]] ?? null)
@@ -330,6 +440,8 @@ function extractFunctions(normalizedCode, lineComments) {
       params,
       returnType,
       returnTypeLink,
+      hasShaderDefs: !!thisShaderDefs.length,
+      shaderDefs: thisShaderDefs,
       comment: comments.join("\n"),
     });
 
@@ -387,7 +499,7 @@ function processWGSLFile(wgslFilePath) {
 }
 
 // entrypoint
-exec(GREP_WGSL, (error, stdout, stderr) => {
+exec(FIND_WGSL, (error, stdout, stderr) => {
   if (error) {
     console.error(`❌ Error: ${error.message}`);
     return;

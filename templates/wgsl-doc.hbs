@@ -73,6 +73,7 @@
               <th>Name</th>
               <th>Type</th>
               <th>Value</th>
+              {{#if (anyShaderDefs @root.consts)}} <th>Shader Def</th>{{/if}}
             </tr>
           </thead>
 
@@ -81,32 +82,17 @@
               <tr>
                 <td class="flex-align-center">{{name}}
                   <a href="#{{name}}">#</a>
-                  <a
-                    href="{{@root.githubLink}}#L{{lineNumber}}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <img src="/public/github.png" width="20" height="20" />
-                  </a>
+                  {{> gh-link }}
                 </td>
                 <td class="param-type param-type-table">
-                  {{#if typeLink}}
-                    <a
-                      href="{{typeLink}}"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="param-type img-link"
-                    >
-                      {{type}}
-                      {{#contains "w3.org" typeLink}}
-                        <img src="/public/wgsl.png" width="20" height="20" />
-                      {{/contains}}
-                    </a>
-                  {{else}}
-                    {{type}}
-                  {{/if}}
+                  {{> type }}
                 </td>
                 <td>{{value}}</td>
+                {{#if (anyShaderDefs @root.consts)}}
+                  <td>
+                    {{> shader-defs-list }}
+                  </td>
+                {{/if}}
               </tr>
             </tbody>
           {{/each}}
@@ -128,6 +114,7 @@
               <th>Binding index</th>
               <th>Binding type</th>
               <th>Type</th>
+              {{#if (anyShaderDefs bindings)}} <th>Shader Def</th> {{/if}}
             </tr>
           </thead>
 
@@ -136,35 +123,19 @@
               <tr>
                 <td class="flex-align-center">{{name}}
                   <a href="#{{name}}">#</a>
-                  <a
-                    href="{{@root.githubLink}}#L{{lineNumber}}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <img src="/public/github.png" width="20" height="20" />
-                  </a>
+                  {{> gh-link }}
                 </td>
                 <td>{{groupIndex}}</td>
                 <td>{{bindingIndex}}</td>
                 <td>{{bindingType}}</td>
                 <td class="param-type param-type-table">
-                  {{#if typeLink}}
-                    <a
-                      href="{{typeLink}}"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="param-type img-link"
-                    >
-                      {{type}}
-                      {{#contains "w3.org" typeLink}}
-                        <img src="/public/wgsl.png" width="20" height="20" />
-                      {{/contains}}
-                    </a>
-                  {{else}}
-                    {{type}}
-                  {{/if}}
+                  {{> type }}
                 </td>
-
+                {{#if (anyShaderDefs @root.bindings)}}
+                  <td>
+                    {{> shader-defs-list }}
+                  </td>
+                {{/if}}
               </tr>
             </tbody>
           {{/each}}
@@ -184,13 +155,7 @@
               {{name}}
             </h3>
             <a href="#{{name}}">#</a>
-            <a
-              href="{{@root.githubLink}}#L{{lineNumber}}"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img src="/public/github.png" width="20" height="20" />
-            </a>
+            {{> gh-link }}
           </div>
         </div>
 
@@ -207,6 +172,7 @@
                 {{#if hasAnnotations}}<th>Annotation</th>{{/if}}
                 <th>Name</th>
                 <th>Type</th>
+                {{#if (anyShaderDefs fields)}} <th>Shader Def</th>{{/if}}
               </tr>
             </thead>
             <tbody>
@@ -219,22 +185,15 @@
                   {{/if}}
                   <td>{{name}}</td>
                   <td class="param-type param-type-table">
-                    {{#if typeLink}}
-                      <a
-                        href="{{typeLink}}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="param-type img-link"
-                      >
-                        {{type}}
-                        {{#contains "w3.org" typeLink}}
-                          <img src="/public/wgsl.png" width="20" height="20" />
-                        {{/contains}}
-                      </a>
-                    {{else}}
-                      {{type}}
-                    {{/if}}
+                    {{> type}}
                   </td>
+                  {{#if (anyShaderDefs ../fields)}}
+                    <td>
+                      {{#if hasShaderDefs}}
+                        {{> shader-defs-list }}
+                      {{/if}}
+                    </td>
+                  {{/if}}
                 </tr>
               {{/each}}
             </tbody>
@@ -254,13 +213,7 @@
           <div>
             <h3 class="function-name" id="{{name}}">{{name}}</h3>
             <a href="#{{name}}">#</a>
-            <a
-              href="{{@root.githubLink}}#L{{lineNumber}}"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img src="/public/github.png" width="20" height="20" />
-            </a>
+            {{> gh-link }} 
           </div>
 
           {{#if stageAttribute}}
@@ -271,6 +224,15 @@
             </div>
           {{/if}}
         </div>
+
+        {{#if hasShaderDefs}}
+          <div class="function-shader-defs">
+            <h4>Shader defs: </h4>
+            <p>
+              {{> shader-defs-list }}
+            </p>
+          </div>
+        {{/if}}
 
         {{#if comment}}
           <div class="function-comment">{{{linkify
@@ -304,21 +266,7 @@
                 <tr>
                   <td>{{name}}</td>
                   <td class="param-type">
-                    {{#if typeLink}}
-                      <a
-                        href="{{typeLink}}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="param-type img-link"
-                      >
-                        {{type}}
-                        {{#contains "w3.org" typeLink}}
-                          <img src="/public/wgsl.png" width="20" height="20" />
-                        {{/contains}}
-                      </a>
-                    {{else}}
-                      {{type}}
-                    {{/if}}
+                    {{> type }}
                   </td>
                 </tr>
               {{/each}}

@@ -1,0 +1,5 @@
+{{#each shaderDefs}}
+  {{#if (eq branch "if")}}🟢{{else}}🔴{{/if}}
+  {{defName}}{{#unless @last}},
+  {{/unless}}
+{{/each}}

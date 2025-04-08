@@ -1,0 +1,15 @@
+{{#if typeLink}}
+  <a
+    href="{{typeLink}}"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="param-type img-link"
+  >
+    {{type}}
+    {{#contains "w3.org" typeLink}}
+      <img src="/public/wgsl.png" width="20" height="20" />
+    {{/contains}}
+  </a>
+{{else}}
+  {{type}}
+{{/if}}
