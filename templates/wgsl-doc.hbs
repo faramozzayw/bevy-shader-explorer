@@ -51,7 +51,7 @@
       </a>
     </h1>
 
-    {{#if importPath.length}}
+    {{#if importPath}}
       <div class="importPath">
         <h3>Import path</h3>
         <button onclick="navigator.clipboard.writeText('{{importPath}}')">
@@ -61,11 +61,9 @@
       </div>
     {{/if}}
 
-    {{#if consts.length}}
+    {{#if notEmptyConsts}}
       <h3>Constants</h3>
-    {{/if}}
 
-    {{#if consts.length}}
       <div class="function">
         <table class="params-table">
           <thead>
@@ -73,7 +71,7 @@
               <th>Name</th>
               <th>Type</th>
               <th>Value</th>
-              {{#if (anyShaderDefs @root.consts)}} <th>Shader Def</th>{{/if}}
+              {{#if constsShaderDefs}} <th>Shader Def</th>{{/if}}
             </tr>
           </thead>
 
@@ -88,7 +86,7 @@
                   {{> type }}
                 </td>
                 <td>{{value}}</td>
-                {{#if (anyShaderDefs @root.consts)}}
+                {{#if constsShaderDefs}}
                   <td>
                     {{> shader-defs-list }}
                   </td>
@@ -100,11 +98,9 @@
       </div>
     {{/if}}
 
-    {{#if bindings.length}}
+    {{#if notEmptyBindings}}
       <h3>Bindings</h3>
-    {{/if}}
 
-    {{#if bindings.length}}
       <div class="function">
         <table class="params-table">
           <thead>
@@ -114,7 +110,7 @@
               <th>Binding index</th>
               <th>Binding type</th>
               <th>Type</th>
-              {{#if (anyShaderDefs bindings)}} <th>Shader Def</th> {{/if}}
+              {{#if bindingsShaderDefs}} <th>Shader Def</th> {{/if}}
             </tr>
           </thead>
 
@@ -131,7 +127,7 @@
                 <td class="param-type param-type-table">
                   {{> type }}
                 </td>
-                {{#if (anyShaderDefs @root.bindings)}}
+                {{#if bindingsShaderDefs}}
                   <td>
                     {{> shader-defs-list }}
                   </td>
@@ -143,7 +139,7 @@
       </div>
     {{/if}}
 
-    {{#if structures.length}}
+    {{#if notEmptyStructures}}
       <h3>Structures</h3>
     {{/if}}
 
@@ -165,20 +161,20 @@
             }}}</div>
         {{/if}}
 
-        {{#if fields.length}}
+        {{#if hasFields}}
           <table class="params-table">
             <thead>
               <tr>
                 {{#if hasAnnotations}}<th>Annotation</th>{{/if}}
                 <th>Name</th>
                 <th>Type</th>
-                {{#if (anyShaderDefs fields)}} <th>Shader Def</th>{{/if}}
+                {{#if fieldsShaderDefs}} <th>Shader Def</th>{{/if}}
               </tr>
             </thead>
             <tbody>
               {{#each fields}}
                 <tr>
-                  {{#if annotation.length}}
+                  {{#if hasAnnotations}}
                     <td class="annotation">
                       {{annotation}}
                     </td>
@@ -187,7 +183,7 @@
                   <td class="param-type param-type-table">
                     {{> type}}
                   </td>
-                  {{#if (anyShaderDefs ../fields)}}
+                  {{#if fieldsShaderDefs}}
                     <td>
                       {{#if hasShaderDefs}}
                         {{> shader-defs-list }}
@@ -203,7 +199,7 @@
       </div>
     {{/each}}
 
-    {{#if functions.length}}
+    {{#if  notEmptyFunctions}}
       <h3>Functions</h3>
     {{/if}}
 
@@ -253,7 +249,7 @@
             <span class="return-type-val">{{returnType}}</span>{{/if}}
         </div>
 
-        {{#if params.length}}
+        {{#if hasParams}}
           <table class="params-table">
             <thead>
               <tr>
@@ -284,9 +280,9 @@
                 class="return-type-val img-link"
               >
                 {{returnType}}
-                {{#contains "w3.org" returnTypeLink}}
+                {{#if (contains "w3.org" returnTypeLink)}}
                   <img src="/public/wgsl.png" width="20" height="20" />
-                {{/contains}}
+                {{/if}}
               </a>
             {{else}}
               <span class="return-type-val">{{returnType}}</span>

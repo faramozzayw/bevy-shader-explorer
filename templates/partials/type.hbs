@@ -6,9 +6,9 @@
     class="param-type img-link"
   >
     {{type}}
-    {{#contains "w3.org" typeLink}}
+    {{#if (contains "w3.org" typeLink)}}
       <img src="/public/wgsl.png" width="20" height="20" />
-    {{/contains}}
+    {{/if}}
   </a>
 {{else}}
   {{type}}
