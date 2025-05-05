@@ -83,20 +83,25 @@ func main() {
 
 	var searchInfo []ShaderSearchableInfo
 
+	declaredImportPaths := make(map[string]string)
+	wgslFiles := make([]WgslFile, 0)
+
 	for _, filePath := range filePaths {
-		shaderItems := processWGSLFile(filePath)
+		wgslFile := parseWGSLFile(filePath)
+		wgslFiles = append(wgslFiles, wgslFile)
 
-		baseLink := shaderItems.Link
-		normalizedLink := NormalizeLink(baseLink)
-		filename := shaderItems.Filename
-		exportable := shaderItems.ImportPath != nil
+		normalizedLink := NormalizeLink(wgslFile.Link)
+		exportable := wgslFile.ImportPath != nil
 
-		// Process functions
+		if exportable {
+			declaredImportPaths[*wgslFile.ImportPath] = normalizedLink
+		}
+
 		functions := make([]ShaderSearchableInfo, 0)
-		for _, fn := range shaderItems.Functions {
+		for _, fn := range wgslFile.Functions {
 			functions = append(functions, ShaderSearchableInfo{
 				Link:           normalizedLink,
-				Filename:       filename,
+				Filename:       wgslFile.Filename,
 				Exportable:     exportable,
 				Name:           fn.Name,
 				Type:           "function",
@@ -105,47 +110,117 @@ func main() {
 			})
 		}
 
-		// Process structures
 		structures := make([]ShaderSearchableInfo, 0)
-		for _, structure := range shaderItems.Structures {
+		for _, structure := range wgslFile.Structures {
 			structures = append(structures, ShaderSearchableInfo{
 				Link:       normalizedLink,
-				Filename:   filename,
+				Filename:   wgslFile.Filename,
 				Exportable: exportable,
 				Name:       structure.Name,
 				Type:       "struct",
 			})
 		}
 
-		// Process constants
 		consts := make([]ShaderSearchableInfo, 0)
-		for _, c := range shaderItems.Consts {
+		for _, c := range wgslFile.Consts {
 			consts = append(consts, ShaderSearchableInfo{
 				Link:       normalizedLink,
-				Filename:   filename,
+				Filename:   wgslFile.Filename,
 				Exportable: exportable,
 				Name:       c.Name,
 				Type:       "const",
 			})
 		}
 
-		// Process bindings
 		bindings := make([]ShaderSearchableInfo, 0)
-		for _, binding := range shaderItems.Bindings {
+		for _, binding := range wgslFile.Bindings {
 			bindings = append(bindings, ShaderSearchableInfo{
 				Link:       normalizedLink,
-				Filename:   filename,
+				Filename:   wgslFile.Filename,
 				Exportable: exportable,
 				Name:       binding.Name,
 				Type:       "binding",
 			})
 		}
 
-		// Concatenate all collected info into searchInfo
 		searchInfo = append(searchInfo, functions...)
 		searchInfo = append(searchInfo, structures...)
 		searchInfo = append(searchInfo, consts...)
 		searchInfo = append(searchInfo, bindings...)
+	}
+
+	for _, wgslFile := range wgslFiles {
+		result := make(map[string]string)
+
+		for key, paths := range wgslFile.DeclaredImports {
+			if len(paths) == 0 {
+				continue
+			}
+			fullPath := paths[0]
+
+			var longestMatch string
+			for module := range declaredImportPaths {
+				if strings.HasPrefix(fullPath, module) {
+					if len(module) > len(longestMatch) {
+						longestMatch = module
+					}
+				}
+			}
+
+			if longestMatch != "" {
+				result[key] = declaredImportPaths[longestMatch]
+			}
+		}
+
+		wgslFile.ImportsMapping = result
+
+		for i := range wgslFile.Structures {
+			for j := range wgslFile.Structures[i].Fields {
+				if len(wgslFile.Structures[i].Fields[j].TypeLink) == 0 {
+					typeLink, blank := ResolveTypeLink(
+						wgslFile.Structures[i].Fields[j].Type, wgslFile.ImportsMapping)
+					wgslFile.Structures[i].Fields[j].TypeLink = typeLink
+					wgslFile.Structures[i].Fields[j].TypeLinkBlank = blank
+
+				}
+			}
+		}
+
+		for i := range wgslFile.Consts {
+			if len(wgslFile.Consts[i].TypeLink) == 0 {
+				typLink, blank := ResolveTypeLink(wgslFile.Consts[i].Type, wgslFile.ImportsMapping)
+				wgslFile.Consts[i].TypeLink = typLink
+				wgslFile.Consts[i].TypeLinkBlank = blank
+			}
+		}
+
+		for i := range wgslFile.Bindings {
+			if len(wgslFile.Bindings[i].TypeLink) == 0 {
+				typeLink, blank := ResolveTypeLink(
+					wgslFile.Bindings[i].Type, wgslFile.ImportsMapping)
+				wgslFile.Bindings[i].TypeLink = typeLink
+				wgslFile.Bindings[i].TypeLinkBlank = blank
+			}
+		}
+
+		for i := range wgslFile.Functions {
+			for j := range wgslFile.Functions[i].Params {
+				if len(wgslFile.Functions[i].Params[j].TypeLink) == 0 {
+					typeLink, blank := ResolveTypeLink(
+						wgslFile.Functions[i].Params[j].Type, wgslFile.ImportsMapping)
+					wgslFile.Functions[i].Params[j].TypeLink = typeLink
+					wgslFile.Functions[i].Params[j].TypeLinkBlank = blank
+				}
+			}
+			if len(wgslFile.Functions[i].ReturnTypeLink) == 0 {
+				typeLink, blank := ResolveTypeLink(
+					wgslFile.Functions[i].ReturnType, wgslFile.ImportsMapping)
+				wgslFile.Functions[i].ReturnTypeLink = typeLink
+				wgslFile.Functions[i].ReturnTypeLinkBlank = blank
+			}
+		}
+
+		wgslFile.generateWgslPage()
 	}
 
 	compiledTemplate, err := raymond.Parse(HOME_DOC_TEMPLATE_SOURCE)
@@ -232,11 +307,13 @@ func getGithubLink(dir string, basename string) string {
 	return baseURL.ResolveReference(&url.URL{Path: joinedPath}).String()
 }
 
-func processWGSLFile(wgslFilePath string) WgslFile {
+func parseWGSLFile(wgslFilePath string) WgslFile {
 	wgslCodeBytes, err := os.ReadFile(wgslFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
+	normalizedCode := strings.ReplaceAll(string(wgslCodeBytes), "\n\r", "\n")
+
 	basename := filepath.Base(wgslFilePath)
 	filename := strings.Replace(basename, ".wgsl", "", 1)
 	originalDir := filepath.Dir(wgslFilePath)
@@ -247,40 +324,67 @@ func processWGSLFile(wgslFilePath string) WgslFile {
 		log.Fatal(err)
 	}
 	wgslPath := DedupPathParts(filepath.Join(innerPath, filename)) + ".html"
-	fileOutputPath := filepath.Join(OUTPUT_DIR_ROOT, wgslPath)
 
-	items := extractWGSItems(string(wgslCodeBytes))
-	githubLink := getGithubLink(originalDir, basename)
-
-	wgslFile := WgslFile{
-		ImportPath: items.ImportPath,
-
-		Consts:           items.Consts,
-		ConstsShaderDefs: AnyShaderDefs(items.Consts),
-		NotEmptyConsts:   len(items.Consts) != 0,
-
-		Bindings:           items.Bindings,
-		BindingsShaderDefs: AnyShaderDefs(items.Bindings),
-		NotEmptyBindings:   len(items.Bindings) != 0,
-
-		Functions:         items.Functions,
-		NotEmptyFunctions: len(items.Functions) != 0,
-
-		Structures:           items.Structures,
-		StructuresShaderDefs: AnyShaderDefs(items.Structures),
-		NotEmptyStructures:   len(items.Structures) != 0,
-
-		Filename:   basename,
-		GithubLink: githubLink,
-		Link:       wgslPath,
-	}
-
-	html, err := generateFunctionDocsHTML(wgslFile)
+	declaredImports, err := ExtractAllImports(normalizedCode)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = os.MkdirAll(filepath.Join(OUTPUT_DIR_ROOT, innerPath), os.ModePerm)
+	lineComments := extractComments(strings.Split(normalizedCode, "\n"))
+	shaderDefs := extractShaderDefsBlocks(normalizedCode)
+	importPath := extractImportPath(normalizedCode)
+	consts := extractConsts(normalizedCode, lineComments, shaderDefs)
+	structures := extractStructures(normalizedCode, lineComments, shaderDefs)
+	functions := extractFunctions(normalizedCode, lineComments, shaderDefs)
+	bindings := extractBindings(normalizedCode, lineComments, shaderDefs)
+
+	githubLink := getGithubLink(originalDir, basename)
+
+	wgslFile := WgslFile{
+		ImportPath: importPath,
+
+		Consts:           consts,
+		ConstsShaderDefs: AnyShaderDefs(consts),
+		NotEmptyConsts:   len(consts) != 0,
+
+		Bindings:           bindings,
+		BindingsShaderDefs: AnyShaderDefs(bindings),
+		NotEmptyBindings:   len(bindings) != 0,
+
+		Functions:         functions,
+		NotEmptyFunctions: len(functions) != 0,
+
+		Structures:           structures,
+		StructuresShaderDefs: AnyShaderDefs(structures),
+		NotEmptyStructures:   len(structures) != 0,
+		DeclaredImports:      declaredImports,
+
+		Filename:   basename,
+		WgslPath:   wgslPath,
+		GithubLink: githubLink,
+		Link:       wgslPath,
+	}
+
+	return wgslFile
+}
+
+func (wgslFile *WgslFile) generateWgslPage() {
+	fileOutputPath := filepath.Join(OUTPUT_DIR_ROOT, wgslFile.WgslPath)
+	compiledTemplate, err := raymond.Parse(WGSL_DOC_TEMPLATE_SOURCE)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	html, err := compiledTemplate.Exec(wgslFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = os.MkdirAll(filepath.Dir(filepath.Join(OUTPUT_DIR_ROOT, wgslFile.WgslPath)), os.ModePerm)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -288,43 +392,6 @@ func processWGSLFile(wgslFilePath string) WgslFile {
 	err = os.WriteFile(fileOutputPath, []byte(html), 0644)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	return wgslFile
-}
-
-func generateFunctionDocsHTML(wgslFile WgslFile) (string, error) {
-	compiledTemplate, err := raymond.Parse(WGSL_DOC_TEMPLATE_SOURCE)
-	if err != nil {
-		return "", err
-	}
-
-	html, err := compiledTemplate.Exec(wgslFile)
-	if err != nil {
-		return "", err
-	}
-
-	return html, nil
-}
-
-func extractWGSItems(wgslCode string) WgslFileItems {
-	normalizedCode := strings.ReplaceAll(wgslCode, "\n\r", "\n")
-
-	lineComments := extractComments(strings.Split(normalizedCode, "\n"))
-	shaderDefs := extractShaderDefsBlocks(normalizedCode)
-
-	importPath := getImportPath(normalizedCode)
-	consts := extractConsts(normalizedCode, lineComments, shaderDefs)
-	structures := extractStructures(normalizedCode, lineComments, shaderDefs)
-	functions := extractFunctions(normalizedCode, lineComments, shaderDefs)
-	bindings := extractBindings(normalizedCode, lineComments, shaderDefs)
-
-	return WgslFileItems{
-		ImportPath: importPath,
-		Consts:     consts,
-		Functions:  functions,
-		Structures: structures,
-		Bindings:   bindings,
 	}
 }
 
@@ -359,7 +426,6 @@ func extractShaderDefsBlocks(code string) []ShaderDefBlock {
 		}
 	}
 
-	// Sort blocks by IfdefLine
 	sort.Slice(blocks, func(i, j int) bool {
 		return blocks[i].IfdefLine < blocks[j].IfdefLine
 	})
@@ -620,7 +686,7 @@ func extractBindings(code string, lineComments map[int]string, shaderDefs []Shad
 	return bindings
 }
 
-func getImportPath(normalizedCode string) *string {
+func extractImportPath(normalizedCode string) *string {
 	re := regexp.MustCompile(`#define_import_path\s+(.*)`)
 	match := re.FindStringSubmatch(normalizedCode)
 	if len(match) > 1 {

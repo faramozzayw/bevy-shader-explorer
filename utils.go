@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -63,6 +65,13 @@ func NormalizeLink(link string) string {
 	}
 }
 
+func ResolveTypeLink(typeName string, imports map[string]string) (string, bool) {
+	if typeLink, ok := imports[typeName]; ok {
+		return typeLink + "#" + typeName, true
+	}
+	return "#" + typeName, false
+}
+
 func CopyFile(src, dst string) error {
 	input, err := os.ReadFile(src)
 	if err != nil {
@@ -109,4 +118,14 @@ func ValueOrDefault[T any](ptr *T, fallback T) T {
 		return *ptr
 	}
 	return fallback
+}
+
+func PrintJson[T any](v T) {
+	printJson, err := json.MarshalIndent(v, "", "  ")
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fmt.Println(string(printJson))
 }

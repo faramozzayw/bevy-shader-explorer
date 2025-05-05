@@ -10,6 +10,7 @@
     <script src="/public/search.js" type="text/javascript"></script>
 
     <link rel="stylesheet" href="/public/styles.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
     <link rel="icon" href="/public/favicon.ico" type="image/svg+xml" />
   </head>
   <body>
@@ -275,7 +276,7 @@
             {{#if returnTypeLink}}
               <a
                 href="{{returnTypeLink}}"
-                target="_blank"
+                target="{{#if (contains "w3.org" typeLink)}}_blank{{else if returnTypeLinkBlank}}_blank{{else}}_self{{/if}}"
                 rel="noopener noreferrer"
                 class="return-type-val img-link"
               >
@@ -287,7 +288,6 @@
             {{else}}
               <span class="return-type-val">{{returnType}}</span>
             {{/if}}</div>
-
         {{/if}}
       </div>
     {{/each}}
