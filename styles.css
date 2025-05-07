@@ -1,24 +1,29 @@
+/*@media (prefers-color-scheme: dark) {*/
+/*  html {*/
+/*    filter: invert(0.9);*/
+/*  }*/
+/*}*/
 html {
   scroll-behavior: smooth;
 }
 body {
-  font-family: "Fira Code", "Courier New", monospace;
+  font-family: "Fira Code", monospace;
   line-height: 1.6;
-  color: #e5e5e5;
+  color: #333;
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #1e1e1e;
+  background-color: #f8f9fa;
 }
 header {
   position: sticky;
   top: 0;
-  background: #2d2d2d;
+  background: #f8f9fa;
   border-radius: 10px;
-  box-shadow: 0px 1px 5px 0px rgba(0, 0, 0, 0.75);
+  box-shadow: 0px 1px 5px 0px rgb(205 205 205 / 75%);
 }
 header div:first-child {
-  padding: 10px;
+  padding: 10px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -29,16 +34,16 @@ header div:first-child {
   align-items: center;
 }
 h1 {
-  color: #00ffea;
-  border-bottom: 2px solid #00bcd4;
+  color: #2c3e50;
+  border-bottom: 2px solid #3498db;
   padding-bottom: 10px;
 }
 .function {
-  background-color: #2d2d2d;
+  background-color: white;
   border-radius: 5px;
   padding: 15px;
   margin-bottom: 20px;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   overflow: auto;
 }
 .function-header {
@@ -65,13 +70,13 @@ h1 {
 .function-name {
   font-size: 1.2em;
   font-weight: bold;
-  color: #00bcd4;
+  color: #2980b9;
   margin: 0;
 }
 .visibility-badge {
   font-size: 0.8em;
-  background-color: #00bcd4;
-  color: black;
+  background-color: #3498db;
+  color: white;
   padding: 3px 8px;
   border-radius: 3px;
 }
@@ -93,12 +98,10 @@ h1 {
   background-color: #1e90ff;
 }
 .signature {
-  font-family: "Fira Code", monospace;
-  background-color: #1b1b1b;
+  background-color: #f0f0f0;
   padding: 10px;
   border-radius: 3px;
   overflow-x: auto;
-  color: #8cf;
 }
 .params-table {
   width: 100%;
@@ -109,44 +112,43 @@ h1 {
 .params-table td {
   text-align: left;
   padding: 8px;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #ddd;
   white-space: nowrap;
 }
 .params-table th {
-  background-color: #262626;
+  background-color: #f2f2f2;
 }
 .params-table tr:hover td {
-  background-color: #333;
+  background-color: #e9e9e9;
 }
 .params-table tbody:nth-child(odd) {
-  background: #242424;
+  background: #f7f7f7;
 }
 .return-type {
   margin-top: 10px;
   font-style: italic;
   gap: 5px;
   display: flex;
-  color: #ff9800;
 }
 .function-comment {
-  background-color: #1a3c2b;
+  background-color: #eafaf1;
   padding: 10px;
-  border-left: 4px solid #00e676;
+  border-left: 4px solid #2ecc71;
   margin: 10px 0;
   white-space: pre-line;
 }
 .kw {
-  color: #c792ea;
+  color: #8e44ad;
   font-weight: bold;
 }
 .fn-name {
-  color: #82aaff;
+  color: #2980b9;
 }
 .param-name {
-  color: #ffcb6b;
+  color: #2c3e50;
 }
 .param-type {
-  color: #c3e88d;
+  color: #27ae60;
 }
 .img-link {
   display: flex;
@@ -155,44 +157,43 @@ h1 {
   width: max-content;
 }
 .return-type-val {
-  color: #ff9800;
+  color: #d35400;
 }
 .annotation {
-  color: #ff5370;
+  color: #8d008d;
 }
 .search-input {
   width: 100%;
   max-width: 400px;
   padding: 10px 15px;
-  border: 1px solid #444;
+  border: 1px solid #ddd;
   border-radius: 5px;
-  background-color: #121212;
+  background-color: #fff;
   font-size: 1em;
-  font-family: "Fira Code", monospace;
-  color: #e5e5e5;
+  color: #333;
   transition: border-color 0.3s ease;
 }
 .search-input:focus {
-  border-color: #00bcd4;
+  border-color: #3498db;
   outline: none;
 }
 .search-input::placeholder {
-  color: #777;
+  color: #aaa;
 }
 .search-result-item {
-  list-style-type: "❯ ";
+  list-style-type: "👉";
   padding-inline-start: 1ch;
-  border-top: 1px dashed #444;
+  border-top: 1px dashed #444175;
   width: 95%;
 }
 .search-result-item:first-child {
   border-top: none;
 }
 .importPath {
-  background-color: #2d2d2d;
+  background-color: #ffffff;
   padding: 15px;
   border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
@@ -202,29 +203,29 @@ h1 {
 }
 .importPath h3 {
   font-size: 1.4em;
-  color: #00bcd4;
+  color: #2c3e50;
   margin: 0;
 }
-.importPath button {
-  background-color: #00bcd4;
-  color: black;
+
+.importPathButton {
+  background-color: #3498db;
+  color: white;
   padding: 10px 15px;
   border: none;
   border-radius: 5px;
   font-size: 1em;
-  font-family: "Fira Code", monospace;
   cursor: pointer;
   transition:
     background-color 0.3s ease,
     transform 0.2s ease;
 }
-.importPath button:hover {
-  background-color: #00acc1;
+.importPathButton:hover {
+  background-color: #2980b9;
   transform: scale(1.05);
 }
-.importPath button:focus {
+.importPathButton:focus {
   outline: none;
-  box-shadow: 0 0 5px rgba(0, 188, 212, 0.6);
+  box-shadow: 0 0 5px rgba(52, 152, 219, 0.6);
 }
 .flex-align-center {
   display: flex;

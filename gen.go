@@ -16,6 +16,7 @@ import (
 
 	"github.com/aymerick/raymond"
 	. "github.com/samber/lo"
+	progressbar "github.com/schollz/progressbar/v3"
 )
 
 const OUTPUT_DIR_ROOT = "./dist"
@@ -50,7 +51,10 @@ var typesStringPattern = regexp.MustCompile(`^(?:@([^\s]+)\s+)?([a-zA-Z_]\w*):(.
 var functionPattern = regexp.MustCompile(`(?m)(@[^;]*\s+)?(vertex|fragment|compute\s+)?\bfn\b\s+([a-zA-Z0-9_]+)[\s\S]*?\{`)
 var functionSigWithReturnTypePattern = regexp.MustCompile(`\bfn\b\s+(\w+)\(([\s\S]+)?\)\s+->`)
 var functionSigWithoutReturnTypePattern = regexp.MustCompile(`\bfn\b\s+(\w+)\(([\s\S]+)?\).*`)
-var bindingPattern = regexp.MustCompile(`@group\((\d+)\)\s{0,}@binding\((\d+)\)\s{0,}var\s{0,}(?:(<.*?>))?\s{0,}(\w+):\s{0,}(.*);`)
+var bindingPattern = regexp.MustCompile(`@group\((\d+)\)\s{0,}@binding\((\d+)\)\s{0,}var\s{0,}(?:<(.*?)>)?\s{0,}(\w+):\s{0,}(.*);`)
+var shaderStagePattern = regexp.MustCompile(`@(vertex|fragment|compute)`)
+
+var vecRegex = regexp.MustCompile(`(vec\d(?:<.*>))`)
 
 var sourcePath string
 
@@ -86,7 +90,13 @@ func main() {
 	declaredImportPaths := make(map[string]string)
 	wgslFiles := make([]WgslFile, 0)
 
+	parsing_bar := progressbar.Default(
+		int64(len(filePaths)),
+		"parsing WGSL files",
+	)
+
 	for _, filePath := range filePaths {
+
 		wgslFile := parseWGSLFile(filePath)
 		wgslFiles = append(wgslFiles, wgslFile)
 
@@ -147,80 +157,19 @@ func main() {
 		searchInfo = append(searchInfo, structures...)
 		searchInfo = append(searchInfo, consts...)
 		searchInfo = append(searchInfo, bindings...)
+
+		parsing_bar.Add(1)
 	}
 
+	processing_bar := progressbar.Default(
+		int64(len(filePaths)),
+		"processing WGSL files",
+	)
+
 	for _, wgslFile := range wgslFiles {
-		result := make(map[string]string)
-
-		for key, paths := range wgslFile.DeclaredImports {
-			if len(paths) == 0 {
-				continue
-			}
-			fullPath := paths[0]
-
-			var longestMatch string
-			for module := range declaredImportPaths {
-				if strings.HasPrefix(fullPath, module) {
-					if len(module) > len(longestMatch) {
-						longestMatch = module
-					}
-				}
-			}
-
-			if longestMatch != "" {
-				result[key] = declaredImportPaths[longestMatch]
-			}
-		}
-
-		wgslFile.ImportsMapping = result
-
-		for i := range wgslFile.Structures {
-			for j := range wgslFile.Structures[i].Fields {
-				if len(wgslFile.Structures[i].Fields[j].TypeLink) == 0 {
-					typeLink, blank := ResolveTypeLink(
-						wgslFile.Structures[i].Fields[j].Type, wgslFile.ImportsMapping)
-					wgslFile.Structures[i].Fields[j].TypeLink = typeLink
-					wgslFile.Structures[i].Fields[j].TypeLinkBlank = blank
-
-				}
-			}
-		}
-
-		for i := range wgslFile.Consts {
-			if len(wgslFile.Consts[i].TypeLink) == 0 {
-				typLink, blank := ResolveTypeLink(wgslFile.Consts[i].Type, wgslFile.ImportsMapping)
-				wgslFile.Consts[i].TypeLink = typLink
-				wgslFile.Consts[i].TypeLinkBlank = blank
-			}
-		}
-
-		for i := range wgslFile.Bindings {
-			if len(wgslFile.Bindings[i].TypeLink) == 0 {
-				typeLink, blank := ResolveTypeLink(
-					wgslFile.Bindings[i].Type, wgslFile.ImportsMapping)
-				wgslFile.Bindings[i].TypeLink = typeLink
-				wgslFile.Bindings[i].TypeLinkBlank = blank
-			}
-		}
-
-		for i := range wgslFile.Functions {
-			for j := range wgslFile.Functions[i].Params {
-				if len(wgslFile.Functions[i].Params[j].TypeLink) == 0 {
-					typeLink, blank := ResolveTypeLink(
-						wgslFile.Functions[i].Params[j].Type, wgslFile.ImportsMapping)
-					wgslFile.Functions[i].Params[j].TypeLink = typeLink
-					wgslFile.Functions[i].Params[j].TypeLinkBlank = blank
-				}
-			}
-			if len(wgslFile.Functions[i].ReturnTypeLink) == 0 {
-				typeLink, blank := ResolveTypeLink(
-					wgslFile.Functions[i].ReturnType, wgslFile.ImportsMapping)
-				wgslFile.Functions[i].ReturnTypeLink = typeLink
-				wgslFile.Functions[i].ReturnTypeLinkBlank = blank
-			}
-		}
-
+		wgslFile.ResolveTypeLinks(declaredImportPaths)
 		wgslFile.generateWgslPage()
+		processing_bar.Add(1)
 	}
 
 	compiledTemplate, err := raymond.Parse(HOME_DOC_TEMPLATE_SOURCE)
@@ -368,6 +317,58 @@ func parseWGSLFile(wgslFilePath string) WgslFile {
 	return wgslFile
 }
 
+func (wgslFile *WgslFile) ResolveTypeLinks(declaredImportPaths map[string]string) {
+	importsMap := make(map[string]string)
+	structuresList := make([]string, 0)
+
+	for key, paths := range wgslFile.DeclaredImports {
+		if len(paths) == 0 {
+			continue
+		}
+		fullPath := paths[0]
+
+		var longestMatch string
+		for module := range declaredImportPaths {
+			if strings.HasPrefix(fullPath, module) {
+				if len(module) > len(longestMatch) {
+					longestMatch = module
+				}
+			}
+		}
+
+		if longestMatch != "" {
+			importsMap[key] = declaredImportPaths[longestMatch]
+		}
+	}
+
+	for _, structure := range wgslFile.Structures {
+		structuresList = append(structuresList, structure.Name)
+	}
+
+	for i := range wgslFile.Structures {
+		for j := range wgslFile.Structures[i].Fields {
+			wgslFile.Structures[i].Fields[j].TypeInfo.ResolveTypeLink(importsMap, structuresList)
+		}
+	}
+
+	for i := range wgslFile.Consts {
+		wgslFile.Consts[i].TypeInfo.ResolveTypeLink(importsMap, structuresList)
+	}
+
+	for i := range wgslFile.Bindings {
+		wgslFile.Bindings[i].TypeInfo.ResolveTypeLink(importsMap, structuresList)
+
+	}
+
+	for i := range wgslFile.Functions {
+		for j := range wgslFile.Functions[i].Params {
+			wgslFile.Functions[i].Params[j].TypeInfo.ResolveTypeLink(importsMap, structuresList)
+		}
+
+		wgslFile.Functions[i].ReturnTypeInfo.ResolveTypeLink(importsMap, structuresList)
+	}
+}
+
 func (wgslFile *WgslFile) generateWgslPage() {
 	fileOutputPath := filepath.Join(OUTPUT_DIR_ROOT, wgslFile.WgslPath)
 	compiledTemplate, err := raymond.Parse(WGSL_DOC_TEMPLATE_SOURCE)
@@ -445,7 +446,6 @@ func extractConsts(normalizedCode string, lineComments map[int]string, shaderDef
 
 		// If type is not provided, infer it based on value
 		if typ == "" {
-			vecRegex := regexp.MustCompile(`(vec\d(?:<.*>))`)
 			if matched, _ := regexp.MatchString(`^\d+\.\d+`, value); matched {
 				typ = "AbstractFloat"
 			} else if vecRegex.MatchString(value) {
@@ -461,11 +461,12 @@ func extractConsts(normalizedCode string, lineComments map[int]string, shaderDef
 		results = append(results, WgslConst{
 			LineNumber:    lineNumber,
 			Name:          name,
-			Type:          typ,
 			Value:         value,
 			HasShaderDefs: len(thisShaderDefs) > 0,
 			ShaderDefs:    thisShaderDefs,
-			TypeLink:      GetTypeLink(typ),
+			TypeInfo: WgslTypeInfo{
+				Type: typ,
+			},
 		})
 	}
 
@@ -604,7 +605,7 @@ func extractFunctions(normalizedCode string, lineComments map[int]string, shader
 		signature = strings.TrimSuffix(signature, "{")
 
 		var stageAttr string
-		if stageMatch := regexp.MustCompile(`@(vertex|fragment|compute)`).FindStringSubmatch(signature); len(stageMatch) > 1 {
+		if stageMatch := shaderStagePattern.FindStringSubmatch(signature); len(stageMatch) > 1 {
 			stageAttr = stageMatch[1]
 		}
 
@@ -632,22 +633,18 @@ func extractFunctions(normalizedCode string, lineComments map[int]string, shader
 		comments := getItemComments(lineNumber, lineComments)
 		thisShaderDefs := getShaderDefsByLine(shaderDefs, lineNumber)
 
-		returnTypeLink := ""
-		if base := strings.Split(returnType, "<")[0]; base != "" {
-			returnTypeLink = GetTypeLink(base)
-		}
-
 		functions = append(functions, WgslFunction{
 			StageAttribute: stageAttr,
 			Name:           name,
 			LineNumber:     lineNumber,
 			Params:         params,
 			HasParams:      len(params) != 0,
-			ReturnType:     returnType,
-			ReturnTypeLink: returnTypeLink,
 			HasShaderDefs:  len(thisShaderDefs) > 0,
 			ShaderDefs:     thisShaderDefs,
 			Comment:        strings.Join(comments, "\n"),
+			ReturnTypeInfo: WgslTypeInfo{
+				Type: returnType,
+			},
 		})
 	}
 
@@ -676,10 +673,12 @@ func extractBindings(code string, lineComments map[int]string, shaderDefs []Shad
 			GroupIndex:    groupIndex,
 			BindingIndex:  bindingIndex,
 			BindingType:   bindingType,
-			Type:          typeStr,
 			HasShaderDefs: len(thisShaderDefs) > 0,
 			ShaderDefs:    thisShaderDefs,
-			TypeLink:      GetTypeLink(typeStr),
+			TypeInfo: WgslTypeInfo{
+				Type:         typeStr,
+				FullTypePath: submatches[5],
+			},
 		})
 	}
 
@@ -729,10 +728,12 @@ func parseTypesString(str, fullCode string, shaderDefs []ShaderDefBlock) []WgslT
 		result = append(result, WgslType{
 			Annotation:    annotation,
 			Name:          name,
-			Type:          typ,
 			HasShaderDefs: len(shaderDefMatches) > 0,
 			ShaderDefs:    shaderDefMatches,
-			TypeLink:      GetTypeLink(typ),
+			TypeInfo: WgslTypeInfo{
+				Type:         typ,
+				FullTypePath: typ,
+			},
 		})
 	}
 
@@ -754,7 +755,6 @@ func getItemComments(lineNumber int, lineComments map[int]string) []string {
 		comments = append(comments, comment)
 	}
 
-	// Reverse the comments slice
 	for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
 		comments[i], comments[j] = comments[j], comments[i]
 	}

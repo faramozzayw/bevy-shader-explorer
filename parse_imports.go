@@ -118,47 +118,7 @@ func parseImports(importString string) (DeclaredImports, error) {
 
 	for {
 		switch tok := tokens.Peek(); {
-		case tok == nil:
-			return declaredImports, nil
-		case tok.Kind == Identifier:
-			current += tok.Text
-			tokens.Next()
-
-			peek := tokens.Peek()
-
-			if peek == nil {
-				usedName := lastWordPattern.FindStringSubmatch(tok.Text)[0]
-				declaredImports[usedName] = append(declaredImports[usedName], tok.Text)
-				return declaredImports, nil
-			}
-
-			if peek.Kind == Identifier && peek.Text == "as" {
-				pos := peek.Pos
-				tokens.Next()
-				ident := tokens.Next()
-				if ident == nil || ident.Kind != Identifier {
-					return nil, fmt.Errorf("expected identifier after `as` at position %d", pos)
-				}
-				asName = ident.Text
-			}
-
-			if peek.Kind == Identifier {
-				stack = append(stack, current+"::")
-				current = ""
-				asName = ""
-			}
-
-			continue
-
-		case tok.Kind == Other && tok.Text == "{":
-			if !strings.HasSuffix(current, "::") {
-				return nil, fmt.Errorf("open brace must follow `::` at position %d", tok.Pos)
-			}
-			stack = append(stack, current)
-			current = ""
-			asName = ""
-
-		case tok.Kind == Other && (tok.Text == "," || tok.Text == "}" || tok.Text == "\n"):
+		case tok == nil || (tok.Kind == Other && (tok.Text == "," || tok.Text == "}" || tok.Text == "\n")):
 			if current != "" {
 				usedName := asName
 				if usedName == "" {
@@ -174,7 +134,7 @@ func parseImports(importString string) (DeclaredImports, error) {
 				asName = ""
 			}
 
-			if tok.Text == "}" {
+			if tok != nil && tok.Text == "}" {
 				if len(stack) == 0 {
 					return nil, fmt.Errorf("close brace without open at position %d", tok.Pos)
 				}
@@ -182,8 +142,45 @@ func parseImports(importString string) (DeclaredImports, error) {
 			}
 
 			if tokens.Peek() == nil {
-				break
+				return declaredImports, nil
 			}
+
+		case tok.Kind == Identifier:
+			current += tok.Text
+			tokens.Next()
+
+			if tokens.Peek() == nil {
+				usedName := lastWordPattern.FindStringSubmatch(tok.Text)[0]
+				declaredImports[usedName] = append(declaredImports[usedName], tok.Text)
+				return declaredImports, nil
+			}
+
+			if peek := tokens.Peek(); peek != nil && peek.Kind == Identifier && peek.Text == "as" {
+				pos := peek.Pos
+				tokens.Next()
+				ident := tokens.Next()
+				if ident == nil || ident.Kind != Identifier {
+					return nil, fmt.Errorf("expected identifier after `as` at position %d", pos)
+				}
+				asName = ident.Text
+			}
+
+			// support deprecated #import mod item
+			if peek := tokens.Peek(); peek != nil && peek.Kind == Identifier {
+				stack = append(stack, current+"::")
+				current = ""
+				asName = ""
+			}
+
+			continue
+
+		case tok.Kind == Other && tok.Text == "{":
+			if !strings.HasSuffix(current, "::") {
+				return nil, fmt.Errorf("open brace must follow `::` at position %d", tok.Pos)
+			}
+			stack = append(stack, current)
+			current = ""
+			asName = ""
 
 		case tok.Kind == Other && tok.Text == ";":
 			tokens.Next()
@@ -200,4 +197,6 @@ func parseImports(importString string) (DeclaredImports, error) {
 
 		tokens.Next()
 	}
+
+	return declaredImports, nil
 }

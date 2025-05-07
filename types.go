@@ -31,11 +31,10 @@ type WgslFile struct {
 	Functions         []WgslFunction `json:"functions"`
 	NotEmptyFunctions bool           `json:"notEmptyFunctions"`
 
-	Structures           []WgslStructure   `json:"structures"`
-	StructuresShaderDefs bool              `json:"structuresShaderDefs"`
-	NotEmptyStructures   bool              `json:"notEmptyStructures"`
-	DeclaredImports      DeclaredImports   `json:"declaredImports"`
-	ImportsMapping       map[string]string `json:"ImportsMapping"`
+	Structures           []WgslStructure `json:"structures"`
+	StructuresShaderDefs bool            `json:"structuresShaderDefs"`
+	NotEmptyStructures   bool            `json:"notEmptyStructures"`
+	DeclaredImports      DeclaredImports `json:"declaredImports"`
 
 	Filename   string `json:"filename"`
 	GithubLink string `json:"githubLink"`
@@ -52,12 +51,10 @@ type ShaderDefBlock struct {
 type WgslConst struct {
 	LineNumber    int             `json:"lineNumber"`
 	Name          string          `json:"name"`
-	Type          string          `json:"type"`
+	TypeInfo      WgslTypeInfo    `json:"typeInfo"`
 	Value         string          `json:"value"`
 	HasShaderDefs bool            `json:"hasShaderDefs"`
 	ShaderDefs    []WgslDefResult `json:"shaderDefs"`
-	TypeLink      string          `json:"typeLink"`
-	TypeLinkBlank bool            `json:"typeLinkBlank"`
 }
 
 type WgslStructure struct {
@@ -75,25 +72,21 @@ type WgslStructure struct {
 type WgslType struct {
 	Annotation    string          `json:"annotation"`
 	Name          string          `json:"name"`
-	Type          string          `json:"type"`
+	TypeInfo      WgslTypeInfo    `json:"typeInfo"`
 	HasShaderDefs bool            `json:"hasShaderDefs"`
 	ShaderDefs    []WgslDefResult `json:"shaderDefs"`
-	TypeLink      string          `json:"typeLink"`
-	TypeLinkBlank bool            `json:"typeLinkBlank"`
 }
 
 type WgslFunction struct {
-	StageAttribute      string          `json:"stageAttribute"`
-	Name                string          `json:"name"`
-	LineNumber          int             `json:"lineNumber"`
-	Params              []WgslType      `json:"params"`
-	ReturnType          string          `json:"returnType"`
-	ReturnTypeLink      string          `json:"returnTypeLink"`
-	ReturnTypeLinkBlank bool            `json:"returnTypeLinkBlank "`
-	HasShaderDefs       bool            `json:"hasShaderDefs"`
-	ShaderDefs          []WgslDefResult `json:"shaderDefs"`
-	Comment             string          `json:"comment"`
-	HasParams           bool            `json:"hasParams"`
+	StageAttribute string          `json:"stageAttribute"`
+	Name           string          `json:"name"`
+	LineNumber     int             `json:"lineNumber"`
+	Params         []WgslType      `json:"params"`
+	ReturnTypeInfo WgslTypeInfo    `json:"returnTypeInfo"`
+	HasShaderDefs  bool            `json:"hasShaderDefs"`
+	ShaderDefs     []WgslDefResult `json:"shaderDefs"`
+	Comment        string          `json:"comment"`
+	HasParams      bool            `json:"hasParams"`
 }
 
 type WgslBinding struct {
@@ -102,9 +95,14 @@ type WgslBinding struct {
 	GroupIndex    string          `json:"groupIndex"`
 	BindingIndex  string          `json:"bindingIndex"`
 	BindingType   string          `json:"bindingType"` // optional
-	Type          string          `json:"type"`
+	TypeInfo      WgslTypeInfo    `json:"typeInfo"`
 	HasShaderDefs bool            `json:"hasShaderDefs"`
 	ShaderDefs    []WgslDefResult `json:"shaderDefs"`
-	TypeLink      string          `json:"typeLink"`
-	TypeLinkBlank bool            `json:"typeLinkBlank"`
+}
+
+type WgslTypeInfo struct {
+	Type          string `json:"type"`
+	FullTypePath  string `json:"fullTypePath"`
+	TypeLink      string `json:"typeLink"`
+	TypeLinkBlank bool   `json:"typeLinkBlank"`
 }

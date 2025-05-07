@@ -1,15 +1,15 @@
-{{#if typeLink}}
+{{#if typeInfo.typeLink}}
   <a
-    href="{{typeLink}}"
-    target="{{#if (contains "w3.org" typeLink)}}_blank{{else if typeLinkBlank}}_blank{{else}}_self{{/if}}"
+    href="{{typeInfo.typeLink}}"
+    target="{{#if (contains "w3.org" typeInfo.typeLink)}}_blank{{else if typeInfo.typeLinkBlank}}_blank{{else}}_self{{/if}}"
     rel="noopener noreferrer"
     class="param-type img-link"
   >
-    {{type}}
-    {{#if (contains "w3.org" typeLink)}}
+    {{typeInfo.type}}
+    {{#if (contains "w3.org" typeInfo.typeLink)}}
       <img src="/public/wgsl.png" width="20" height="20" />
     {{/if}}
   </a>
 {{else}}
-  {{type}}
+  {{typeInfo.type}}
 {{/if}}

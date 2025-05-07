@@ -20,5 +20,8 @@
   "f32": "https://www.w3.org/TR/WGSL/#f32-builtin",
   "u32": "https://www.w3.org/TR/WGSL/#u32-builtin",
   "i32": "https://www.w3.org/TR/WGSL/#i32-builtin",
-  "sampler": "https://www.w3.org/TR/webgpu/#dom-gpubindgrouplayoutentry-sampler"
+  "sampler": "https://www.w3.org/TR/webgpu/#dom-gpubindgrouplayoutentry-sampler",
+  "sampler_comparison": "https://www.w3.org/TR/WGSL/#type-sampler_comparison",
+  "texture_depth_cube": "https://www.w3.org/TR/WGSL/#type-texture_depth_cube",
+  "texture_depth_cube_array": "https://www.w3.org/TR/WGSL/#type-texture_depth_cube"
 }

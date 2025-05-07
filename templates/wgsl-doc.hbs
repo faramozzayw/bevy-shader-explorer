@@ -1,4 +1,4 @@
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -55,7 +55,7 @@
     {{#if importPath}}
       <div class="importPath">
         <h3>Import path</h3>
-        <button onclick="navigator.clipboard.writeText('{{importPath}}')">
+        <button class="importPathButton" onclick="navigator.clipboard.writeText('{{importPath}}')">
           {{importPath}}
           <small>(click to copy)</small>
         </button>
@@ -154,6 +154,14 @@
             <a href="#{{name}}">#</a>
             {{> gh-link }}
           </div>
+
+          {{#if importPath}}
+            <div>
+              <button class="importPathButton" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
+                Copy import statement
+              </button>
+            </div>
+          {{/if}}
         </div>
 
         {{#if comment}}
@@ -213,6 +221,16 @@
             {{> gh-link }} 
           </div>
 
+          {{#if importPath}}
+            {{#unless stageAttribute}}
+              <div>
+                <button class="importPathButton" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
+                  Copy import statement
+                </button>
+              </div>
+            {{/unless}}
+          {{/if}}
+
           {{#if stageAttribute}}
             <div>
               <span
@@ -241,13 +259,13 @@
           <span class="kw">{{#if visibility}}{{visibility}} {{/if}}fn</span>
           <span class="fn-name">{{name}}</span>(<span>{{#each params}}<span
                 class="param-name"
-              >{{name}}</span>{{#if type}}:
-                <span class="param-type">{{type}}</span>{{/if}}{{#unless
+              >{{name}}</span>{{#if typeInfo.type}}:
+                <span class="param-type">{{typeInfo.type}}</span>{{/if}}{{#unless
                 @last
               }}, {{/unless}}{{/each}}</span>)
-          {{#if (neq returnType "void")}}
+          {{#if (neq returnTypeInfo.type "void")}}
             ->
-            <span class="return-type-val">{{returnType}}</span>{{/if}}
+            <span class="return-type-val">{{returnTypeInfo.type}}</span>{{/if}}
         </div>
 
         {{#if hasParams}}
@@ -273,20 +291,20 @@
 
         {{#if (neq returnType "void")}}
           <div class="return-type">Returns:
-            {{#if returnTypeLink}}
+            {{#if returnTypeInfo.typeLink}}
               <a
-                href="{{returnTypeLink}}"
-                target="{{#if (contains "w3.org" typeLink)}}_blank{{else if returnTypeLinkBlank}}_blank{{else}}_self{{/if}}"
+                href="{{returnTypeInfo.typeLink}}"
+                target="{{#if (contains "w3.org" returnTypeInfo.typeLink)}}_blank{{else if returnTypeInfo.typeLinkBlank}}_blank{{else}}_self{{/if}}"
                 rel="noopener noreferrer"
                 class="return-type-val img-link"
               >
-                {{returnType}}
-                {{#if (contains "w3.org" returnTypeLink)}}
+                {{returnTypeInfo.type}}
+                {{#if (contains "w3.org" returnTypeInfo.typeLink)}}
                   <img src="/public/wgsl.png" width="20" height="20" />
                 {{/if}}
               </a>
             {{else}}
-              <span class="return-type-val">{{returnType}}</span>
+              <span class="return-type-val">{{returnTypeInfo.type}}</span>
             {{/if}}</div>
         {{/if}}
       </div>

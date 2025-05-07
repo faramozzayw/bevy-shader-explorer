@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 )
 
@@ -65,11 +66,31 @@ func NormalizeLink(link string) string {
 	}
 }
 
-func ResolveTypeLink(typeName string, imports map[string]string) (string, bool) {
-	if typeLink, ok := imports[typeName]; ok {
-		return typeLink + "#" + typeName, true
+func (typeInfo *WgslTypeInfo) ResolveTypeLink(imports map[string]string, definedStructuresList []string) {
+	if len(typeInfo.TypeLink) == 0 {
+		typeInfo.TypeLink = GetTypeLink(typeInfo.Type)
 	}
-	return "#" + typeName, false
+
+	if len(typeInfo.TypeLink) != 0 {
+		return
+	}
+
+	if len(typeInfo.FullTypePath) == 0 {
+		typeInfo.FullTypePath = typeInfo.Type
+	}
+
+	importTarget := strings.Split(typeInfo.FullTypePath, "::")[0]
+
+	if typeLink, ok := imports[importTarget]; ok {
+		typeInfo.TypeLink = typeLink + "#" + typeInfo.Type
+		typeInfo.TypeLinkBlank = true
+		return
+	}
+
+	if slices.Contains(definedStructuresList, typeInfo.Type) {
+		typeInfo.TypeLink = "#" + typeInfo.Type
+		typeInfo.TypeLinkBlank = false
+	}
 }
 
 func CopyFile(src, dst string) error {
@@ -120,7 +141,7 @@ func ValueOrDefault[T any](ptr *T, fallback T) T {
 	return fallback
 }
 
-func PrintJson[T any](v T) {
+func PrintAsJson[T any](v T) {
 	printJson, err := json.MarshalIndent(v, "", "  ")
 
 	if err != nil {
