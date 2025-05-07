@@ -53,9 +53,9 @@
     </h1>
 
     {{#if importPath}}
-      <div class="importPath">
+      <div class="import-path">
         <h3>Import path</h3>
-        <button class="importPathButton" onclick="navigator.clipboard.writeText('{{importPath}}')">
+        <button class="import-path-button" onclick="navigator.clipboard.writeText('{{importPath}}')">
           {{importPath}}
           <small>(click to copy)</small>
         </button>
@@ -65,79 +65,87 @@
     {{#if notEmptyConsts}}
       <h3>Constants</h3>
 
-      <div class="function">
-        <table class="params-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Value</th>
-              {{#if constsShaderDefs}} <th>Shader Def</th>{{/if}}
-            </tr>
-          </thead>
+      {{#each consts}}
+        <div class="function">
+          <div class="function-header">
+            <div>
+              <h3 class="function-name" id="{{name}}">
+                {{name}}
+              </h3>
+              <a href="#{{name}}">#</a>
+              {{> gh-link }}
+            </div>
 
-          {{#each consts}}
-            <tbody>
-              <tr>
-                <td class="flex-align-center">{{name}}
-                  <a href="#{{name}}">#</a>
-                  {{> gh-link }}
-                </td>
-                <td class="param-type param-type-table">
-                  {{> type }}
-                </td>
-                <td>{{value}}</td>
-                {{#if constsShaderDefs}}
-                  <td>
-                    {{> shader-defs-list }}
-                  </td>
-                {{/if}}
-              </tr>
-            </tbody>
-          {{/each}}
-        </table>
-      </div>
+            {{#if importPath}}
+              <div>
+                <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
+                  Copy import statement
+                </button>
+              </div>
+            {{/if}}
+          </div>
+
+        {{#if hasShaderDefs}}
+          <div class="function-shader-defs">
+            <h4>Shader defs requirments: </h4>
+            <p>
+              {{> shader-defs-list }}
+            </p>
+          </div>
+        {{/if}}
+
+          <div class="signature code-background">
+            <span class="keyword">const</span>
+            <span>{{name}}:</span>
+            {{> type }}
+            <span>=</span>
+            <span class="value">{{value}}</span>
+          </div>
+        </div>
+      {{/each}}
     {{/if}}
 
     {{#if notEmptyBindings}}
       <h3>Bindings</h3>
 
-      <div class="function">
-        <table class="params-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Group</th>
-              <th>Binding index</th>
-              <th>Binding type</th>
-              <th>Type</th>
-              {{#if bindingsShaderDefs}} <th>Shader Def</th> {{/if}}
-            </tr>
-          </thead>
+      {{#each bindings}}
+        <div class="function">
+          <div class="function-header">
+            <div>
+              <h3 class="function-name" id="{{name}}">
+                {{name}}
+              </h3>
+              <a href="#{{name}}">#</a>
+              {{> gh-link }}
+            </div>
 
-          {{#each bindings}}
-            <tbody>
-              <tr>
-                <td class="flex-align-center">{{name}}
-                  <a href="#{{name}}">#</a>
-                  {{> gh-link }}
-                </td>
-                <td>{{groupIndex}}</td>
-                <td>{{bindingIndex}}</td>
-                <td>{{bindingType}}</td>
-                <td class="param-type param-type-table">
-                  {{> type }}
-                </td>
-                {{#if bindingsShaderDefs}}
-                  <td>
-                    {{> shader-defs-list }}
-                  </td>
-                {{/if}}
-              </tr>
-            </tbody>
-          {{/each}}
-        </table>
-      </div>
+            {{#if importPath}}
+              <div>
+                <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
+                  Copy import statement
+                </button>
+              </div>
+            {{/if}}
+          </div>
+
+        {{#if hasShaderDefs}}
+          <div class="function-shader-defs">
+            <h4>Shader defs requirments: </h4>
+            <p>
+              {{> shader-defs-list }}
+            </p>
+          </div>
+        {{/if}}
+
+          <div class="signature code-background">
+            <span>@<span class="item-name">group</span>(<span class="value">{{groupIndex}}</span>)</span>
+            <span>@<span class="item-name">binding</span>(<span class="value">{{bindingIndex}}</span>)</span>
+            <span><span class="keyword">var</span>{{#if bindingType}}&lt;<span class="keyword">{{bindingType}}</span>&gt;{{/if}}</span>
+            <span>{{name}}:</span>
+            {{> type }}
+          </div>
+        </div>
+      {{/each}}
     {{/if}}
 
     {{#if notEmptyStructures}}
@@ -157,7 +165,7 @@
 
           {{#if importPath}}
             <div>
-              <button class="importPathButton" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
+              <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
                 Copy import statement
               </button>
             </div>
@@ -170,41 +178,35 @@
             }}}</div>
         {{/if}}
 
-        {{#if hasFields}}
-          <table class="params-table">
-            <thead>
-              <tr>
-                {{#if hasAnnotations}}<th>Annotation</th>{{/if}}
-                <th>Name</th>
-                <th>Type</th>
-                {{#if fieldsShaderDefs}} <th>Shader Def</th>{{/if}}
-              </tr>
-            </thead>
-            <tbody>
-              {{#each fields}}
-                <tr>
-                  {{#if hasAnnotations}}
-                    <td class="annotation">
-                      {{annotation}}
-                    </td>
-                  {{/if}}
-                  <td>{{name}}</td>
-                  <td class="param-type param-type-table">
-                    {{> type}}
-                  </td>
-                  {{#if fieldsShaderDefs}}
-                    <td>
-                      {{#if hasShaderDefs}}
-                        {{> shader-defs-list }}
-                      {{/if}}
-                    </td>
-                  {{/if}}
-                </tr>
-              {{/each}}
-            </tbody>
-          </table>
-        {{/if}}
+        <div class="code-background">
+          <span class="keyword">struct</span>
+          <span class="item-name">{{name}}</span>
+          <span>{</span>
 
+          <div class="struct-field-rows">
+            {{#each fields}}
+                <div class="struct-field-row">
+                {{#if hasAnnotations}}
+                  <span class="annotation">
+                    @{{annotation}}
+                  </span>
+                {{/if}}
+                <span>{{name}}:</span>
+                {{> type}}
+                <span>,</span>
+                {{#if fieldsShaderDefs}}
+                  <span>
+                    {{#if hasShaderDefs}}
+                      {{> shader-defs-list }}
+                    {{/if}}
+                  </span>
+                {{/if}}
+                </div>
+            {{/each}}
+          </div>
+
+          <span>}</span>
+        </div>
       </div>
     {{/each}}
 
@@ -224,7 +226,7 @@
           {{#if importPath}}
             {{#unless stageAttribute}}
               <div>
-                <button class="importPathButton" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
+                <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
                   Copy import statement
                 </button>
               </div>
@@ -242,7 +244,7 @@
 
         {{#if hasShaderDefs}}
           <div class="function-shader-defs">
-            <h4>Shader defs: </h4>
+            <h4>Shader defs requirments: </h4>
             <p>
               {{> shader-defs-list }}
             </p>
@@ -255,58 +257,22 @@
             }}}</div>
         {{/if}}
 
-        <div class="signature">
-          <span class="kw">{{#if visibility}}{{visibility}} {{/if}}fn</span>
-          <span class="fn-name">{{name}}</span>(<span>{{#each params}}<span
-                class="param-name"
-              >{{name}}</span>{{#if typeInfo.type}}:
-                <span class="param-type">{{typeInfo.type}}</span>{{/if}}{{#unless
-                @last
-              }}, {{/unless}}{{/each}}</span>)
+        <div class="signature code-background">
+          <span class="keyword">fn</span>
+          <span class="item-name">{{name}}</span>
+          <div class="param-list">
+          (
+            {{#each params}}
+              <div class="param"><span>{{name}}: </span>{{> type}}</div>{{#unless @last}},&nbsp;{{/unless}}
+            {{/each}}
+          )
+          </div>
+
           {{#if (neq returnTypeInfo.type "void")}}
-            ->
-            <span class="return-type-val">{{returnTypeInfo.type}}</span>{{/if}}
+            <span>-></span>
+            {{> type typeInfo=returnTypeInfo }}
+          {{/if}}
         </div>
-
-        {{#if hasParams}}
-          <table class="params-table">
-            <thead>
-              <tr>
-                <th>Parameter</th>
-                <th>Type</th>
-              </tr>
-            </thead>
-            <tbody>
-              {{#each params}}
-                <tr>
-                  <td>{{name}}</td>
-                  <td class="param-type">
-                    {{> type }}
-                  </td>
-                </tr>
-              {{/each}}
-            </tbody>
-          </table>
-        {{/if}}
-
-        {{#if (neq returnType "void")}}
-          <div class="return-type">Returns:
-            {{#if returnTypeInfo.typeLink}}
-              <a
-                href="{{returnTypeInfo.typeLink}}"
-                target="{{#if (contains "w3.org" returnTypeInfo.typeLink)}}_blank{{else if returnTypeInfo.typeLinkBlank}}_blank{{else}}_self{{/if}}"
-                rel="noopener noreferrer"
-                class="return-type-val img-link"
-              >
-                {{returnTypeInfo.type}}
-                {{#if (contains "w3.org" returnTypeInfo.typeLink)}}
-                  <img src="/public/wgsl.png" width="20" height="20" />
-                {{/if}}
-              </a>
-            {{else}}
-              <span class="return-type-val">{{returnTypeInfo.type}}</span>
-            {{/if}}</div>
-        {{/if}}
       </div>
     {{/each}}
   </body>

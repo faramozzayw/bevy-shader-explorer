@@ -3,7 +3,7 @@
     href="{{typeInfo.typeLink}}"
     target="{{#if (contains "w3.org" typeInfo.typeLink)}}_blank{{else if typeInfo.typeLinkBlank}}_blank{{else}}_self{{/if}}"
     rel="noopener noreferrer"
-    class="param-type img-link"
+    class="item-name img-link"
   >
     {{typeInfo.type}}
     {{#if (contains "w3.org" typeInfo.typeLink)}}
@@ -11,5 +11,5 @@
     {{/if}}
   </a>
 {{else}}
-  {{typeInfo.type}}
+  <span class="item-name">{{typeInfo.type}}</span>
 {{/if}}
