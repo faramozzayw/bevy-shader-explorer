@@ -25,6 +25,14 @@ const parseQuery = (rawQuery) => {
   return { cleanedQuery, flags };
 };
 
+document.addEventListener("keydown", (event) => {
+  if (event.key === "s" || event.key === "S" || event.key === "/") {
+    event.preventDefault();
+    const searchInput = document.querySelector("input#search-input");
+    if (searchInput) searchInput.focus();
+  }
+});
+
 fetch("/public/search-info.json")
   .then((res) => res.json())
   .then(async (shadersFunctions) => {

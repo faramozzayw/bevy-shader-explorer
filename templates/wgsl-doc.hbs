@@ -39,7 +39,7 @@
           type="text"
           id="search-input"
           class="search-input"
-          placeholder="Search... 🔍"
+          placeholder="Type ‘S’ or ‘/’ to search 🔍"
         />
       </div>
       <div id="results"></div>
@@ -63,13 +63,13 @@
     {{/if}}
 
     {{#if notEmptyConsts}}
-      <h3>Constants</h3>
+      <h3 class="section-header">Constants</h3>
 
       {{#each consts}}
-        <div class="function">
-          <div class="function-header">
+        <section id="{{name}}">
+          <header>
             <div>
-              <h3 class="function-name" id="{{name}}">
+              <h3 class="function-name">
                 {{name}}
               </h3>
               <a href="#{{name}}">#</a>
@@ -83,16 +83,16 @@
                 </button>
               </div>
             {{/if}}
-          </div>
+          </header>
 
-        {{#if hasShaderDefs}}
-          <div class="function-shader-defs">
-            <h4>Shader defs requirments: </h4>
-            <p>
-              {{> shader-defs-list }}
-            </p>
-          </div>
-        {{/if}}
+          {{#if hasShaderDefs}}
+            <div class="function-shader-defs">
+              <h4>Shader defs requirments: </h4>
+              <p>
+                {{> shader-defs-list }}
+              </p>
+            </div>
+          {{/if}}
 
           <div class="signature code-background">
             <span class="keyword">const</span>
@@ -101,18 +101,18 @@
             <span>=</span>
             <span class="value">{{value}}</span>
           </div>
-        </div>
+        </section>
       {{/each}}
     {{/if}}
 
     {{#if notEmptyBindings}}
-      <h3>Bindings</h3>
+      <h3 class="section-header">Bindings</h3>
 
       {{#each bindings}}
-        <div class="function">
-          <div class="function-header">
+        <section id="{{name}}">
+          <header>
             <div>
-              <h3 class="function-name" id="{{name}}">
+              <h3 class="function-name">
                 {{name}}
               </h3>
               <a href="#{{name}}">#</a>
@@ -126,7 +126,7 @@
                 </button>
               </div>
             {{/if}}
-          </div>
+          </header>
 
         {{#if hasShaderDefs}}
           <div class="function-shader-defs">
@@ -144,136 +144,136 @@
             <span>{{name}}:</span>
             {{> type }}
           </div>
-        </div>
+        </section>
       {{/each}}
     {{/if}}
 
     {{#if notEmptyStructures}}
-      <h3>Structures</h3>
-    {{/if}}
+      <h3 class="section-header">Structures</h3>
 
-    {{#each structures}}
-      <div class="function">
-        <div class="function-header">
-          <div>
-            <h3 class="function-name" id="{{name}}">
-              {{name}}
-            </h3>
-            <a href="#{{name}}">#</a>
-            {{> gh-link }}
-          </div>
-
-          {{#if importPath}}
+      {{#each structures}}
+        <section id="{{name}}">
+          <header>
             <div>
-              <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
-                Copy import statement
-              </button>
+              <h3 class="function-name">
+                {{name}}
+              </h3>
+              <a href="#{{name}}">#</a>
+              {{> gh-link }}
             </div>
-          {{/if}}
-        </div>
 
-        {{#if comment}}
-          <div class="function-comment">{{{linkify
-              (code-highlight comment)
-            }}}</div>
-        {{/if}}
-
-        <div class="code-background">
-          <span class="keyword">struct</span>
-          <span class="item-name">{{name}}</span>
-          <span>{</span>
-
-          <div class="struct-field-rows">
-            {{#each fields}}
-                <div class="struct-field-row">
-                {{#if hasAnnotations}}
-                  <span class="annotation">
-                    @{{annotation}}
-                  </span>
-                {{/if}}
-                <span>{{name}}:</span>
-                {{> type}}
-                <span>,</span>
-                {{#if fieldsShaderDefs}}
-                  <span>
-                    {{#if hasShaderDefs}}
-                      {{> shader-defs-list }}
-                    {{/if}}
-                  </span>
-                {{/if}}
-                </div>
-            {{/each}}
-          </div>
-
-          <span>}</span>
-        </div>
-      </div>
-    {{/each}}
-
-    {{#if  notEmptyFunctions}}
-      <h3>Functions</h3>
-    {{/if}}
-
-    {{#each functions}}
-      <div class="function">
-        <div class="function-header">
-          <div>
-            <h3 class="function-name" id="{{name}}">{{name}}</h3>
-            <a href="#{{name}}">#</a>
-            {{> gh-link }} 
-          </div>
-
-          {{#if importPath}}
-            {{#unless stageAttribute}}
+            {{#if importPath}}
               <div>
                 <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
                   Copy import statement
                 </button>
               </div>
-            {{/unless}}
+            {{/if}}
+          </header>
+
+          {{#if comment}}
+            <div class="function-comment">{{{linkify
+                (code-highlight comment)
+              }}}</div>
           {{/if}}
 
-          {{#if stageAttribute}}
+          <div class="code-background">
+            <span class="keyword">struct</span>
+            <span class="item-name">{{name}}</span>
+            <span>{</span>
+
+            <div class="struct-field-rows">
+              {{#each fields}}
+                  <div class="struct-field-row">
+                  {{#if hasAnnotations}}
+                    <span class="annotation">
+                      @{{annotation}}
+                    </span>
+                  {{/if}}
+                  <span>{{name}}:</span>
+                  {{> type}}
+                  <span>,</span>
+                  {{#if fieldsShaderDefs}}
+                    <span>
+                      {{#if hasShaderDefs}}
+                        {{> shader-defs-list }}
+                      {{/if}}
+                    </span>
+                  {{/if}}
+                  </div>
+              {{/each}}
+            </div>
+
+            <span>}</span>
+          </div>
+        </section>
+      {{/each}}
+    {{/if}}
+
+    {{#if notEmptyFunctions}}
+      <h3 class="section-header">Functions</h3>
+    
+      {{#each functions}}
+        <section id="{{name}}">
+          <header>
             <div>
-              <span
-                class="attribute-badge {{stageAttribute}}-badge"
-              >@{{stageAttribute}}</span>
+              <h3 class="function-name">{{name}}</h3>
+              <a href="#{{name}}">#</a>
+              {{> gh-link }} 
+            </div>
+
+            {{#if importPath}}
+              {{#unless stageAttribute}}
+                <div>
+                  <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
+                    Copy import statement
+                  </button>
+                </div>
+              {{/unless}}
+            {{/if}}
+
+            {{#if stageAttribute}}
+              <div>
+                <span
+                  class="attribute-badge {{stageAttribute}}-badge"
+                >@{{stageAttribute}}</span>
+              </div>
+            {{/if}}
+          </header>
+
+          {{#if hasShaderDefs}}
+            <div class="function-shader-defs">
+              <h4>Shader defs requirments: </h4>
+              <p>
+                {{> shader-defs-list }}
+              </p>
             </div>
           {{/if}}
-        </div>
 
-        {{#if hasShaderDefs}}
-          <div class="function-shader-defs">
-            <h4>Shader defs requirments: </h4>
-            <p>
-              {{> shader-defs-list }}
-            </p>
-          </div>
-        {{/if}}
-
-        {{#if comment}}
-          <div class="function-comment">{{{linkify
-              (code-highlight comment)
-            }}}</div>
-        {{/if}}
-
-        <div class="signature code-background">
-          <span class="keyword">fn</span>
-          <span class="item-name">{{name}}</span>
-          <div class="param-list">
-          (
-            {{#each params}}
-              <div class="param"><span>{{name}}: </span>{{> type}}</div>{{#unless @last}},&nbsp;{{/unless}}
-            {{/each}}
-          )
-          </div>
-
-          {{#if (neq returnTypeInfo.type "void")}}
-            <span>-></span>
-            {{> type typeInfo=returnTypeInfo }}
+          {{#if comment}}
+            <div class="function-comment">{{{linkify
+                (code-highlight comment)
+              }}}</div>
           {{/if}}
-        </div>
-      </div>
-    {{/each}}
+
+          <div class="signature code-background">
+            <span class="keyword">fn</span>
+            <span class="item-name">{{name}}</span>
+            <div class="param-list">
+            (
+              {{#each params}}
+                <div class="param"><span>{{name}}: </span>{{> type}}</div>{{#unless @last}},&nbsp;{{/unless}}
+              {{/each}}
+            )
+            </div>
+
+            {{#if (neq returnTypeInfo.type "void")}}
+              <span>-></span>
+              {{> type typeInfo=returnTypeInfo }}
+            {{/if}}
+          </div>
+        </section>
+      {{/each}}
+    {{/if}}
   </body>
 </html>
