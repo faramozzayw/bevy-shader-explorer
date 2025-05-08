@@ -138,8 +138,7 @@
         {{/if}}
 
           <div class="signature code-background">
-            <span>@<span class="item-name">group</span>(<span class="value">{{groupIndex}}</span>)</span>
-            <span>@<span class="item-name">binding</span>(<span class="value">{{bindingIndex}}</span>)</span>
+            {{> annotations }}
             <span><span class="keyword">var</span>{{#if bindingType}}&lt;<span class="keyword">{{bindingType}}</span>&gt;{{/if}}</span>
             <span>{{name}}:</span>
             {{> type }}
@@ -185,11 +184,7 @@
             <div class="struct-field-rows">
               {{#each fields}}
                   <div class="struct-field-row">
-                  {{#if hasAnnotations}}
-                    <span class="annotation">
-                      @{{annotation}}
-                    </span>
-                  {{/if}}
+                  {{> annotations }}
                   <span>{{name}}:</span>
                   {{> type}}
                   <span>,</span>
@@ -260,12 +255,13 @@
             <span class="keyword">fn</span>
             <span class="item-name">{{name}}</span>
             <div class="param-list">({{#each params}}
-                <div class="param"><span>{{name}}: </span>{{> type}}</div>{{#unless @last}},&nbsp;{{/unless}}
+                <div class="param">{{> annotations }}<span>{{name}}: </span>{{> type}}</div>{{#unless @last}},&nbsp;{{/unless}}
               {{/each}})
             </div>
 
             {{#if (neq returnTypeInfo.type "void")}}
               <span>-></span>
+              {{> annotations annotations=returnTypeInfo.annotations}}
               {{> type typeInfo=returnTypeInfo }}
             {{/if}}
           </div>

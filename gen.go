@@ -47,14 +47,15 @@ var wgpuTypes map[string]string
 
 var structurePattern = regexp.MustCompile(`struct\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\{([^}]*)\}`)
 var constPattern = regexp.MustCompile(`const\s+(\w+)\s{0,}(?::\s{0,}(.*))?=\s+(.*);`)
-var typesStringPattern = regexp.MustCompile(`^(?:@([^\s]+)\s+)?([a-zA-Z_]\w*):(.+)$`)
+var namedTypeStringPattern = regexp.MustCompile(`^(?:@([^\s]+)\s+)?([a-zA-Z_]\w*):(.+)$`)
+var typeStringPattern = regexp.MustCompile(`^(?:@([^\s]+)\s+)?(.+)$`)
 var functionPattern = regexp.MustCompile(`(?m)(@[^;]*\s+)?(vertex|fragment|compute\s+)?\bfn\b\s+([a-zA-Z0-9_]+)[\s\S]*?\{`)
 var functionSigWithReturnTypePattern = regexp.MustCompile(`\bfn\b\s+(\w+)\(([\s\S]+)?\)\s+->`)
 var functionSigWithoutReturnTypePattern = regexp.MustCompile(`\bfn\b\s+(\w+)\(([\s\S]+)?\).*`)
 var bindingPattern = regexp.MustCompile(`@group\((\d+)\)\s{0,}@binding\((\d+)\)\s{0,}var\s{0,}(?:<(.*?)>)?\s{0,}(\w+):\s{0,}(.*);`)
 var shaderStagePattern = regexp.MustCompile(`@(vertex|fragment|compute)`)
-
-var vecRegex = regexp.MustCompile(`(vec\d(?:<.*>))`)
+var vecPattern = regexp.MustCompile(`(vec\d(?:<.*>))`)
+var annotationPattern = regexp.MustCompile(`(?:@([^\s]+)\((.*?)\)){1,}`)
 
 var sourcePath string
 
@@ -65,6 +66,7 @@ func main() {
 	}
 
 	source := flag.String("source", "", "Source file path")
+	file_filter := flag.String("filter", "*.wgsl", "Source file filter")
 	flag.Parse()
 
 	if *source == "" {
@@ -73,7 +75,7 @@ func main() {
 
 	sourcePath = *source
 
-	cmd := exec.Command("find", sourcePath, "-type", "f", "-name", "*.wgsl")
+	cmd := exec.Command("find", sourcePath, "-type", "f", "-name", *file_filter)
 	stdout, err := cmd.Output()
 
 	RegisterHelpers()
@@ -287,6 +289,8 @@ func parseWGSLFile(wgslFilePath string) WgslFile {
 	functions := extractFunctions(normalizedCode, lineComments, shaderDefs)
 	bindings := extractBindings(normalizedCode, lineComments, shaderDefs)
 
+	// PrintAsJson(functions)
+
 	githubLink := getGithubLink(originalDir, basename)
 
 	wgslFile := WgslFile{
@@ -448,8 +452,8 @@ func extractConsts(normalizedCode string, lineComments map[int]string, shaderDef
 		if typ == "" {
 			if matched, _ := regexp.MatchString(`^\d+\.\d+`, value); matched {
 				typ = "AbstractFloat"
-			} else if vecRegex.MatchString(value) {
-				typ = vecRegex.FindStringSubmatch(value)[1]
+			} else if vecPattern.MatchString(value) {
+				typ = vecPattern.FindStringSubmatch(value)[1]
 			} else if matched, _ := regexp.MatchString(`\d+u$`, value); matched {
 				typ = "u32"
 			} else if matched, _ := regexp.MatchString(`\d+$`, value); matched {
@@ -562,17 +566,13 @@ func extractStructures(normalizedCode string, lineComments map[int]string, shade
 
 		commentStrip := regexp.MustCompile(`\/{1,3}.*`)
 		cleanFields := commentStrip.ReplaceAllString(fieldsRaw, "")
-		fields := parseTypesString(cleanFields, normalizedCode, shaderDefs)
+		fields := parseNamedTypeString(cleanFields, normalizedCode, shaderDefs)
 
 		lineNumber := getLineNumber(normalizedCode, match[0])
 		comments := getItemComments(lineNumber, lineComments)
 		shaderDefsThis := getShaderDefsByLine(shaderDefs, lineNumber)
 
-		hasAnnotations := SomeBy(fields, func(field WgslType) bool {
-			return field.Annotation != ""
-		})
-
-		fieldsShaderDefs := SomeBy(fields, func(field WgslType) bool {
+		fieldsShaderDefs := SomeBy(fields, func(field WgslNamedType) bool {
 			return field.HasShaderDefs
 		})
 
@@ -584,7 +584,6 @@ func extractStructures(normalizedCode string, lineComments map[int]string, shade
 			HasShaderDefs:    len(shaderDefsThis) > 0,
 			HasFields:        len(fields) != 0,
 			ShaderDefs:       shaderDefsThis,
-			HasAnnotations:   hasAnnotations,
 			FieldsShaderDefs: fieldsShaderDefs,
 		})
 	}
@@ -593,6 +592,7 @@ func extractStructures(normalizedCode string, lineComments map[int]string, shade
 }
 
 func extractFunctions(normalizedCode string, lineComments map[int]string, shaderDefs []ShaderDefBlock) []WgslFunction {
+
 	var functions []WgslFunction
 	fullCode := normalizedCode
 
@@ -623,10 +623,28 @@ func extractFunctions(normalizedCode string, lineComments map[int]string, shader
 			rawParams = sigMatch[2]
 		}
 
-		params := parseTypesString(rawParams, fullCode, shaderDefs)
+		params := parseNamedTypeString(rawParams, fullCode, shaderDefs)
 		returnType := "void"
+		returnTypeAnnotations := make([]WgslAnnotation, 0)
+
 		if rt := regexp.MustCompile(`->(.*)`).FindStringSubmatch(signature); len(rt) > 1 {
-			returnType = strings.TrimSpace(rt[1])
+			trimmedRt := strings.TrimSpace(rt[1])
+
+			matches := annotationPattern.FindAllStringSubmatchIndex(trimmedRt, -1)
+
+			for _, match := range matches {
+				returnTypeAnnotations = append(returnTypeAnnotations, WgslAnnotation{
+					Name:  trimmedRt[match[2]:match[3]],
+					Value: trimmedRt[match[4]:match[5]],
+				})
+			}
+
+			if len(matches) > 0 {
+				last := matches[len(matches)-1]
+				returnType = strings.TrimSpace(trimmedRt[last[1]:])
+			} else {
+				returnType = trimmedRt
+			}
 		}
 
 		lineNumber := getLineNumber(fullCode, startIdx)
@@ -643,7 +661,8 @@ func extractFunctions(normalizedCode string, lineComments map[int]string, shader
 			ShaderDefs:     thisShaderDefs,
 			Comment:        strings.Join(comments, "\n"),
 			ReturnTypeInfo: WgslTypeInfo{
-				Type: returnType,
+				Type:        returnType,
+				Annotations: returnTypeAnnotations,
 			},
 		})
 	}
@@ -666,12 +685,21 @@ func extractBindings(code string, lineComments map[int]string, shaderDefs []Shad
 		typeStr := RemovePath(submatches[5])
 		lineNumber := getLineNumber(code, matchIdx[0])
 		thisShaderDefs := getShaderDefsByLine(shaderDefs, lineNumber)
+		annotations := []WgslAnnotation{
+			{
+				Name:  "group",
+				Value: groupIndex,
+			},
+			{
+				Name:  "binding",
+				Value: bindingIndex,
+			},
+		}
 
 		bindings = append(bindings, WgslBinding{
 			LineNumber:    lineNumber,
 			Name:          name,
-			GroupIndex:    groupIndex,
-			BindingIndex:  bindingIndex,
+			Annotations:   annotations,
 			BindingType:   bindingType,
 			HasShaderDefs: len(thisShaderDefs) > 0,
 			ShaderDefs:    thisShaderDefs,
@@ -697,23 +725,35 @@ func extractImportPath(normalizedCode string) *string {
 
 // ---------------------------------------------
 
-func parseTypesString(str, fullCode string, shaderDefs []ShaderDefBlock) []WgslType {
+func parseNamedTypeString(str, fullCode string, shaderDefs []ShaderDefBlock) []WgslNamedType {
 	str = strings.ReplaceAll(str, "\n", "")
 	str = regexp.MustCompile(`#ifdef\s+\w+|#else|#endif`).ReplaceAllString(str, "")
 	str = strings.TrimSpace(str)
 
 	entries := SplitParams(str)
-	var result []WgslType
+	var result []WgslNamedType
 
 	for _, entry := range entries {
-		match := typesStringPattern.FindStringSubmatch(entry)
-		if len(match) == 0 {
-			continue
+		annotations := make([]WgslAnnotation, 0)
+		matches := annotationPattern.FindAllStringSubmatchIndex(entry, -1)
+
+		for _, match := range matches {
+			annotations = append(annotations, WgslAnnotation{
+				Name:  entry[match[2]:match[3]],
+				Value: entry[match[4]:match[5]],
+			})
 		}
 
-		annotation := match[1]
-		name := match[2]
-		typ := RemovePath(match[3])
+		param := strings.ReplaceAll(entry, " ", "")
+		if len(matches) > 0 {
+			last := matches[len(matches)-1]
+			param = strings.ReplaceAll(entry[last[1]:], " ", "")
+		}
+
+		splittedParam := strings.Split(param, ":")
+
+		name := splittedParam[0]
+		typ := RemovePath(splittedParam[1])
 
 		// Approximate the line number
 		re := regexp.MustCompile(`\b` + regexp.QuoteMeta(name) + `\s*:`)
@@ -725,8 +765,8 @@ func parseTypesString(str, fullCode string, shaderDefs []ShaderDefBlock) []WgslT
 
 		shaderDefMatches := getShaderDefsByLine(shaderDefs, lineNumber)
 
-		result = append(result, WgslType{
-			Annotation:    annotation,
+		result = append(result, WgslNamedType{
+			Annotations:   annotations,
 			Name:          name,
 			HasShaderDefs: len(shaderDefMatches) > 0,
 			ShaderDefs:    shaderDefMatches,

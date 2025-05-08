@@ -27,8 +27,12 @@ const parseQuery = (rawQuery) => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "s" || event.key === "S" || event.key === "/") {
-    event.preventDefault();
     const searchInput = document.querySelector("input#search-input");
+
+    if (document.activeElement !== searchInput) {
+      event.preventDefault();
+    }
+
     if (searchInput) searchInput.focus();
   }
 });

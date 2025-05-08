@@ -18,6 +18,9 @@ var TYPE_TEMPLATE string
 //go:embed templates/partials/gh-link.hbs
 var GH_LINK_TEMPLATE string
 
+//go:embed templates/partials/annotations.hbs
+var ANNOTATIONS_TEMPLATE string
+
 func RegisterHelpers() {
 	// Register helpers
 	raymond.RegisterHelper("eq", eq)
@@ -32,6 +35,7 @@ func RegisterPartials() {
 	raymond.RegisterPartial("shader-defs-list", SHADER_DEFS_LIST_TEMPLATE)
 	raymond.RegisterPartial("type", TYPE_TEMPLATE)
 	raymond.RegisterPartial("gh-link", GH_LINK_TEMPLATE)
+	raymond.RegisterPartial("annotations", ANNOTATIONS_TEMPLATE)
 }
 
 func eq(a, b interface{}) bool {

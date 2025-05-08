@@ -197,6 +197,4 @@ func parseImports(importString string) (DeclaredImports, error) {
 
 		tokens.Next()
 	}
-
-	return declaredImports, nil
 }
