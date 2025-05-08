@@ -288,9 +288,6 @@ func parseWGSLFile(wgslFilePath string) WgslFile {
 	structures := extractStructures(normalizedCode, lineComments, shaderDefs)
 	functions := extractFunctions(normalizedCode, lineComments, shaderDefs)
 	bindings := extractBindings(normalizedCode, lineComments, shaderDefs)
-
-	// PrintAsJson(functions)
-
 	githubLink := getGithubLink(originalDir, basename)
 
 	wgslFile := WgslFile{

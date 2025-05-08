@@ -99,8 +99,11 @@ section header > div {
 }
 .signature {
   display: flex;
-  column-gap: 5px;
   flex-wrap: wrap;
+}
+.signature > span:not(:last-child),
+.signature > div:not(:last-child) {
+  margin-right: 5px;
 }
 .code-background {
   background-color: #f0f0f0;
@@ -136,16 +139,16 @@ section header > div {
 }
 .param {
   display: flex;
-  column-gap: 5px;
+}
+.param > span:not(:last-child),
+.param > div:not(:last-child) {
+  margin-right: 5px;
 }
 .img-link {
   display: flex;
   gap: 5px;
   align-items: center;
   width: max-content;
-}
-.annotation {
-  color: #8d008d;
 }
 .section-header {
   width: fit-content;
