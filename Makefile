@@ -14,3 +14,7 @@ clone-bevy:
 
 build-bevy: clone-bevy
 	go run main --source ./bevy/
+
+deploy-prod:
+	vercel build --prod
+	vercel --prebuilt --prod
