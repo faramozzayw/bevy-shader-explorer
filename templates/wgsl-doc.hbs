@@ -259,12 +259,9 @@
           <div class="signature code-background">
             <span class="keyword">fn</span>
             <span class="item-name">{{name}}</span>
-            <div class="param-list">
-            (
-              {{#each params}}
+            <div class="param-list">({{#each params}}
                 <div class="param"><span>{{name}}: </span>{{> type}}</div>{{#unless @last}},&nbsp;{{/unless}}
-              {{/each}}
-            )
+              {{/each}})
             </div>
 
             {{#if (neq returnTypeInfo.type "void")}}
