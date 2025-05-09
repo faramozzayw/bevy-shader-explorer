@@ -482,6 +482,9 @@ func extractComments(lines []string) map[int]string {
 
 	for i, line := range lines {
 		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "// TODO:") {
+			continue
+		}
 
 		// Handle multi-line comments
 		if strings.Contains(trimmed, "/*") {
