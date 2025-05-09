@@ -16,10 +16,17 @@
   <body>
     {{> header }}
 
+<main>
     <h1>
       <code>{{filename}}</code>
       <a href="{{githubLink}}" target="_blank" rel="noopener noreferrer">
-        <img src="/public/github.png" width="20" height="20" />
+        <picture>
+          <source
+            srcset="/public/github-mark-white.png"
+            media="(prefers-color-scheme: dark)"
+          />
+          <img src="/public/github-mark.png" width="20" height="20" />
+        </picture>
       </a>
     </h1>
 
@@ -238,5 +245,6 @@
         </section>
       {{/each}}
     {{/if}}
+  </main>
   </body>
 </html>

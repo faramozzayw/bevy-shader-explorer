@@ -29,7 +29,8 @@ var copyToPublic = []string{
 	"favicon.ico",
 	"search.js",
 	"wgsl.png",
-	"github.png",
+	"github-mark.png",
+	"github-mark-white.png",
 	"templates/search-result.hbs",
 }
 
