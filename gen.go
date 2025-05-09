@@ -589,7 +589,6 @@ func extractStructures(normalizedCode string, lineComments map[int]string, shade
 }
 
 func extractFunctions(normalizedCode string, lineComments map[int]string, shaderDefs []ShaderDefBlock) []WgslFunction {
-
 	var functions []WgslFunction
 	fullCode := normalizedCode
 

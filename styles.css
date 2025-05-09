@@ -5,6 +5,7 @@
 /*}*/
 html {
   scroll-behavior: smooth;
+  --gap: 10px;
 }
 body {
   font-family: "Fira Code", monospace;
@@ -27,6 +28,7 @@ header div:first-child {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  column-gap: 5%;
 }
 .header-link {
   display: flex;
@@ -103,7 +105,7 @@ section header > div {
 }
 .signature > span:not(:last-child),
 .signature > div:not(:last-child) {
-  margin-right: 5px;
+  margin-right: var(--gap);
 }
 .code-background {
   background-color: #f0f0f0;
@@ -142,7 +144,13 @@ section header > div {
 }
 .param > span:not(:last-child),
 .param > div:not(:last-child) {
-  margin-right: 5px;
+  margin-right: var(--gap);
+}
+.no-margin {
+  margin: 0 !important;
+}
+.arrow {
+  margin: 0 var(--gap);
 }
 .img-link {
   display: flex;
@@ -200,8 +208,6 @@ section header > div {
 /* Search input */
 
 .search-input {
-  width: 100%;
-  max-width: 400px;
   padding: 10px 15px;
   border: 1px solid #ddd;
   border-radius: 5px;
@@ -209,6 +215,7 @@ section header > div {
   font-size: 1em;
   color: #333;
   transition: border-color 0.3s ease;
+  flex: 1 1 auto;
 }
 .search-input:focus {
   border-color: #3498db;
