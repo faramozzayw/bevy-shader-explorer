@@ -11,18 +11,20 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/aymerick/raymond"
-	. "github.com/samber/lo"
+	lo "github.com/samber/lo"
 	progressbar "github.com/schollz/progressbar/v3"
 )
 
 const OUTPUT_DIR_ROOT = "./dist"
 
 var CURRENT_VERSION = "release-0.15.3"
-var bevyUrl = "https://github.com/bevyengine/bevy/tree/" + CURRENT_VERSION + "/"
+var sourceGithubUrl = "https://github.com/bevyengine/bevy/tree/" + CURRENT_VERSION + "/"
 
 var copyToPublic = []string{
 	"styles.css",
@@ -88,10 +90,10 @@ func main() {
 
 	filePaths := strings.Split(strings.TrimSpace(string(stdout)), "\n")
 
-	var searchInfo []ShaderSearchableInfo
+	searchInfo := make([]ShaderSearchableInfo, 0, 4096)
 
 	declaredImportPaths := make(map[string]string)
-	wgslFiles := make([]WgslFile, 0)
+	wgslFiles := make([]WgslFile, 0, len(filePaths))
 
 	parsing_bar := progressbar.Default(
 		int64(len(filePaths)),
@@ -99,7 +101,6 @@ func main() {
 	)
 
 	for _, filePath := range filePaths {
-
 		wgslFile := parseWGSLFile(filePath)
 		wgslFiles = append(wgslFiles, wgslFile)
 
@@ -110,9 +111,12 @@ func main() {
 			declaredImportPaths[*wgslFile.ImportPath] = normalizedLink
 		}
 
-		functions := make([]ShaderSearchableInfo, 0)
+		localSearchInfo := make([]ShaderSearchableInfo, 0,
+			len(wgslFile.Functions)+len(wgslFile.Structures)+len(wgslFile.Consts)+len(wgslFile.Bindings),
+		)
+
 		for _, fn := range wgslFile.Functions {
-			functions = append(functions, ShaderSearchableInfo{
+			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
 				Link:           normalizedLink,
 				Filename:       wgslFile.Filename,
 				Exportable:     exportable,
@@ -123,9 +127,8 @@ func main() {
 			})
 		}
 
-		structures := make([]ShaderSearchableInfo, 0)
 		for _, structure := range wgslFile.Structures {
-			structures = append(structures, ShaderSearchableInfo{
+			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
 				Link:       normalizedLink,
 				Filename:   wgslFile.Filename,
 				Exportable: exportable,
@@ -134,9 +137,8 @@ func main() {
 			})
 		}
 
-		consts := make([]ShaderSearchableInfo, 0)
 		for _, c := range wgslFile.Consts {
-			consts = append(consts, ShaderSearchableInfo{
+			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
 				Link:       normalizedLink,
 				Filename:   wgslFile.Filename,
 				Exportable: exportable,
@@ -145,9 +147,8 @@ func main() {
 			})
 		}
 
-		bindings := make([]ShaderSearchableInfo, 0)
 		for _, binding := range wgslFile.Bindings {
-			bindings = append(bindings, ShaderSearchableInfo{
+			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
 				Link:       normalizedLink,
 				Filename:   wgslFile.Filename,
 				Exportable: exportable,
@@ -156,24 +157,35 @@ func main() {
 			})
 		}
 
-		searchInfo = append(searchInfo, functions...)
-		searchInfo = append(searchInfo, structures...)
-		searchInfo = append(searchInfo, consts...)
-		searchInfo = append(searchInfo, bindings...)
+		searchInfo = append(searchInfo, localSearchInfo...)
 
 		parsing_bar.Add(1)
 	}
 
-	processing_bar := progressbar.Default(
+	processingBar := progressbar.Default(
 		int64(len(filePaths)),
 		"processing WGSL files",
 	)
 
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, runtime.NumCPU())
+
 	for _, wgslFile := range wgslFiles {
-		wgslFile.ResolveTypeLinks(declaredImportPaths)
-		wgslFile.generateWgslPage()
-		processing_bar.Add(1)
+		wgslFile := wgslFile
+		wg.Add(1)
+		sem <- struct{}{}
+
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			wgslFile.ResolveTypeLinks(declaredImportPaths)
+			wgslFile.generateWgslPage()
+			processingBar.Add(1)
+		}()
 	}
+
+	wg.Wait()
 
 	compiledTemplate, err := raymond.Parse(HOME_DOC_TEMPLATE_SOURCE)
 	if err != nil {
@@ -243,7 +255,7 @@ func main() {
 	}
 }
 
-func getGithubLink(dir string, basename string) string {
+func GetGithubLink(githubUrl string, dir string, basename string) string {
 	innerPath, err := filepath.Rel(sourcePath, dir)
 	if err != nil {
 		log.Fatal(err)
@@ -251,7 +263,7 @@ func getGithubLink(dir string, basename string) string {
 
 	joinedPath := filepath.Join(innerPath, basename)
 
-	baseURL, err := url.Parse(bevyUrl)
+	baseURL, err := url.Parse(githubUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -267,9 +279,9 @@ func parseWGSLFile(wgslFilePath string) WgslFile {
 	normalizedCode := strings.ReplaceAll(string(wgslCodeBytes), "\n\r", "\n")
 
 	basename := filepath.Base(wgslFilePath)
-	filename := strings.Replace(basename, ".wgsl", "", 1)
+	filename := strings.TrimSuffix(basename, ".wgsl")
 	originalDir := filepath.Dir(wgslFilePath)
-	dir := DedupPathParts(strings.Replace(originalDir, "src/", "", 1))
+	dir := DedupPathParts(strings.TrimPrefix(originalDir, "src/"))
 
 	innerPath, err := filepath.Rel(sourcePath, dir)
 	if err != nil {
@@ -289,7 +301,7 @@ func parseWGSLFile(wgslFilePath string) WgslFile {
 	structures := extractStructures(normalizedCode, lineComments, shaderDefs)
 	functions := extractFunctions(normalizedCode, lineComments, shaderDefs)
 	bindings := extractBindings(normalizedCode, lineComments, shaderDefs)
-	githubLink := getGithubLink(originalDir, basename)
+	githubLink := GetGithubLink(sourceGithubUrl, originalDir, basename)
 
 	wgslFile := WgslFile{
 		ImportPath: importPath,
@@ -321,7 +333,9 @@ func parseWGSLFile(wgslFilePath string) WgslFile {
 
 func (wgslFile *WgslFile) ResolveTypeLinks(declaredImportPaths map[string]string) {
 	importsMap := make(map[string]string)
-	structuresList := make([]string, 0)
+	structuresList := lo.Map(wgslFile.Structures, func(v WgslStructure, _ int) string {
+		return v.Name
+	})
 
 	for key, paths := range wgslFile.DeclaredImports {
 		if len(paths) == 0 {
@@ -341,10 +355,6 @@ func (wgslFile *WgslFile) ResolveTypeLinks(declaredImportPaths map[string]string
 		if longestMatch != "" {
 			importsMap[key] = declaredImportPaths[longestMatch]
 		}
-	}
-
-	for _, structure := range wgslFile.Structures {
-		structuresList = append(structuresList, structure.Name)
 	}
 
 	for i := range wgslFile.Structures {
@@ -573,7 +583,7 @@ func extractStructures(normalizedCode string, lineComments map[int]string, shade
 		comments := getItemComments(lineNumber, lineComments)
 		shaderDefsThis := getShaderDefsByLine(shaderDefs, lineNumber)
 
-		fieldsShaderDefs := SomeBy(fields, func(field WgslNamedType) bool {
+		fieldsShaderDefs := lo.SomeBy(fields, func(field WgslNamedType) bool {
 			return field.HasShaderDefs
 		})
 
