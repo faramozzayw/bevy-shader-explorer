@@ -211,7 +211,7 @@ section header > div {
   background-color: var(--code-bg);
   border: 1px solid var(--code-border-color); /* Subtle border */
 }
-.function-comment {
+.function-comment p {
   padding: 10px;
   margin: 10px 0;
   white-space: pre-line;

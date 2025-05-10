@@ -149,9 +149,7 @@
           </header>
 
           {{#if comment}}
-            <div class="function-comment">{{{linkify
-                (code-highlight comment)
-              }}}</div>
+            <div class="function-comment">{{{parse-markdown comment}}}</div>
           {{/if}}
 
           <div class="code-background">
@@ -224,9 +222,7 @@
           {{/if}}
 
           {{#if comment}}
-            <div class="function-comment">{{{linkify
-                (code-highlight comment)
-              }}}</div>
+            <div class="function-comment">{{{parse-markdown comment}}}</div>
           {{/if}}
 
           <div class="signature code-background">

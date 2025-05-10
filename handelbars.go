@@ -2,11 +2,10 @@ package main
 
 import (
 	_ "embed"
-	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/aymerick/raymond"
+	"github.com/gomarkdown/markdown"
 )
 
 //go:embed templates/partials/shader-defs-list.hbs
@@ -28,10 +27,8 @@ func RegisterHelpers() {
 	// Register helpers
 	raymond.RegisterHelper("eq", eq)
 	raymond.RegisterHelper("neq", neq)
-	raymond.RegisterHelper("linkify", linkify)
-	raymond.RegisterHelper("code-highlight", codeHighlight)
+	raymond.RegisterHelper("parse-markdown", parseMarkdown)
 	raymond.RegisterHelper("contains", contains)
-
 }
 
 func RegisterPartials() {
@@ -50,18 +47,9 @@ func neq(a, b interface{}) bool {
 	return a != b
 }
 
-// turns URLs into clickable links
-func linkify(text string) string {
-	re := regexp.MustCompile(`(?:https?|ftp):\/\/[\n\S]+`)
-	return re.ReplaceAllStringFunc(text, func(url string) string {
-		return fmt.Sprintf(`<a href="%s" target="_blank">%s</a>`, url, url)
-	})
-}
-
-// highlights code wrapped with backticks
-func codeHighlight(text string) string {
-	re := regexp.MustCompile("`(.*?)`")
-	return re.ReplaceAllString(text, `<code>$1</code>`)
+func parseMarkdown(text string) string {
+	maybeUnsafeHTML := markdown.ToHTML([]byte(text), nil, nil)
+	return strings.TrimSpace(string(maybeUnsafeHTML))
 }
 
 // checks if haystack contains needle
