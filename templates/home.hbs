@@ -1,30 +1,16 @@
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bevy WGSL Explorer</title>
-    <link rel="stylesheet" href="/public/styles.css" />
-    <link rel="icon" href="/public/favicon.ico" type="image/svg+xml" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap"
-      rel="stylesheet"
-    />
+  {{>head title="Bevy WGSL Explorer"}}
 
-    <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
-    <script
-      src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.min.js"
-    ></script>
-    <script src="public/search.js" type="text/javascript"></script>
-  </head>
+  {{> version-selector }}
+
   <body>
-
     <h1>Content</h1>
 
     {{> header }}
-    
+ 
     <ul>
       {{#each files}}
-        <li> <a href="{{file}}">{{file}}</a></li>
+        <li> <a href="/{{version}}/{{file}}">{{file}}</a></li>
       {{/each}}
     </ul>
   </body>

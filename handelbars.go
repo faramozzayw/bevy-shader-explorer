@@ -8,11 +8,23 @@ import (
 	"github.com/gomarkdown/markdown"
 )
 
+//go:embed templates/wgsl-doc.hbs
+var WGSL_DOC_TEMPLATE_SOURCE string
+
+//go:embed templates/404.hbs
+var NOT_FOUND_TEMPLATE_SOURCE string
+
+//go:embed templates/home.hbs
+var HOME_DOC_TEMPLATE_SOURCE string
+
 //go:embed templates/partials/shader-defs-list.hbs
 var SHADER_DEFS_LIST_TEMPLATE string
 
 //go:embed templates/partials/type.hbs
 var TYPE_TEMPLATE string
+
+//go:embed templates/partials/head.hbs
+var HEAD_TEMPLATE string
 
 //go:embed templates/partials/gh-link.hbs
 var GH_LINK_TEMPLATE string
@@ -23,20 +35,22 @@ var ANNOTATIONS_TEMPLATE string
 //go:embed templates/partials/header.hbs
 var HEADER_TEMPLATE string
 
-func RegisterHelpers() {
-	// Register helpers
+//go:embed templates/partials/version-selector.hbs
+var VERSION_SELECTOR_TEMPLATE string
+
+func SetupHandlebars() {
 	raymond.RegisterHelper("eq", eq)
 	raymond.RegisterHelper("neq", neq)
 	raymond.RegisterHelper("parse-markdown", parseMarkdown)
 	raymond.RegisterHelper("contains", contains)
-}
 
-func RegisterPartials() {
 	raymond.RegisterPartial("shader-defs-list", SHADER_DEFS_LIST_TEMPLATE)
 	raymond.RegisterPartial("type", TYPE_TEMPLATE)
+	raymond.RegisterPartial("head", HEAD_TEMPLATE)
 	raymond.RegisterPartial("gh-link", GH_LINK_TEMPLATE)
 	raymond.RegisterPartial("annotations", ANNOTATIONS_TEMPLATE)
 	raymond.RegisterPartial("header", HEADER_TEMPLATE)
+	raymond.RegisterPartial("version-selector", VERSION_SELECTOR_TEMPLATE)
 }
 
 func eq(a, b interface{}) bool {
@@ -52,7 +66,6 @@ func parseMarkdown(text string) string {
 	return strings.TrimSpace(string(maybeUnsafeHTML))
 }
 
-// checks if haystack contains needle
 func contains(needle, haystack string) bool {
 	return strings.Contains(haystack, needle)
 }

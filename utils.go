@@ -59,6 +59,7 @@ func GetTypeLink(t string) string {
 }
 
 func NormalizeLink(link string) string {
+	link = strings.ReplaceAll(link, "src/", "")
 	if strings.HasPrefix(link, "/") {
 		return link
 	} else {

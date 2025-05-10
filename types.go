@@ -17,8 +17,9 @@ type ShaderSearchableInfo struct {
 }
 
 type WgslFile struct {
+	Version    string  `json:"version"`
 	ImportPath *string `json:"importPath"`
-	WgslPath   string  `json:"WgslFile"`
+	WgslPath   string  `json:"wgslFile"`
 
 	Consts           []WgslConst `json:"consts"`
 	ConstsShaderDefs bool        `json:"constsShaderDefs"`

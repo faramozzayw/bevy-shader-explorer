@@ -1,0 +1,37 @@
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  text-align: center;
+}
+.error-code {
+  font-size: 6rem;
+  font-weight: bold;
+  color: var(--keyword-color);
+  margin: 0;
+}
+.error-message {
+  font-size: 1.5rem;
+  margin-bottom: 30px;
+  color: var(--text-color);
+}
+.back-home {
+  text-decoration: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 1rem;
+  background-color: var(--import-button-bg);
+  color: white;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+.back-home:hover {
+  background-color: var(--import-button-hover);
+}
+.back-home:focus {
+  outline: none;
+  box-shadow: 0 0 6px var(--import-button-focus);
+}

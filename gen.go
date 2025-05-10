@@ -3,7 +3,6 @@ package main
 import (
 	_ "embed"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"net/url"
@@ -21,28 +20,18 @@ import (
 	progressbar "github.com/schollz/progressbar/v3"
 )
 
-const OUTPUT_DIR_ROOT = "./dist"
-
-var CURRENT_VERSION = "release-0.15.3"
-var sourceGithubUrl = "https://github.com/bevyengine/bevy/tree/" + CURRENT_VERSION + "/"
-
 var copyToPublic = []string{
-	"styles.css",
-	"favicon.ico",
-	"search.js",
-	"wgsl.png",
-	"github-mark.png",
-	"github-mark-white.png",
+	"assets/styles.css",
+	"assets/favicon.ico",
+	"assets/search.js",
+	"assets/select.js",
+	"assets/404.js",
+	"assets/404.css",
+	"assets/wgsl.png",
+	"assets/github-mark.png",
+	"assets/github-mark-white.png",
 	"templates/search-result.hbs",
 }
-
-var PUBLIC_FOLDER = filepath.Join(OUTPUT_DIR_ROOT, "public")
-
-//go:embed templates/wgsl-doc.hbs
-var WGSL_DOC_TEMPLATE_SOURCE string
-
-//go:embed templates/home.hbs
-var HOME_DOC_TEMPLATE_SOURCE string
 
 //go:embed wgpu-types.json
 var wgpuTypesData []byte
@@ -60,51 +49,26 @@ var shaderStagePattern = regexp.MustCompile(`@(vertex|fragment|compute)`)
 var vecPattern = regexp.MustCompile(`(vec\d(?:<.*>))`)
 var annotationPattern = regexp.MustCompile(`(?:@([^\s]+)\((.*?)\)){1,}`)
 
-var sourcePath string
-
 func main() {
-	err := json.Unmarshal(wgpuTypesData, &wgpuTypes)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to parse wgpu-types.json: %v", err))
-	}
+	config := GetConfig()
+	filePaths := getWgslFilesList(config)
+	totalFiles := int64(len(filePaths))
 
-	source := flag.String("source", "", "Source file path")
-	file_filter := flag.String("filter", "*.wgsl", "Source file filter")
-	flag.Parse()
-
-	if *source == "" {
-		log.Fatal("Error: 'source' is a required argument")
-	}
-
-	sourcePath = *source
-
-	cmd := exec.Command("find", sourcePath, "-type", "f", "-name", *file_filter)
-	stdout, err := cmd.Output()
-
-	RegisterHelpers()
-	RegisterPartials()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	filePaths := strings.Split(strings.TrimSpace(string(stdout)), "\n")
+	loadWgslTypes()
+	SetupHandlebars()
 
 	searchInfo := make([]ShaderSearchableInfo, 0, 4096)
-
 	declaredImportPaths := make(map[string]string)
 	wgslFiles := make([]WgslFile, 0, len(filePaths))
 
-	parsing_bar := progressbar.Default(
-		int64(len(filePaths)),
-		"parsing WGSL files",
-	)
+	parsingBar := progressbar.Default(totalFiles, "📄 Reading WGSL Files")
 
 	for _, filePath := range filePaths {
-		wgslFile := parseWGSLFile(filePath)
+		wgslFile := parseWGSLFile(&config, filePath)
 		wgslFiles = append(wgslFiles, wgslFile)
 
 		normalizedLink := NormalizeLink(wgslFile.Link)
+
 		exportable := wgslFile.ImportPath != nil
 
 		if exportable {
@@ -137,12 +101,12 @@ func main() {
 			})
 		}
 
-		for _, c := range wgslFile.Consts {
+		for _, consts := range wgslFile.Consts {
 			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
 				Link:       normalizedLink,
 				Filename:   wgslFile.Filename,
 				Exportable: exportable,
-				Name:       c.Name,
+				Name:       consts.Name,
 				Type:       "const",
 			})
 		}
@@ -159,16 +123,20 @@ func main() {
 
 		searchInfo = append(searchInfo, localSearchInfo...)
 
-		parsing_bar.Add(1)
+		parsingBar.Add(1)
 	}
 
-	processingBar := progressbar.Default(
-		int64(len(filePaths)),
-		"processing WGSL files",
-	)
+	compiledTemplate, err := raymond.Parse(WGSL_DOC_TEMPLATE_SOURCE)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	processingBar := progressbar.Default(totalFiles, "🛠️ Generating Documentation")
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, runtime.NumCPU())
+
+	versionedOutput := filepath.Join(config.OutputDir, config.Version)
 
 	for _, wgslFile := range wgslFiles {
 		wgslFile := wgslFile
@@ -180,27 +148,22 @@ func main() {
 			defer func() { <-sem }()
 
 			wgslFile.ResolveTypeLinks(declaredImportPaths)
-			wgslFile.generateWgslPage()
+			wgslFile.GenerateWgslPage(compiledTemplate, versionedOutput)
 			processingBar.Add(1)
 		}()
 	}
 
 	wg.Wait()
 
-	compiledTemplate, err := raymond.Parse(HOME_DOC_TEMPLATE_SOURCE)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	files := []map[string]string{}
 	for _, filePath := range filePaths {
-		docPath, err := filepath.Rel(sourcePath, filePath)
+		docPath, err := filepath.Rel(config.SourcePath, filePath)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		docPath = strings.Replace(docPath, "src/", "", 1)
-		docPath = strings.Replace(docPath, ".wgsl", "", 1)
+		docPath = strings.TrimSuffix(docPath, ".wgsl")
 		docPath = DedupPathParts(docPath) + ".html"
 
 		files = append(files, map[string]string{
@@ -208,62 +171,86 @@ func main() {
 		})
 	}
 
-	html, err := compiledTemplate.Exec(map[string]interface{}{
-		"files": files,
-	})
+	renderTemplateToFile(HOME_DOC_TEMPLATE_SOURCE, map[string]interface{}{
+		"files":          files,
+		"skipHomeButton": true,
+		"version":        config.Version,
+	}, filepath.Join(versionedOutput, "index.html"))
+
+	renderTemplateToFile(NOT_FOUND_TEMPLATE_SOURCE, map[string]interface{}{},
+		filepath.Join(config.OutputDir, "404.html"))
+
+	copyItemsToPublic(&config, searchInfo)
+}
+
+func renderTemplateToFile(templateSrc string, context map[string]interface{}, outputPath string) {
+	tmpl, err := raymond.Parse(templateSrc)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = os.WriteFile(filepath.Join(OUTPUT_DIR_ROOT, "index.html"), []byte(html), 0644)
+	html, err := tmpl.Exec(context)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// copy stuff to /public
-
-	err = os.MkdirAll(PUBLIC_FOLDER, os.ModePerm)
+	err = os.WriteFile(outputPath, []byte(html), 0644)
 	if err != nil {
-		log.Fatal("Error creating public folder:", err)
-		return
+		log.Fatal(err)
+	}
+}
+
+func getWgslFilesList(config Config) []string {
+	cmd := exec.Command("find", config.SourcePath, "-type", "f", "-name", config.FileFilter)
+	stdout, err := cmd.Output()
+	if err != nil {
+		log.Fatal(err)
+	}
+	filePaths := strings.Split(strings.TrimSpace(string(stdout)), "\n")
+	return filePaths
+}
+
+func loadWgslTypes() {
+	err := json.Unmarshal(wgpuTypesData, &wgpuTypes)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to parse wgpu-types.json: %v", err))
+	}
+}
+
+func copyItemsToPublic(config *Config, searchInfo []ShaderSearchableInfo) {
+	publicDir := filepath.Join(config.OutputDir, "public")
+	err := os.MkdirAll(publicDir, os.ModePerm)
+	if err != nil {
+		log.Fatal("Error creating public directory:", err)
 	}
 
 	searchInfoJSON, err := json.MarshalIndent(searchInfo, "", "  ")
 	if err != nil {
 		log.Fatal("Error marshaling searchInfo:", err)
-		return
 	}
 
-	err = os.WriteFile(filepath.Join(PUBLIC_FOLDER, "search-info.json"), searchInfoJSON, 0644)
+	err = os.WriteFile(filepath.Join(publicDir, fmt.Sprintf("search-info-%s.json", config.Version)), searchInfoJSON, 0644)
 	if err != nil {
 		log.Fatal("Error writing search-info.json:", err)
 	}
 
-	// Copy files to the public folder
 	for _, file := range copyToPublic {
 		src := file
-		dst := filepath.Join(PUBLIC_FOLDER, filepath.Base(file))
+		dst := filepath.Join(publicDir, filepath.Base(file))
 		err := CopyFile(src, dst)
 		if err != nil {
 			log.Fatal("Error copying file:", err)
 		}
 	}
-
-	// Copy serve.json to output folder
-	err = CopyFile("./serve.json", filepath.Join(OUTPUT_DIR_ROOT, "serve.json"))
-	if err != nil {
-		log.Fatal("Error copying serve.json:", err)
-	}
 }
 
-func GetGithubLink(githubUrl string, dir string, basename string) string {
-	innerPath, err := filepath.Rel(sourcePath, dir)
+func GetGithubLink(config *Config, dir string, basename string) string {
+	innerPath, err := filepath.Rel(config.SourcePath, dir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	joinedPath := filepath.Join(innerPath, basename)
 
-	baseURL, err := url.Parse(githubUrl)
+	baseURL, err := url.Parse(config.SourceGithubURL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -271,7 +258,8 @@ func GetGithubLink(githubUrl string, dir string, basename string) string {
 	return baseURL.ResolveReference(&url.URL{Path: joinedPath}).String()
 }
 
-func parseWGSLFile(wgslFilePath string) WgslFile {
+func parseWGSLFile(
+	config *Config, wgslFilePath string) WgslFile {
 	wgslCodeBytes, err := os.ReadFile(wgslFilePath)
 	if err != nil {
 		log.Fatal(err)
@@ -281,9 +269,9 @@ func parseWGSLFile(wgslFilePath string) WgslFile {
 	basename := filepath.Base(wgslFilePath)
 	filename := strings.TrimSuffix(basename, ".wgsl")
 	originalDir := filepath.Dir(wgslFilePath)
-	dir := DedupPathParts(strings.TrimPrefix(originalDir, "src/"))
+	dir := DedupPathParts(strings.ReplaceAll(originalDir, "src/", ""))
 
-	innerPath, err := filepath.Rel(sourcePath, dir)
+	innerPath, err := filepath.Rel(config.SourcePath, dir)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -301,9 +289,10 @@ func parseWGSLFile(wgslFilePath string) WgslFile {
 	structures := extractStructures(normalizedCode, lineComments, shaderDefs)
 	functions := extractFunctions(normalizedCode, lineComments, shaderDefs)
 	bindings := extractBindings(normalizedCode, lineComments, shaderDefs)
-	githubLink := GetGithubLink(sourceGithubUrl, originalDir, basename)
+	githubLink := GetGithubLink(config, originalDir, basename)
 
 	wgslFile := WgslFile{
+		Version:    config.Version,
 		ImportPath: importPath,
 
 		Consts:           consts,
@@ -325,7 +314,7 @@ func parseWGSLFile(wgslFilePath string) WgslFile {
 		Filename:   basename,
 		WgslPath:   wgslPath,
 		GithubLink: githubLink,
-		Link:       wgslPath,
+		Link:       fmt.Sprintf("%s/%s", config.Version, wgslPath),
 	}
 
 	return wgslFile
@@ -381,23 +370,15 @@ func (wgslFile *WgslFile) ResolveTypeLinks(declaredImportPaths map[string]string
 	}
 }
 
-func (wgslFile *WgslFile) generateWgslPage() {
-	fileOutputPath := filepath.Join(OUTPUT_DIR_ROOT, wgslFile.WgslPath)
-	compiledTemplate, err := raymond.Parse(WGSL_DOC_TEMPLATE_SOURCE)
-	if err != nil {
-		log.Fatal(err)
-	}
+func (wgslFile *WgslFile) GenerateWgslPage(compiledTemplate *raymond.Template, outputDir string) {
+	fileOutputPath := strings.ReplaceAll(filepath.Join(outputDir, wgslFile.WgslPath), "src/", "")
 
 	html, err := compiledTemplate.Exec(wgslFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.MkdirAll(filepath.Dir(filepath.Join(OUTPUT_DIR_ROOT, wgslFile.WgslPath)), os.ModePerm)
+	err = os.MkdirAll(filepath.Dir(filepath.Join(outputDir, wgslFile.WgslPath)), os.ModePerm)
 	if err != nil {
 		log.Fatal(err)
 	}

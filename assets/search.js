@@ -5,6 +5,7 @@ const fuseOptions = {
 };
 
 const currentUrl = new URL(window.location);
+const version = currentUrl.pathname.split("/").filter(Boolean).at(0);
 
 async function loadTemplate() {
   const response = await fetch("/public/search-result.hbs");
@@ -17,7 +18,7 @@ const parseQuery = (rawQuery) => {
   const stageAttributeRegex = /@(\w+)/g;
   const flags = [];
   let cleanedQuery = rawQuery
-    .replace(stageAttributeRegex, (match, flag) => {
+    .replace(stageAttributeRegex, (_match, flag) => {
       flags.push(flag.toLowerCase());
       return "";
     })
@@ -26,6 +27,11 @@ const parseQuery = (rawQuery) => {
 };
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    document.activeElement.blur();
+    return;
+  }
+
   if (event.key === "s" || event.key === "S" || event.key === "/") {
     const searchInput = document.querySelector("input#search-input");
 
@@ -37,7 +43,7 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-fetch("/public/search-info.json")
+fetch(`/public/search-info-${version}.json`)
   .then((res) => res.json())
   .then(async (shadersFunctions) => {
     const input = document.getElementById("search-input");
@@ -46,8 +52,11 @@ fetch("/public/search-info.json")
     const template = await loadTemplate();
 
     function renderResults(results) {
-      const data = results.length > 0 ? results.map((r) => r.item) : [];
-      resultsContainer.innerHTML = template(data);
+      if (results.length === 0) {
+        resultsContainer.innerHTML = null;
+      } else {
+        resultsContainer.innerHTML = template(results.map((r) => r.item));
+      }
     }
 
     function doSearch(query) {

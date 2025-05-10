@@ -1,6 +1,8 @@
 <header>
   <div>
-    <a href="/" class="header-link">Home 🏡</a>
+    {{#unless skipHomeButton}}
+      <a href="/{{version}}" class="header-link">Home 🏡</a>
+    {{/unless}}
     <a
       href="https://www.w3.org/TR/WGSL"
       target="_blank"
