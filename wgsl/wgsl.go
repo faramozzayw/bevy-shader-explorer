@@ -355,6 +355,8 @@ func extractFunctions(normalizedCode string, lineComments map[int]string, shader
 		startIdx := matchIdx[0]
 		endIdx := matchIdx[1]
 		signature := strings.TrimSpace(fullCode[startIdx:endIdx])
+		// TODO: check all comments
+		signature = regexp.MustCompile(`//.*`).ReplaceAllString(signature, "")
 		signature = strings.TrimSuffix(signature, "{")
 
 		var stageAttr string

@@ -1,7 +1,6 @@
 package wgsl
 
 import (
-	// . "main/utils"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -333,6 +332,15 @@ fn downsample_depth_first(
 ) {
   // stuff
 }
+
+fn map_axis_with_repeat(
+    // normalized distance along the axis
+    p: f32,
+    // target min dividing point
+    il: f32,
+) -> f32 {
+  // stuff
+}
 `
 
 	functions := extractFunctions(code, map[int]string{}, []ShaderDefBlock{})
@@ -449,10 +457,11 @@ fn downsample_depth_first(
 			HasParams:     true,
 		},
 		{
-			StageAttribute: "compute",
-			WorkgroupSize:  []string{"256", "1", "1"},
-			Name:           "downsample_depth_first",
-			LineNumber:     19,
+			StageAttribute:   "compute",
+			WorkgroupSize:    []string{"256", "1", "1"},
+			HasWorkgroupSize: true,
+			Name:             "downsample_depth_first",
+			LineNumber:       19,
 			Params: []NamedType{
 				{
 					Annotations: []Annotation{
@@ -512,9 +521,53 @@ fn downsample_depth_first(
 			Comment:       "",
 			HasParams:     true,
 		},
+		{
+			StageAttribute:   "",
+			WorkgroupSize:    nil,
+			HasWorkgroupSize: false,
+			Name:             "map_axis_with_repeat",
+			LineNumber:       29,
+			Params: []NamedType{
+				{
+					Annotations: []Annotation{},
+					Name:        "p",
+					TypeInfo: TypeInfo{
+						Annotations:   nil,
+						Type:          "f32",
+						FullTypePath:  "f32",
+						TypeLink:      "",
+						TypeLinkBlank: false,
+					},
+					HasShaderDefs: false,
+					ShaderDefs:    nil,
+				},
+				{
+					Annotations: []Annotation{},
+					Name:        "il",
+					TypeInfo: TypeInfo{
+						Annotations:   nil,
+						Type:          "f32",
+						FullTypePath:  "f32",
+						TypeLink:      "",
+						TypeLinkBlank: false,
+					},
+					HasShaderDefs: false,
+					ShaderDefs:    nil,
+				},
+			},
+			ReturnTypeInfo: TypeInfo{
+				Annotations:   []Annotation{},
+				Type:          "f32",
+				FullTypePath:  "",
+				TypeLink:      "",
+				TypeLinkBlank: false,
+			},
+			HasShaderDefs: false,
+			ShaderDefs:    nil,
+			Comment:       "",
+			HasParams:     true,
+		},
 	}
-
-	// PrintAsJson(functions)
 
 	for i := range functions {
 		assert.Equal(t, expectedFunctions[i], functions[i])
