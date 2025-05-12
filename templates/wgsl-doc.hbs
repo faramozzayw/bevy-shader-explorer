@@ -198,6 +198,12 @@
                   <span
                     class="attribute-badge {{stageAttribute}}-badge"
                   >@{{stageAttribute}}</span>
+
+                  {{#if hasWorkgroupSize}}
+                    <span class="attribute-badge workgroup-size-badge">
+                      @workgroup_size({{#each workgroupSize}}{{this}}{{#unless @last}},&nbsp;{{/unless}}{{/each}})
+                    </span>
+                  {{/if}}
                 </div>
               {{/if}}
             </header>

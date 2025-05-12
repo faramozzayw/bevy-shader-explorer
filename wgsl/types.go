@@ -1,6 +1,6 @@
 package wgsl
 
-type WgslDefResult struct {
+type DefResult struct {
 	DefName    string `json:"defName"`
 	Branch     string `json:"branch"`
 	LineNumber int    `json:"lineNumber"`
@@ -11,18 +11,18 @@ type WgslFile struct {
 	ImportPath *string `json:"importPath"`
 	WgslPath   string  `json:"wgslFile"`
 
-	Consts           []WgslConst `json:"consts"`
-	ConstsShaderDefs bool        `json:"constsShaderDefs"`
-	NotEmptyConsts   bool        `json:"notEmptyConsts"`
+	Consts           []Const `json:"consts"`
+	ConstsShaderDefs bool    `json:"constsShaderDefs"`
+	NotEmptyConsts   bool    `json:"notEmptyConsts"`
 
-	Bindings           []WgslBinding `json:"bindings"`
-	BindingsShaderDefs bool          `json:"bindingsShaderDefs"`
-	NotEmptyBindings   bool          `json:"notEmptyBindings"`
+	Bindings           []Binding `json:"bindings"`
+	BindingsShaderDefs bool      `json:"bindingsShaderDefs"`
+	NotEmptyBindings   bool      `json:"notEmptyBindings"`
 
-	Functions         []WgslFunction `json:"functions"`
-	NotEmptyFunctions bool           `json:"notEmptyFunctions"`
+	Functions         []Function `json:"functions"`
+	NotEmptyFunctions bool       `json:"notEmptyFunctions"`
 
-	Structures           []WgslStructure `json:"structures"`
+	Structures           []Structure     `json:"structures"`
 	StructuresShaderDefs bool            `json:"structuresShaderDefs"`
 	NotEmptyStructures   bool            `json:"notEmptyStructures"`
 	DeclaredImports      DeclaredImports `json:"declaredImports"`
@@ -39,66 +39,68 @@ type ShaderDefBlock struct {
 	EndifLine int    `json:"endifLine"`
 }
 
-type WgslConst struct {
-	LineNumber    int             `json:"lineNumber"`
-	Name          string          `json:"name"`
-	TypeInfo      WgslTypeInfo    `json:"typeInfo"`
-	Value         string          `json:"value"`
-	HasShaderDefs bool            `json:"hasShaderDefs"`
-	ShaderDefs    []WgslDefResult `json:"shaderDefs"`
+type Const struct {
+	LineNumber    int         `json:"lineNumber"`
+	Name          string      `json:"name"`
+	TypeInfo      TypeInfo    `json:"typeInfo"`
+	Value         string      `json:"value"`
+	HasShaderDefs bool        `json:"hasShaderDefs"`
+	ShaderDefs    []DefResult `json:"shaderDefs"`
 }
 
-type WgslStructure struct {
-	Name             string          `json:"name"`
-	Fields           []WgslNamedType `json:"fields"`
-	LineNumber       int             `json:"lineNumber"`
-	Comment          string          `json:"comment"`
-	HasShaderDefs    bool            `json:"hasShaderDefs"`
-	ShaderDefs       []WgslDefResult `json:"shaderDefs"`
-	HasFields        bool            `json:"hasFields"`
-	FieldsShaderDefs bool            `json:"fieldsShaderDefs"`
+type Structure struct {
+	Name             string      `json:"name"`
+	Fields           []NamedType `json:"fields"`
+	LineNumber       int         `json:"lineNumber"`
+	Comment          string      `json:"comment"`
+	HasShaderDefs    bool        `json:"hasShaderDefs"`
+	ShaderDefs       []DefResult `json:"shaderDefs"`
+	HasFields        bool        `json:"hasFields"`
+	FieldsShaderDefs bool        `json:"fieldsShaderDefs"`
 }
 
 // field or param
-type WgslNamedType struct {
-	Annotations   []WgslAnnotation `json:"annotations"`
-	Name          string           `json:"name"`
-	TypeInfo      WgslTypeInfo     `json:"typeInfo"`
-	HasShaderDefs bool             `json:"hasShaderDefs"`
-	ShaderDefs    []WgslDefResult  `json:"shaderDefs"`
+type NamedType struct {
+	Annotations   []Annotation `json:"annotations"`
+	Name          string       `json:"name"`
+	TypeInfo      TypeInfo     `json:"typeInfo"`
+	HasShaderDefs bool         `json:"hasShaderDefs"`
+	ShaderDefs    []DefResult  `json:"shaderDefs"`
 }
 
-type WgslFunction struct {
-	StageAttribute string          `json:"stageAttribute"`
-	Name           string          `json:"name"`
-	LineNumber     int             `json:"lineNumber"`
-	Params         []WgslNamedType `json:"params"`
-	ReturnTypeInfo WgslTypeInfo    `json:"returnTypeInfo"`
-	HasShaderDefs  bool            `json:"hasShaderDefs"`
-	ShaderDefs     []WgslDefResult `json:"shaderDefs"`
-	Comment        string          `json:"comment"`
-	HasParams      bool            `json:"hasParams"`
+type Function struct {
+	StageAttribute   string      `json:"stageAttribute"`
+	WorkgroupSize    []string    `json:"workgroupSize"`
+	HasWorkgroupSize bool        `json:"hasWorkgroupSize"`
+	Name             string      `json:"name"`
+	LineNumber       int         `json:"lineNumber"`
+	Params           []NamedType `json:"params"`
+	ReturnTypeInfo   TypeInfo    `json:"returnTypeInfo"`
+	HasShaderDefs    bool        `json:"hasShaderDefs"`
+	ShaderDefs       []DefResult `json:"shaderDefs"`
+	Comment          string      `json:"comment"`
+	HasParams        bool        `json:"hasParams"`
 }
 
-type WgslBinding struct {
-	LineNumber    int              `json:"lineNumber"`
-	Name          string           `json:"name"`
-	BindingType   string           `json:"bindingType"`
-	Annotations   []WgslAnnotation `json:"annotations"`
-	TypeInfo      WgslTypeInfo     `json:"typeInfo"`
-	HasShaderDefs bool             `json:"hasShaderDefs"`
-	ShaderDefs    []WgslDefResult  `json:"shaderDefs"`
+type Binding struct {
+	LineNumber    int          `json:"lineNumber"`
+	Name          string       `json:"name"`
+	BindingType   string       `json:"bindingType"`
+	Annotations   []Annotation `json:"annotations"`
+	TypeInfo      TypeInfo     `json:"typeInfo"`
+	HasShaderDefs bool         `json:"hasShaderDefs"`
+	ShaderDefs    []DefResult  `json:"shaderDefs"`
 }
 
-type WgslTypeInfo struct {
-	Annotations   []WgslAnnotation `json:"annotations"`
-	Type          string           `json:"type"`
-	FullTypePath  string           `json:"fullTypePath"`
-	TypeLink      string           `json:"typeLink"`
-	TypeLinkBlank bool             `json:"typeLinkBlank"`
+type TypeInfo struct {
+	Annotations   []Annotation `json:"annotations"`
+	Type          string       `json:"type"`
+	FullTypePath  string       `json:"fullTypePath"`
+	TypeLink      string       `json:"typeLink"`
+	TypeLinkBlank bool         `json:"typeLinkBlank"`
 }
 
-type WgslAnnotation struct {
+type Annotation struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }

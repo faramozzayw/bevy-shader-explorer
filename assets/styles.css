@@ -31,6 +31,7 @@
   --fragment-bg: #800080;
   --vertex-bg: #32cd32;
   --compute-bg: #1e90ff;
+  --workgroup-size-bg: #b35000;
 
   --search-border: #ddd;
   --search-bg: #fff;
@@ -195,6 +196,9 @@ section header > div {
 }
 .compute-badge {
   background-color: var(--compute-bg);
+}
+.workgroup-size-badge {
+  background-color: var(--workgroup-size-bg);
 }
 .signature {
   display: flex;
