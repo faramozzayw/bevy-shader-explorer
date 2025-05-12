@@ -1,14 +1,24 @@
-package main
+package utils
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
-	"reflect"
-	"slices"
 	"strings"
 )
+
+//go:embed wgpu-types.json
+var WgpuTypesData []byte
+var wgpuTypes map[string]string
+
+func LoadWgslTypes() {
+	err := json.Unmarshal(WgpuTypesData, &wgpuTypes)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to parse wgpu-types.json: %v", err))
+	}
+}
 
 func SplitParams(s string) []string {
 	if strings.TrimSpace(s) == "" {
@@ -67,33 +77,6 @@ func NormalizeLink(link string) string {
 	}
 }
 
-func (typeInfo *WgslTypeInfo) ResolveTypeLink(imports map[string]string, definedStructuresList []string) {
-	if len(typeInfo.TypeLink) == 0 {
-		typeInfo.TypeLink = GetTypeLink(typeInfo.Type)
-	}
-
-	if len(typeInfo.TypeLink) != 0 {
-		return
-	}
-
-	if len(typeInfo.FullTypePath) == 0 {
-		typeInfo.FullTypePath = typeInfo.Type
-	}
-
-	importTarget := strings.Split(typeInfo.FullTypePath, "::")[0]
-
-	if typeLink, ok := imports[importTarget]; ok {
-		typeInfo.TypeLink = typeLink + "#" + typeInfo.Type
-		typeInfo.TypeLinkBlank = true
-		return
-	}
-
-	if slices.Contains(definedStructuresList, typeInfo.Type) {
-		typeInfo.TypeLink = "#" + typeInfo.Type
-		typeInfo.TypeLinkBlank = false
-	}
-}
-
 func CopyFile(src, dst string) error {
 	input, err := os.ReadFile(src)
 	if err != nil {
@@ -106,18 +89,6 @@ func CopyFile(src, dst string) error {
 	}
 
 	return nil
-}
-
-// checks if any item has shader definitions
-func AnyShaderDefs[T any](input []T) bool {
-	for _, v := range input {
-		val := reflect.ValueOf(v)
-		field := val.FieldByName("HasShaderDefs")
-		if field.IsValid() && field.Kind() == reflect.Bool && field.Bool() {
-			return true
-		}
-	}
-	return false
 }
 
 func DedupPathParts(path string) string {

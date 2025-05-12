@@ -1,4 +1,4 @@
-package main
+package wgsl
 
 import (
 	"fmt"

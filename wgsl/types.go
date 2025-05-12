@@ -1,19 +1,9 @@
-package main
+package wgsl
 
 type WgslDefResult struct {
 	DefName    string `json:"defName"`
 	Branch     string `json:"branch"`
 	LineNumber int    `json:"lineNumber"`
-}
-
-type ShaderSearchableInfo struct {
-	Link           string `json:"link"`
-	Filename       string `json:"filename"`
-	Exportable     bool   `json:"exportable"`
-	Name           string `json:"name"`
-	Type           string `json:"type"`
-	StageAttribute string `json:"stageAttribute"`
-	Comment        string `json:"comment"`
 }
 
 type WgslFile struct {
