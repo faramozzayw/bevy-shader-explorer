@@ -1,39 +1,86 @@
 <header>
-  <div>
-    {{#unless skipHomeButton}}
-      <a href="/{{version}}" class="header-link">Home 🏡</a>
-    {{/unless}}
-    <a
-      href="https://www.w3.org/TR/WGSL"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="header-link"
-    >WGSL Spec <img src="/public/wgsl.png" width="20" height="20" /></a>
-    <a
-      href="https://github.com/bevyengine/bevy"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="header-link"
-    >Bevy
-      <picture>
-        <source
-          srcset="/public/github-mark-white.png"
-          media="(prefers-color-scheme: dark)"
-        />
-        <img src="/public/github-mark.png" width="20" height="20" />
-      </picture></a>
-    <a
-      href="https://webgpufundamentals.org/webgpu/lessons/webgpu-wgsl-function-reference.html"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="header-link"
-    >WGSL Functions</a>
-    <input
-      type="text"
-      id="search-input"
-      class="search-input"
-      placeholder="Type ‘S’ or ‘/’ to search 🔍"
-    />
+  <div class="header-container">
+    <button
+      id="menu-toggle"
+      class="menu-toggle"
+      aria-label="Toggle menu"
+    >☰</button>
+    <nav id="nav-links" class="nav-links">
+      {{#unless skipHomeButton}}
+        <a href="/{{version}}" class="header-link">Home 🏡</a>
+      {{/unless}}
+      <a
+        href="https://www.w3.org/TR/WGSL"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="header-link"
+      >
+        WGSL Spec
+        <img src="/public/wgsl.png" width="20" height="20" />
+      </a>
+      <a
+        href="https://github.com/bevyengine/bevy"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="header-link"
+      >
+        Bevy
+        <picture>
+          <source
+            srcset="/public/github-mark-white.png"
+            media="(prefers-color-scheme: dark)"
+          />
+          <img src="/public/github-mark.png" width="20" height="20" />
+        </picture>
+      </a>
+      <a
+        href="https://webgpufundamentals.org/webgpu/lessons/webgpu-wgsl-function-reference.html"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="header-link"
+      >
+        WGSL Functions
+      </a>
+    </nav>
+    <div class="search-input-wrapper">
+      <input
+        type="text"
+        id="search-input"
+        class="search-input"
+        placeholder="Type ‘S’ or ‘/’ to search 🔍"
+      />
+      <div class="tooltip-bottom tooltip-container">
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            padding-left: 15px;
+          "
+        >
+          <picture>
+            <source
+              srcset="/public/info-light.png"
+              media="(prefers-color-scheme: dark)"
+            />
+            <img src="/public/info-dark.png" width="25" height="25" />
+          </picture>
+        </div>
+        <div class="tooltip-text">
+          Advanced search tips: use spaces to require multiple terms (AND), |
+          for alternatives (OR), wrap phrases in quotes (="a b"), =term for
+          exact match, 'term to include, !term to exclude, ^term to match
+          prefix, !^term to exclude prefix, .ext$ to match suffix, and !.ext$ to
+          exclude suffix.
+        </div>
+      </div>
+    </div>
   </div>
   <div id="results"></div>
 </header>
+<script>
+  const toggle = document.getElementById('menu-toggle'); const nav =
+  document.getElementById('nav-links'); toggle.addEventListener('click', () => {
+  nav.classList.toggle('show'); });
+</script>

@@ -1,3 +1,4 @@
+.DEFAULT_GOAL := build-bevy
 .PHONY: clone-bevy
 
 BRANCHES_VERSIONS = \

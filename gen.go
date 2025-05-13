@@ -30,6 +30,8 @@ var copyToPublic = []string{
 	"assets/github-mark.png",
 	"assets/github-mark-white.png",
 	"templates/search-result.hbs",
+	"assets/info-dark.png",
+	"assets/info-light.png",
 }
 
 func main() {

@@ -19,11 +19,9 @@
   --keyword-color: #e12b40;
   --value-color: #1154b0;
 
-  --comment-bg: #eafaf1;
-  --comment-border: #2ecc71;
-
   --comment-bg: #e9ecef;
   --comment-border: #00b8d4;
+  --comment-link-color: #006494;
 
   --badge-bg: #3498db;
   --attribute-bg: #e74c3c;
@@ -68,6 +66,7 @@
 
     --comment-bg: #1f3f2f;
     --comment-border: #98c379;
+    --comment-link-color: var(--comment-border);
 
     --badge-bg: #2980b9;
     --attribute-bg: #c0392b;
@@ -98,6 +97,14 @@ html {
 
 a {
   text-decoration: none;
+  color: var(--text-color);
+}
+a.with-highlight {
+  border-bottom: 1px dashed transparent;
+}
+a.with-highlight:hover {
+  color: var(--header-link-hover-color);
+  border-bottom: 1px dashed var(--header-link-hover-color);
 }
 
 body {
@@ -116,7 +123,7 @@ body > header {
   background-color: var(--header-bg);
   box-shadow: 0px 1px 5px 0px var(--shadow-color);
 }
-body > header div:first-child {
+body > header > div:first-child {
   padding: 10px 20px;
   display: flex;
   justify-content: space-between;
@@ -157,6 +164,54 @@ section header > div {
   gap: 10px;
   align-items: center;
 }
+
+.header-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 20px;
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  align-items: center;
+}
+
+.menu-toggle {
+  display: none;
+  font-size: 1.5em;
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: block;
+  }
+
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .nav-links.show {
+    display: flex;
+  }
+
+  .search-input {
+    flex: 1 1 100%;
+  }
+}
+
+/* ================================ */
+
 .function-shader-defs {
   display: flex;
   align-items: center;
@@ -172,6 +227,7 @@ section header > div {
   font-weight: bold;
   margin: 0;
   color: var(--function-name-color);
+  word-break: break-word;
 }
 .visibility-badge {
   font-size: 0.8em;
@@ -215,12 +271,22 @@ section header > div {
   background-color: var(--code-bg);
   border: 1px solid var(--code-border-color); /* Subtle border */
 }
+.function-comment {
+  word-break: break-word;
+}
 .function-comment p {
   padding: 10px;
   margin: 10px 0;
   white-space: pre-line;
   background-color: var(--comment-bg);
   border-left: 4px solid var(--comment-border);
+}
+.function-comment a {
+  border-bottom: 1px dashed transparent;
+  color: var(--comment-link-color);
+}
+.function-comment a:hover {
+  border-bottom-color: 1px dashed var(--comment-link-color);
 }
 .keyword {
   color: var(--keyword-color);
@@ -301,6 +367,11 @@ a.item-name:hover {
   transform: scale(1.05);
   background-color: var(--import-button-hover);
 }
+@media (max-width: 425px) {
+  .import-path-button {
+    display: none;
+  }
+}
 .import-path-button:focus {
   outline: none;
   box-shadow: 0 0 5px var(--import-button-focus);
@@ -313,6 +384,10 @@ a.item-name:hover {
 
 /* Search input */
 
+.search-input-wrapper {
+  display: flex;
+  flex: 1 1 auto;
+}
 .search-input {
   padding: 10px 15px;
   border: 1px solid #ddd;
@@ -353,7 +428,7 @@ a.item-name:hover {
 /* Version select */
 
 .version-select {
-  position: absolute;
+  position: fixed;
   top: 1em;
   left: 1em;
 
@@ -418,4 +493,9 @@ a.item-name:hover {
 .tooltip-text:hover {
   visibility: visible;
   opacity: 1;
+}
+
+.tooltip-bottom .tooltip-text {
+  bottom: auto;
+  top: 125%;
 }
