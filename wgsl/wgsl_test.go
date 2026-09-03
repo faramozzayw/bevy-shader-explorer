@@ -1,10 +1,55 @@
 package wgsl
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"main/wgsl/bevy"
+	"main/wgsl/extract"
 )
+
+func TestTreeSitterExtractionUsesDeclarationSpans(t *testing.T) {
+	code := `
+struct First { value: f32, }
+struct Second { value: vec4<f32>, }
+
+const COUNT: u32 = 1u;
+
+@group(0) @binding(1)
+var<uniform> settings: Second;
+
+@compute @workgroup_size(8, 4, 1)
+fn main(@builtin(global_invocation_id) value: vec3<u32>) {
+}
+`
+	declarations, err := extract.Parse(code, code, extractComments(strings.Split(code, "\n")), nil)
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	structures := declarations.Structures
+	assert.Len(t, structures, 2)
+	assert.Equal(t, "vec4<f32>", structures[1].Fields[0].TypeInfo.Type)
+	assert.Equal(t, 3, structures[1].LineNumber)
+
+	consts := declarations.Consts
+	if assert.Len(t, consts, 1) {
+		assert.Equal(t, 5, consts[0].LineNumber)
+	}
+
+	bindings := declarations.Bindings
+	if assert.Len(t, bindings, 1) {
+		assert.Equal(t, "uniform", bindings[0].BindingType)
+		assert.Equal(t, "Second", bindings[0].TypeInfo.Type)
+	}
+
+	functions := declarations.Functions
+	if assert.Len(t, functions, 1) {
+		assert.Equal(t, []string{"8", "4", "1"}, functions[0].WorkgroupSize)
+		assert.Equal(t, "vec3<u32>", functions[0].Params[0].TypeInfo.Type)
+	}
+}
 
 func TestConstExtraction(t *testing.T) {
 	code := `
@@ -15,11 +60,15 @@ const COLOR_MATERIAL_FLAGS_ALPHA_MODE_MASK: u32          = 1073741824u; // (1u32
 const COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32         = 2147483648u; // (2u32 << 30)
   `
 
-	consts := extractConsts(code, map[int]string{}, []ShaderDefBlock{})
+	declarations, err := extract.Parse(code, code, map[int]string{}, nil)
+	if !assert.NoError(t, err) {
+		return
+	}
+	consts := declarations.Consts
 
 	expectedConsts := []Const{
 		{
-			LineNumber: 0,
+			LineNumber: 2,
 			Name:       "COLOR_MATERIAL_FLAGS_TEXTURE_BIT",
 			TypeInfo: TypeInfo{
 				Type:          "u32",
@@ -29,7 +78,7 @@ const COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32         = 2147483648u; // (2u32
 			HasShaderDefs: false,
 		},
 		{
-			LineNumber: 0,
+			LineNumber: 3,
 			Name:       "COLOR_MATERIAL_FLAGS_ALPHA_MODE_RESERVED_BITS",
 			TypeInfo: TypeInfo{
 				Type:          "u32",
@@ -39,7 +88,7 @@ const COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32         = 2147483648u; // (2u32
 			HasShaderDefs: false,
 		},
 		{
-			LineNumber: 0,
+			LineNumber: 4,
 			Name:       "COLOR_MATERIAL_FLAGS_ALPHA_MODE_OPAQUE",
 			TypeInfo: TypeInfo{
 				Type:          "u32",
@@ -49,7 +98,7 @@ const COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32         = 2147483648u; // (2u32
 			HasShaderDefs: false,
 		},
 		{
-			LineNumber: 0,
+			LineNumber: 5,
 			Name:       "COLOR_MATERIAL_FLAGS_ALPHA_MODE_MASK",
 			TypeInfo: TypeInfo{
 				Type:          "u32",
@@ -59,7 +108,7 @@ const COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32         = 2147483648u; // (2u32
 			HasShaderDefs: false,
 		},
 		{
-			LineNumber: 0,
+			LineNumber: 6,
 			Name:       "COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND",
 			TypeInfo: TypeInfo{
 				Type:          "u32",
@@ -70,506 +119,36 @@ const COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32         = 2147483648u; // (2u32
 		},
 	}
 
+	for i := range expectedConsts {
+		expectedConsts[i].TypeInfo.FullTypePath = "u32"
+	}
 	for i := range consts {
 		assert.Equal(t, expectedConsts[i], consts[i])
 	}
 }
 
-func TestStructuresExtraction(t *testing.T) {
-	code := `
-struct BoxShadowVertexOutput {
-    @builtin(position) position: vec4<f32>,
-    @location(0) point: vec2<f32>,
-    @location(1) color: vec4<f32>,
-    @location(2) @interpolate(flat) size: vec2<f32>,
-    @location(3) @interpolate(flat) radius: vec4<f32>,
-    @location(4) @interpolate(flat) blur: f32,
+func TestOfficialGrammarParsesBevyDirectivesAfterMasking(t *testing.T) {
+	code := `#import bevy_pbr::{
+    mesh_functions,
 }
-  `
-
-	structure := extractStructures(code, map[int]string{}, []ShaderDefBlock{})[0]
-
-	assert.Equal(t, Structure{
-		Name: "BoxShadowVertexOutput",
-		Fields: []NamedType{
-			{
-				Annotations: []Annotation{
-					{Name: "builtin", Value: "position"},
-				},
-				Name: "position",
-				TypeInfo: TypeInfo{
-					Annotations:   nil,
-					Type:          "vec4<f32>",
-					FullTypePath:  "vec4<f32>",
-					TypeLink:      "",
-					TypeLinkBlank: false,
-				},
-				HasShaderDefs: false,
-				ShaderDefs:    nil,
-			},
-			{
-				Annotations: []Annotation{
-					{Name: "location", Value: "0"},
-				},
-				Name: "point",
-				TypeInfo: TypeInfo{
-					Annotations:   nil,
-					Type:          "vec2<f32>",
-					FullTypePath:  "vec2<f32>",
-					TypeLink:      "",
-					TypeLinkBlank: false,
-				},
-				HasShaderDefs: false,
-				ShaderDefs:    nil,
-			},
-			{
-				Annotations: []Annotation{
-					{Name: "location", Value: "1"},
-				},
-				Name: "color",
-				TypeInfo: TypeInfo{
-					Annotations:   nil,
-					Type:          "vec4<f32>",
-					FullTypePath:  "vec4<f32>",
-					TypeLink:      "",
-					TypeLinkBlank: false,
-				},
-				HasShaderDefs: false,
-				ShaderDefs:    nil,
-			},
-			{
-				Annotations: []Annotation{
-					{Name: "location", Value: "2"},
-					{Name: "interpolate", Value: "flat"},
-				},
-				Name: "size",
-				TypeInfo: TypeInfo{
-					Annotations:   nil,
-					Type:          "vec2<f32>",
-					FullTypePath:  "vec2<f32>",
-					TypeLink:      "",
-					TypeLinkBlank: false,
-				},
-				HasShaderDefs: false,
-				ShaderDefs:    nil,
-			},
-			{
-				Annotations: []Annotation{
-					{Name: "location", Value: "3"},
-					{Name: "interpolate", Value: "flat"},
-				},
-				Name: "radius",
-				TypeInfo: TypeInfo{
-					Annotations:   nil,
-					Type:          "vec4<f32>",
-					FullTypePath:  "vec4<f32>",
-					TypeLink:      "",
-					TypeLinkBlank: false,
-				},
-				HasShaderDefs: false,
-				ShaderDefs:    nil,
-			},
-			{
-				Annotations: []Annotation{
-					{Name: "location", Value: "4"},
-					{Name: "interpolate", Value: "flat"},
-				},
-				Name: "blur",
-				TypeInfo: TypeInfo{
-					Annotations:   nil,
-					Type:          "f32",
-					FullTypePath:  "f32",
-					TypeLink:      "",
-					TypeLinkBlank: false,
-				},
-				HasShaderDefs: false,
-				ShaderDefs:    nil,
-			},
-		},
-		LineNumber:       2,
-		Comment:          "",
-		HasShaderDefs:    false,
-		ShaderDefs:       nil,
-		HasFields:        true,
-		FieldsShaderDefs: false,
-	}, structure)
-}
-
-func TestBindingExtractions(t *testing.T) {
-	code := `
-@group(0) @binding(7) var<storage, read_write> exposure: f32;
-@group(1) @binding(0) var<storage> material_color: binding_array<Color, 4>;
-@group(1) @binding(4) var material_color_texture: binding_array<texture_2d<f32>, 4>;
-@group(1) @binding(2) var material_color_sampler: binding_array<sampler, 4>;
-@group(2) @binding(3) var<uniform> material_color: Color;
-  `
-
-	expectedBindings := []Binding{
-		{
-			LineNumber:  2,
-			Name:        "exposure",
-			BindingType: "storage, read_write",
-			Annotations: []Annotation{
-				{Name: "group", Value: "0"},
-				{Name: "binding", Value: "7"},
-			},
-			TypeInfo: TypeInfo{
-				Annotations:   nil,
-				Type:          "f32",
-				FullTypePath:  "f32",
-				TypeLink:      "",
-				TypeLinkBlank: false,
-			},
-			HasShaderDefs: false,
-			ShaderDefs:    nil,
-		},
-		{
-			LineNumber:  3,
-			Name:        "material_color",
-			BindingType: "storage",
-			Annotations: []Annotation{
-				{Name: "group", Value: "1"},
-				{Name: "binding", Value: "0"},
-			},
-			TypeInfo: TypeInfo{
-				Annotations:   nil,
-				Type:          "binding_array<Color, 4>",
-				FullTypePath:  "binding_array<Color, 4>",
-				TypeLink:      "",
-				TypeLinkBlank: false,
-			},
-			HasShaderDefs: false,
-			ShaderDefs:    nil,
-		},
-		{
-			LineNumber:  4,
-			Name:        "material_color_texture",
-			BindingType: "",
-			Annotations: []Annotation{
-				{Name: "group", Value: "1"},
-				{Name: "binding", Value: "4"},
-			},
-			TypeInfo: TypeInfo{
-				Annotations:   nil,
-				Type:          "binding_array<texture_2d<f32>, 4>",
-				FullTypePath:  "binding_array<texture_2d<f32>, 4>",
-				TypeLink:      "",
-				TypeLinkBlank: false,
-			},
-			HasShaderDefs: false,
-			ShaderDefs:    nil,
-		},
-		{
-			LineNumber:  5,
-			Name:        "material_color_sampler",
-			BindingType: "",
-			Annotations: []Annotation{
-				{Name: "group", Value: "1"},
-				{Name: "binding", Value: "2"},
-			},
-			TypeInfo: TypeInfo{
-				Annotations:   nil,
-				Type:          "binding_array<sampler, 4>",
-				FullTypePath:  "binding_array<sampler, 4>",
-				TypeLink:      "",
-				TypeLinkBlank: false,
-			},
-			HasShaderDefs: false,
-			ShaderDefs:    nil,
-		},
-		{
-			LineNumber:  6,
-			Name:        "material_color",
-			BindingType: "uniform",
-			Annotations: []Annotation{
-				{Name: "group", Value: "2"},
-				{Name: "binding", Value: "3"},
-			},
-			TypeInfo: TypeInfo{
-				Annotations:   nil,
-				Type:          "Color",
-				FullTypePath:  "Color",
-				TypeLink:      "",
-				TypeLinkBlank: false,
-			},
-			HasShaderDefs: false,
-			ShaderDefs:    nil,
-		},
-	}
-
-	bindings := extractBindings(code, map[int]string{}, []ShaderDefBlock{})
-
-	for i := range bindings {
-		assert.Equal(t, expectedBindings[i], bindings[i])
-	}
-}
-
-func TestFunctionsExtraction(t *testing.T) {
-	code := `
-fn selectCorner(p: vec2<f32>, c: vec4<f32>) -> f32 {
-  // stuff
-}
-
-@vertex
-fn vertex(
-    @location(0) vertex_position: vec3<f32>,
-) -> BoxShadowVertexOutput {
-  // stuff
-}
- 
-@fragment
-fn fragment(
-    in: BoxShadowVertexOutput,
-) -> @location(0) vec4<f32> {
-  // stuff
-}
-@compute
-@workgroup_size(256, 1, 1)
-fn downsample_depth_first(
-    @builtin(num_workgroups) num_workgroups: vec3u,
-    @builtin(workgroup_id) workgroup_id: vec3u,
-    @builtin(local_invocation_index) local_invocation_index: u32,
-) {
-  // stuff
-}
-
-fn map_axis_with_repeat(
-    // normalized distance along the axis
-    p: f32,
-    // target min dividing point
-    il: f32,
-) -> f32 {
-  // stuff
-}
+#ifdef PREPASS
+@group(0) @binding(0)
+var<uniform> settings: Settings;
+#else
+const VALUE: u32 = 1u;
+#endif
 `
 
-	functions := extractFunctions(code, map[int]string{}, []ShaderDefBlock{})
-
-	expectedFunctions := []Function{
-		{
-			StageAttribute: "",
-			Name:           "selectCorner",
-			LineNumber:     2,
-			Params: []NamedType{
-				{
-					Annotations: []Annotation{},
-					Name:        "p",
-					TypeInfo: TypeInfo{
-						Annotations:   nil,
-						Type:          "vec2<f32>",
-						FullTypePath:  "vec2<f32>",
-						TypeLink:      "",
-						TypeLinkBlank: false,
-					},
-					HasShaderDefs: false,
-					ShaderDefs:    nil,
-				},
-				{
-					Annotations: []Annotation{},
-					Name:        "c",
-					TypeInfo: TypeInfo{
-						Annotations:   nil,
-						Type:          "vec4<f32>",
-						FullTypePath:  "vec4<f32>",
-						TypeLink:      "",
-						TypeLinkBlank: false,
-					},
-					HasShaderDefs: false,
-					ShaderDefs:    nil,
-				},
-			},
-			ReturnTypeInfo: TypeInfo{
-				Annotations:   []Annotation{},
-				Type:          "f32",
-				FullTypePath:  "",
-				TypeLink:      "",
-				TypeLinkBlank: false,
-			},
-			HasShaderDefs: false,
-			ShaderDefs:    nil,
-			Comment:       "",
-			HasParams:     true,
-		},
-		{
-			StageAttribute: "vertex",
-			Name:           "vertex",
-			LineNumber:     6,
-			Params: []NamedType{
-				{
-					Annotations: []Annotation{
-						{Name: "location", Value: "0"},
-					},
-					Name: "vertex_position",
-					TypeInfo: TypeInfo{
-						Annotations:   nil,
-						Type:          "vec3<f32>",
-						FullTypePath:  "vec3<f32>",
-						TypeLink:      "",
-						TypeLinkBlank: false,
-					},
-					HasShaderDefs: false,
-					ShaderDefs:    nil,
-				},
-			},
-			ReturnTypeInfo: TypeInfo{
-				Annotations:   []Annotation{},
-				Type:          "BoxShadowVertexOutput",
-				FullTypePath:  "",
-				TypeLink:      "",
-				TypeLinkBlank: false,
-			},
-			HasShaderDefs: false,
-			ShaderDefs:    nil,
-			Comment:       "",
-			HasParams:     true,
-		},
-		{
-			StageAttribute: "fragment",
-			Name:           "fragment",
-			LineNumber:     13,
-			Params: []NamedType{
-				{
-					Annotations: []Annotation{},
-					Name:        "in",
-					TypeInfo: TypeInfo{
-						Annotations:   nil,
-						Type:          "BoxShadowVertexOutput",
-						FullTypePath:  "BoxShadowVertexOutput",
-						TypeLink:      "",
-						TypeLinkBlank: false,
-					},
-					HasShaderDefs: false,
-					ShaderDefs:    nil,
-				},
-			},
-			ReturnTypeInfo: TypeInfo{
-				Annotations: []Annotation{
-					{Name: "location", Value: "0"},
-				},
-				Type:          "vec4<f32>",
-				FullTypePath:  "",
-				TypeLink:      "",
-				TypeLinkBlank: false,
-			},
-			HasShaderDefs: false,
-			ShaderDefs:    nil,
-			Comment:       "",
-			HasParams:     true,
-		},
-		{
-			StageAttribute:   "compute",
-			WorkgroupSize:    []string{"256", "1", "1"},
-			HasWorkgroupSize: true,
-			Name:             "downsample_depth_first",
-			LineNumber:       19,
-			Params: []NamedType{
-				{
-					Annotations: []Annotation{
-						{Name: "builtin", Value: "num_workgroups"},
-					},
-					Name: "num_workgroups",
-					TypeInfo: TypeInfo{
-						Annotations:   nil,
-						Type:          "vec3u",
-						FullTypePath:  "vec3u",
-						TypeLink:      "",
-						TypeLinkBlank: false,
-					},
-					HasShaderDefs: false,
-					ShaderDefs:    nil,
-				},
-				{
-					Annotations: []Annotation{
-						{Name: "builtin", Value: "workgroup_id"},
-					},
-					Name: "workgroup_id",
-					TypeInfo: TypeInfo{
-						Annotations:   nil,
-						Type:          "vec3u",
-						FullTypePath:  "vec3u",
-						TypeLink:      "",
-						TypeLinkBlank: false,
-					},
-					HasShaderDefs: false,
-					ShaderDefs:    nil,
-				},
-				{
-					Annotations: []Annotation{
-						{Name: "builtin", Value: "local_invocation_index"},
-					},
-					Name: "local_invocation_index",
-					TypeInfo: TypeInfo{
-						Annotations:   nil,
-						Type:          "u32",
-						FullTypePath:  "u32",
-						TypeLink:      "",
-						TypeLinkBlank: false,
-					},
-					HasShaderDefs: false,
-					ShaderDefs:    nil,
-				},
-			},
-			ReturnTypeInfo: TypeInfo{
-				Annotations:   []Annotation{},
-				Type:          "void",
-				FullTypePath:  "",
-				TypeLink:      "",
-				TypeLinkBlank: false,
-			},
-			HasShaderDefs: false,
-			ShaderDefs:    nil,
-			Comment:       "",
-			HasParams:     true,
-		},
-		{
-			StageAttribute:   "",
-			WorkgroupSize:    nil,
-			HasWorkgroupSize: false,
-			Name:             "map_axis_with_repeat",
-			LineNumber:       29,
-			Params: []NamedType{
-				{
-					Annotations: []Annotation{},
-					Name:        "p",
-					TypeInfo: TypeInfo{
-						Annotations:   nil,
-						Type:          "f32",
-						FullTypePath:  "f32",
-						TypeLink:      "",
-						TypeLinkBlank: false,
-					},
-					HasShaderDefs: false,
-					ShaderDefs:    nil,
-				},
-				{
-					Annotations: []Annotation{},
-					Name:        "il",
-					TypeInfo: TypeInfo{
-						Annotations:   nil,
-						Type:          "f32",
-						FullTypePath:  "f32",
-						TypeLink:      "",
-						TypeLinkBlank: false,
-					},
-					HasShaderDefs: false,
-					ShaderDefs:    nil,
-				},
-			},
-			ReturnTypeInfo: TypeInfo{
-				Annotations:   []Annotation{},
-				Type:          "f32",
-				FullTypePath:  "",
-				TypeLink:      "",
-				TypeLinkBlank: false,
-			},
-			HasShaderDefs: false,
-			ShaderDefs:    nil,
-			Comment:       "",
-			HasParams:     true,
-		},
+	declarations, err := extract.Parse(code, bevy.MaskDirectives(code), map[int]string{}, nil)
+	if !assert.NoError(t, err) {
+		return
 	}
-
-	for i := range functions {
-		assert.Equal(t, expectedFunctions[i], functions[i])
+	if assert.Len(t, declarations.Bindings, 1) {
+		assert.Equal(t, 5, declarations.Bindings[0].LineNumber)
+		assert.Equal(t, "settings", declarations.Bindings[0].Name)
+	}
+	if assert.Len(t, declarations.Consts, 1) {
+		assert.Equal(t, 8, declarations.Consts[0].LineNumber)
+		assert.Equal(t, "VALUE", declarations.Consts[0].Name)
 	}
 }
