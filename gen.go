@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 
@@ -34,8 +35,15 @@ var copyToPublic = []string{
 	"assets/info-light.png",
 }
 
-func main() {
-	config := config.GetConfig()
+func generate(config config.Config) {
+	fmt.Println("🚀 Starting WGSL Documentation Generator")
+	fmt.Println("========================================")
+	fmt.Printf("📂 Project Directory     : %s\n", config.SourcePath)
+	fmt.Printf("🔍 File Filter Pattern   : %s\n", config.FileFilter)
+	fmt.Printf("📁 Output Directory      : %s\n", config.OutputDir)
+	fmt.Printf("🏷️ Documentation Version: %s\n", config.Version)
+	fmt.Println("========================================")
+
 	filePaths := getWgslFilesList(config)
 	totalFiles := int64(len(filePaths))
 
@@ -184,13 +192,44 @@ func renderTemplateToFile(templateSrc string, context map[string]interface{}, ou
 }
 
 func getWgslFilesList(config config.Config) []string {
-	cmd := exec.Command("find", config.SourcePath, "-type", "f", "-name", config.FileFilter)
-	stdout, err := cmd.Output()
+	var filePaths []string
+	err := filepath.WalkDir(config.SourcePath, func(filePath string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			if filePath != config.SourcePath && shouldExclude(config.SourcePath, filePath, config.Exclude) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if matched, _ := path.Match(config.FileFilter, entry.Name()); matched && !shouldExclude(config.SourcePath, filePath, config.Exclude) {
+			filePaths = append(filePaths, filePath)
+		}
+		return nil
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
-	filePaths := strings.Split(strings.TrimSpace(string(stdout)), "\n")
+	slices.Sort(filePaths)
 	return filePaths
+}
+
+func shouldExclude(root, filePath string, excludes []string) bool {
+	relative, err := filepath.Rel(root, filePath)
+	if err != nil {
+		return false
+	}
+	for _, excluded := range append([]string{".git", "target", "node_modules", "dist", "build"}, excludes...) {
+		clean := filepath.Clean(excluded)
+		if relative == clean || strings.HasPrefix(relative, clean+string(filepath.Separator)) {
+			return true
+		}
+		if matched, _ := path.Match(clean, filepath.Base(relative)); matched {
+			return true
+		}
+	}
+	return false
 }
 
 func copyItemsToPublic(config *config.Config, searchInfo []ShaderSearchableInfo) {
