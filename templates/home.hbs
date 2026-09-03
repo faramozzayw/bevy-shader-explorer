@@ -4,14 +4,40 @@
   {{> version-selector }}
 
   <body>
-    <h1>Content</h1>
+    <h1>WGSL Documentation</h1>
 
     {{> header }}
  
-    <ul>
-      {{#each files}}
-        <li> <a class="with-highlight" href="/{{version}}/{{file}}">{{file}}</a></li>
-      {{/each}}
-    </ul>
+    <p class="home-summary">
+      {{projectCount}} project shaders
+      {{#if dependencyCount}} · {{dependencyCount}} dependency shaders{{/if}}
+    </p>
+
+    {{#each sections}}
+      <section class="shader-section">
+        <header>
+          <h2>{{Title}}</h2>
+        </header>
+
+        <div class="shader-groups">
+          {{#each Groups}}
+            <article class="shader-group {{#if Preview}}shader-group-large{{/if}}">
+              <div class="shader-group-header">
+                <a class="shader-group-name" href="/{{@root/version}}/{{DetailPath}}">{{Name}}</a>
+                <span class="shader-count">{{Count}} shaders</span>
+              </div>
+              <ul class="shader-list">
+                {{#each Files}}
+                  <li><a class="shader-chip" title="{{file}}" href="/{{@root/version}}/{{file}}">{{label}}</a></li>
+                {{/each}}
+              </ul>
+              {{#if Preview}}
+                <a class="shader-group-more" href="/{{@root/version}}/{{DetailPath}}">View all {{Count}} shaders →</a>
+              {{/if}}
+            </article>
+          {{/each}}
+        </div>
+      </section>
+    {{/each}}
   </body>
 </html>

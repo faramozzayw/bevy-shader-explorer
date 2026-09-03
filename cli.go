@@ -32,6 +32,8 @@ func newGenerateCommand() *cobra.Command {
 		exclude   []string
 		version   string
 		sourceURL string
+		noDeps    bool
+		offline   bool
 	)
 
 	command := &cobra.Command{
@@ -42,12 +44,16 @@ func newGenerateCommand() *cobra.Command {
 				return fmt.Errorf("unsupported format %q (only html is currently supported)", format)
 			}
 			generate(config.Config{
-				SourcePath:      project,
-				FileFilter:      "*.wgsl",
-				OutputDir:       output,
-				SourceGithubURL: sourceURL,
-				Version:         version,
-				Exclude:         exclude,
+				SourcePath:           project,
+				FileFilter:           "*.wgsl",
+				OutputDir:            output,
+				SourceGithubURL:      sourceURL,
+				Version:              version,
+				Exclude:              exclude,
+				NoDeps:               noDeps,
+				Offline:              offline,
+				DependencyInclude:    []string{"bevy", "bevy_*"},
+				DependencyTransitive: true,
 			})
 			return nil
 		},
@@ -58,5 +64,7 @@ func newGenerateCommand() *cobra.Command {
 	command.Flags().StringArrayVar(&exclude, "exclude", nil, "directory or pattern to exclude (repeatable)")
 	command.Flags().StringVar(&version, "version", "project", "documentation version label")
 	command.Flags().StringVar(&sourceURL, "source-url", "", "base URL for source links")
+	command.Flags().BoolVar(&noDeps, "no-deps", false, "disable dependency shader discovery")
+	command.Flags().BoolVar(&offline, "offline", false, "use Cargo's offline metadata mode")
 	return command
 }

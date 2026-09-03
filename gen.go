@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,6 +14,7 @@ import (
 	"sync"
 
 	config "main/config"
+	"main/discovery"
 	utils "main/utils"
 	wgsl "main/wgsl"
 
@@ -44,20 +46,26 @@ func generate(config config.Config) {
 	fmt.Printf("🏷️ Documentation Version: %s\n", config.Version)
 	fmt.Println("========================================")
 
-	filePaths := getWgslFilesList(config)
-	totalFiles := int64(len(filePaths))
+	inputs := getShaderInputs(config)
+	totalFiles := int64(len(inputs))
 
 	utils.LoadWgslTypes()
 	SetupHandlebars()
 
 	searchInfo := make([]ShaderSearchableInfo, 0, 4096)
 	declaredImportPaths := make(map[string]string)
-	wgslFiles := make([]wgsl.WgslFile, 0, len(filePaths))
+	wgslFiles := make([]wgsl.WgslFile, 0, len(inputs))
 
 	parsingBar := progressbar.Default(totalFiles, "📄 Reading WGSL Files")
 
-	for _, filePath := range filePaths {
-		wgslFile := wgsl.ParseWGSLFile(&config, filePath)
+	for _, input := range inputs {
+		wgslFile := wgsl.ParseWGSLFile(&input.Config, input.Path)
+		if input.Prefix != "" {
+			wgslFile.WgslPath = filepath.Join(input.Prefix, wgslFile.WgslPath)
+		}
+		wgslFile.WgslPath = strings.Replace(wgslFile.WgslPath, "src/", "", 1)
+		wgslFile.WgslPath = utils.DedupPathParts(wgslFile.WgslPath)
+		wgslFile.Link = fmt.Sprintf("%s/%s", config.Version, wgslFile.WgslPath)
 		wgslFiles = append(wgslFiles, wgslFile)
 
 		normalizedLink := utils.NormalizeLink(wgslFile.Link)
@@ -148,32 +156,126 @@ func generate(config config.Config) {
 
 	wg.Wait()
 
-	files := []map[string]string{}
-	for _, filePath := range filePaths {
-		docPath, err := filepath.Rel(config.SourcePath, filePath)
-		if err != nil {
-			log.Fatal(err)
+	sections, totalProject, totalDependency := buildHomeSections(wgslFiles)
+	for _, section := range sections {
+		for _, group := range section.Groups {
+			if err := os.MkdirAll(filepath.Join(versionedOutput, filepath.Dir(group.DetailPath)), os.ModePerm); err != nil {
+				log.Fatal(err)
+			}
+			renderTemplateToFile(PACKAGE_DOC_TEMPLATE_SOURCE, map[string]interface{}{
+				"name":    group.Name,
+				"files":   group.AllFiles,
+				"count":   group.Count,
+				"version": config.Version,
+			}, filepath.Join(versionedOutput, group.DetailPath))
 		}
-
-		docPath = strings.Replace(docPath, "src/", "", 1)
-		docPath = strings.TrimSuffix(docPath, ".wgsl")
-		docPath = utils.DedupPathParts(docPath) + ".html"
-
-		files = append(files, map[string]string{
-			"file": docPath,
-		})
 	}
 
 	renderTemplateToFile(HOME_DOC_TEMPLATE_SOURCE, map[string]interface{}{
-		"files":          files,
-		"skipHomeButton": true,
-		"version":        config.Version,
+		"sections":        sections,
+		"projectCount":    totalProject,
+		"dependencyCount": totalDependency,
+		"skipHomeButton":  true,
+		"version":         config.Version,
 	}, filepath.Join(versionedOutput, "index.html"))
 
 	renderTemplateToFile(NOT_FOUND_TEMPLATE_SOURCE, map[string]interface{}{},
 		filepath.Join(config.OutputDir, "404.html"))
 
 	copyItemsToPublic(&config, searchInfo)
+}
+
+type homeSection struct {
+	Title  string
+	Groups []homeGroup
+}
+
+type homeGroup struct {
+	Name       string
+	Count      int
+	Files      []map[string]string
+	AllFiles   []map[string]string
+	DetailPath string
+	Preview    bool
+	Remaining  int
+}
+
+func buildHomeSections(files []wgsl.WgslFile) ([]homeSection, int, int) {
+	projectGroups := map[string][]map[string]string{}
+	dependencyGroups := map[string][]map[string]string{}
+	for _, file := range files {
+		entry := map[string]string{
+			"file":  file.WgslPath,
+			"label": strings.TrimSuffix(filepath.Base(file.WgslPath), ".html"),
+		}
+		if strings.HasPrefix(file.WgslPath, "dependencies/") {
+			parts := strings.Split(file.WgslPath, "/")
+			name := "Other dependencies"
+			if len(parts) >= 3 {
+				name = parts[1] + " " + parts[2]
+			}
+			dependencyGroups[name] = append(dependencyGroups[name], entry)
+			continue
+		}
+		name := "Project shaders"
+		parts := strings.Split(file.WgslPath, "/")
+		if len(parts) >= 2 && parts[0] == "crates" {
+			name = parts[1]
+		}
+		projectGroups[name] = append(projectGroups[name], entry)
+	}
+	toGroups := func(grouped map[string][]map[string]string) []homeGroup {
+		groups := make([]homeGroup, 0, len(grouped))
+		for name, entries := range grouped {
+			slices.SortFunc(entries, func(a, b map[string]string) int { return strings.Compare(a["file"], b["file"]) })
+			preview := entries
+			if len(preview) > 8 {
+				preview = entries[:8]
+			}
+			groups = append(groups, homeGroup{
+				Name:       name,
+				Count:      len(entries),
+				Files:      preview,
+				AllFiles:   entries,
+				DetailPath: "packages/" + packageSlug(name) + ".html",
+				Preview:    len(entries) > len(preview),
+				Remaining:  len(entries) - len(preview),
+			})
+		}
+		slices.SortFunc(groups, func(a, b homeGroup) int { return strings.Compare(a.Name, b.Name) })
+		return groups
+	}
+	project := toGroups(projectGroups)
+	dependencies := toGroups(dependencyGroups)
+	sections := make([]homeSection, 0, 2)
+	if len(project) > 0 {
+		sections = append(sections, homeSection{Title: "Project shaders", Groups: project})
+	}
+	if len(dependencies) > 0 {
+		sections = append(sections, homeSection{Title: "Dependencies", Groups: dependencies})
+	}
+	return sections, countGroups(project), countGroups(dependencies)
+}
+
+func packageSlug(name string) string {
+	name = strings.ToLower(name)
+	var builder strings.Builder
+	for _, char := range name {
+		if (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '-' || char == '_' {
+			builder.WriteRune(char)
+		} else {
+			builder.WriteByte('-')
+		}
+	}
+	return strings.Trim(builder.String(), "-")
+}
+
+func countGroups(groups []homeGroup) int {
+	total := 0
+	for _, group := range groups {
+		total += group.Count
+	}
+	return total
 }
 
 func renderTemplateToFile(templateSrc string, context map[string]interface{}, outputPath string) {
@@ -213,6 +315,70 @@ func getWgslFilesList(config config.Config) []string {
 	}
 	slices.Sort(filePaths)
 	return filePaths
+}
+
+type shaderInput struct {
+	Path   string
+	Config config.Config
+	Prefix string
+}
+
+func getShaderInputs(config config.Config) []shaderInput {
+	projectFiles := getWgslFilesList(config)
+	inputs := make([]shaderInput, 0, len(projectFiles))
+	seenPaths := make(map[string]bool, len(projectFiles))
+	for _, filePath := range projectFiles {
+		inputs = append(inputs, shaderInput{Path: filePath, Config: config})
+		seenPaths[filePath] = true
+	}
+	if config.NoDeps {
+		return inputs
+	}
+	manifestPath := filepath.Join(config.SourcePath, "Cargo.toml")
+	if _, err := os.Stat(manifestPath); err != nil {
+		return inputs
+	}
+	metadata, err := discovery.ReadCargoMetadata(context.Background(), config.SourcePath, config.Offline)
+	if err != nil {
+		modeHint := ""
+		if config.Offline {
+			modeHint = "; retry without --offline when network access is available"
+		} else {
+			modeHint = "; retry with --offline if the Cargo cache and lockfile are available"
+		}
+		log.Printf("warning: dependency discovery skipped: %v%s; continuing with project shaders", err, modeHint)
+		return inputs
+	}
+	packages := discovery.FilterCargoPackages(metadata, config.DependencyInclude, config.DependencyTransitive)
+	dependencies, err := discovery.DiscoverDependencyShaders(packages, config.Exclude)
+	if err != nil {
+		log.Printf("warning: dependency shader discovery skipped: %v", err)
+		return inputs
+	}
+	for _, dependency := range dependencies {
+		manifest := findCargoManifest(metadata, dependency.Package, dependency.Version)
+		if manifest == "" {
+			continue
+		}
+		dependencyConfig := config
+		dependencyConfig.SourcePath = filepath.Dir(manifest)
+		dependencyConfig.SourceGithubURL = ""
+		if seenPaths[dependency.Path] {
+			continue
+		}
+		seenPaths[dependency.Path] = true
+		inputs = append(inputs, shaderInput{Path: dependency.Path, Config: dependencyConfig, Prefix: filepath.Join("dependencies", dependency.Package, dependency.Version)})
+	}
+	return inputs
+}
+
+func findCargoManifest(metadata discovery.CargoMetadata, name, version string) string {
+	for _, pkg := range metadata.Packages {
+		if pkg.Name == name && pkg.Version == version {
+			return pkg.ManifestPath
+		}
+	}
+	return ""
 }
 
 func shouldExclude(root, filePath string, excludes []string) bool {

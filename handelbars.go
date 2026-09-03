@@ -17,6 +17,9 @@ var NOT_FOUND_TEMPLATE_SOURCE string
 //go:embed templates/home.hbs
 var HOME_DOC_TEMPLATE_SOURCE string
 
+//go:embed templates/package.hbs
+var PACKAGE_DOC_TEMPLATE_SOURCE string
+
 //go:embed templates/partials/shader-defs-list.hbs
 var SHADER_DEFS_LIST_TEMPLATE string
 

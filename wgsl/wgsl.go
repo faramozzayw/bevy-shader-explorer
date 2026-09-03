@@ -31,12 +31,11 @@ func ParseWGSLFile(
 	basename := filepath.Base(wgslFilePath)
 	filename := strings.TrimSuffix(basename, ".wgsl")
 	originalDir := filepath.Dir(wgslFilePath)
-	dir := utils.DedupPathParts(strings.ReplaceAll(originalDir, "src/", ""))
-
-	innerPath, err := filepath.Rel(config.SourcePath, dir)
+	innerPath, err := filepath.Rel(config.SourcePath, originalDir)
 	if err != nil {
 		log.Fatal(err)
 	}
+	innerPath = strings.ReplaceAll(innerPath, "src"+string(filepath.Separator), "")
 	wgslPath := utils.DedupPathParts(filepath.Join(innerPath, filename)) + ".html"
 
 	declaredImports, err := bevy.ExtractAllImports(normalizedCode)

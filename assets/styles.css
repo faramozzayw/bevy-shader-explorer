@@ -145,6 +145,83 @@ h1 {
   border-bottom: 2px solid #3498db;
   padding-bottom: 10px;
 }
+.home-summary {
+  color: var(--file-name-color);
+  margin: 18px 0;
+}
+.shader-section h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+.shader-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+.shader-group {
+  border: 1px solid var(--search-border);
+  border-radius: 6px;
+  padding: 0 14px 12px;
+  background: var(--header-bg);
+}
+.shader-group-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0 8px;
+  font-weight: bold;
+  border-bottom: 1px solid var(--search-border);
+}
+.shader-group-name {
+  color: var(--text-color);
+}
+.shader-group-name:hover {
+  color: var(--function-name-color);
+}
+.shader-count {
+  color: var(--search-placeholder);
+  font-size: 0.9rem;
+  font-weight: normal;
+}
+.shader-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 10px 0 0;
+}
+.shader-list li {
+  max-width: 100%;
+}
+.shader-chip {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid var(--search-border);
+  border-radius: 4px;
+  padding: 2px 7px;
+  color: var(--text-color);
+  font-size: 0.85rem;
+}
+.shader-chip:hover {
+  border-color: var(--function-name-color);
+  color: var(--function-name-color);
+}
+.shader-group-more {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--function-name-color);
+  font-size: 0.85rem;
+}
+.package-back {
+  margin: 18px 0;
+}
+.package-page .shader-list {
+  gap: 8px;
+}
 section {
   overflow: visible;
   border-radius: 5px;

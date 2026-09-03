@@ -1,0 +1,23 @@
+<html lang="en">
+  {{>head title=name}}
+
+  {{> version-selector }}
+
+  <body>
+    <h1>{{name}}</h1>
+    {{> header }}
+
+    <p class="package-back"><a class="with-highlight" href="/{{version}}/">← Back to overview</a></p>
+    <section class="shader-section package-page">
+      <header>
+        <h2>Shaders</h2>
+        <span class="shader-count">{{count}} shaders</span>
+      </header>
+      <ul class="shader-list">
+        {{#each files}}
+          <li><a class="shader-chip" title="{{file}}" href="/{{@root/version}}/{{file}}">{{label}}</a></li>
+        {{/each}}
+      </ul>
+    </section>
+  </body>
+</html>
