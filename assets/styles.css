@@ -123,6 +123,48 @@ body {
   padding: 16px 20px 10px;
   margin-bottom: 8px;
 }
+.catalogue-hero {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  justify-content: center;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
+  padding: 18px 22px;
+  margin-bottom: 10px;
+  border: 1px solid var(--search-border);
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--section-bg), var(--header-bg));
+}
+.catalogue-page { max-width: 1200px; padding: 20px; }
+.catalogue-topbar { min-height: 44px; border-bottom: 1px solid var(--search-border); display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 0 max(24px, calc((100% - 1200px) / 2)); color: var(--search-placeholder); font-size: .78rem; }
+.catalogue-topbar nav { display: flex; gap: 22px; }
+.catalogue-topbar a:hover { color: var(--function-name-color); }
+.catalogue-topbar-search { flex: 1 1 320px; max-width: 420px; }
+.catalogue-topbar-search .search-input { width: 100%; box-sizing: border-box; padding: 7px 10px; }
+.catalogue-main { max-width: none; margin: 0; padding: 0 0 60px; }
+.catalogue-welcome { text-align: center; background: transparent; box-shadow: none; padding: 0; margin: 0; }
+.catalogue-welcome h1 { border: 0; margin: 0; padding: 0; font-size: 2.1rem; }
+.catalogue-welcome p { color: var(--search-placeholder); margin: 8px 0 22px; }
+.catalogue-welcome .catalogue-search { max-width: 470px; margin: 0 auto; }
+.catalogue-welcome .search-input { width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 1rem; }
+.catalogue-welcome #results { max-width: 470px; margin: 0 auto; text-align: left; }
+.release-list { margin-top: 62px; }
+.release-list h2 { font-size: 1.25rem; color: var(--function-name-color); border-bottom: 1px solid var(--search-border); padding-bottom: 9px; }
+.release-row { padding: 13px 10px; border-bottom: 1px solid var(--search-border); border-radius: 4px; }
+.release-row:hover { background: var(--header-bg); }
+.release-main, .release-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.release-name { color: var(--function-name-color); font-weight: bold; }
+.release-version { color: var(--text-color); border: 1px solid var(--search-border); border-radius: 4px; padding: 1px 6px; font-size: .8rem; }
+.release-row p { margin: 2px 0; color: var(--search-placeholder); font-family: Georgia, serif; font-size: .9rem; }
+.release-meta { color: var(--search-placeholder); font-size: .8rem; }
+.release-meta a { color: var(--function-name-color); }
+.catalogue-mark { color: var(--function-name-color); font-size: 2.2rem; line-height: 1; margin-bottom: 4px; }
+.catalogue-hero h1 { border: 0; margin: 0; padding: 0; font-size: 1.45rem; }
+.catalogue-hero p { margin: 4px 0 0; color: var(--search-placeholder); }
+.catalogue-stats { display: flex; flex-direction: row; gap: 18px; color: var(--function-name-color); font-size: .85rem; text-align: center; }
+.package-card-description { margin: 8px 0 0; color: var(--search-placeholder); font-size: .82rem; line-height: 1.4; }
 .project-identity {
   position: relative;
   padding-right: 260px;
@@ -263,6 +305,29 @@ h1 {
 .package-back {
   margin: 18px 0;
 }
+.package-nav {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--search-border);
+  border-radius: 6px;
+  background: var(--section-bg);
+}
+.package-nav a { color: var(--search-placeholder); }
+.package-nav a:hover, .package-nav a.active { color: var(--function-name-color); }
+.breadcrumbs { margin: 18px 0 10px; color: var(--search-placeholder); font-size: .9rem; }
+.breadcrumbs span { padding: 0 8px; color: var(--function-name-color); }
+.breadcrumbs .version-select { margin-left: 8px; vertical-align: middle; }
+.package-description-block { padding: 15px; margin: 18px 0 20px; border: 0; border-radius: 5px; background: var(--section-bg); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
+.package-description-block h2 { margin: 0; color: var(--text-color); font-size: 1.15rem; }
+.package-description-block p { margin: 4px 0 0; color: var(--search-placeholder); }
+.package-summary { margin: 3px 0 0; color: var(--search-placeholder); font-size: .9rem; font-weight: normal; }
+.module-row { flex: 1 1 100%; border-bottom: 1px solid var(--search-border); }
+.module-link { display: flex; justify-content: space-between; gap: 20px; padding: 9px 4px; }
+.module-link:hover { color: var(--function-name-color); }
+.module-link code { color: var(--search-placeholder); font-size: .8rem; }
 .package-page .shader-list {
   gap: 8px;
 }

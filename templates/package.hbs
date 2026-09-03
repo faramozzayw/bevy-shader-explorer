@@ -2,17 +2,24 @@
   {{>head title=name}}
 
   <body>
-    {{> project-header }}
+    {{> header urlPrefix=urlPrefix version=version }}
 
-    <p class="package-back"><a class="with-highlight" href="/{{urlPrefix}}">← Back to overview</a></p>
+    <nav class="package-nav">
+      <a href="/{{urlPrefix}}">Overview</a>
+      <a class="active" href="/{{packageURLPrefix}}/index.html">Shaders</a>
+    </nav>
+    <div class="breadcrumbs"><a href="/{{urlPrefix}}">Packages</a> <span>›</span> <strong>{{name}}</strong> {{> version-selector urlPrefix=packageURLPrefix projectVersion=packageVersion}}</div>
+    {{#if description}}<div class="package-description-block"><h2>Description</h2><p>{{description}}</p></div>{{/if}}
     <section class="shader-section package-page">
       <header>
-        <h2>Shaders</h2>
+        <div>
+          <h2>Shader modules</h2>
+        </div>
         <span class="shader-count">{{count}} shaders</span>
       </header>
       <ul class="shader-list">
         {{#each files}}
-          <li><a class="shader-chip" title="{{file}}" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{file}}">{{label}}</a></li>
+          <li class="module-row"><a class="module-link" title="{{file}}" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{file}}"><span>{{label}}</span><code>{{relative}}</code></a></li>
         {{/each}}
       </ul>
     </section>

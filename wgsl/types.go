@@ -18,6 +18,7 @@ type WgslFile struct {
 	ProjectDescription    string          `json:"projectDescription"`
 	ProjectVersion        string          `json:"projectVersion"`
 	ProjectURLPrefix      string          `json:"projectURLPrefix"`
+	PackageURLPrefix      string          `json:"packageURLPrefix"`
 	ProjectShaderCount    int             `json:"projectShaderCount"`
 	DependencyShaderCount int             `json:"dependencyShaderCount"`
 	ProjectCount          int             `json:"projectCount"`

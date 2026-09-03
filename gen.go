@@ -64,10 +64,14 @@ func generate(config config.Config) {
 			wgslFile.WgslPath = filepath.Join(input.Prefix, wgslFile.WgslPath)
 		}
 		wgslFile.Dependency = input.Dependency
-		wgslFile.ProjectName = config.Name
-		wgslFile.ProjectDescription = config.Description
-		wgslFile.ProjectVersion = config.ProjectVersion
+		wgslFile.ProjectName = input.PackageName
+		wgslFile.ProjectDescription = input.PackageDescription
+		wgslFile.ProjectVersion = input.PackageVersion
+		if wgslFile.ProjectVersion == "" {
+			wgslFile.ProjectVersion = config.ProjectVersion
+		}
 		wgslFile.ProjectURLPrefix = joinDocURL(config.Version, "")
+		wgslFile.PackageURLPrefix = joinDocURL(config.Version, filepath.Join(input.PackageName, input.PackageVersion))
 		wgslFile.WgslPath = strings.Replace(wgslFile.WgslPath, "src/", "", 1)
 		wgslFile.WgslPath = utils.DedupPathParts(wgslFile.WgslPath)
 		wgslFile.Link = joinDocURL(config.Version, wgslFile.WgslPath)
@@ -178,27 +182,33 @@ func generate(config config.Config) {
 				log.Fatal(err)
 			}
 			renderTemplateToFile(PACKAGE_DOC_TEMPLATE_SOURCE, map[string]interface{}{
-				"name":           group.Name,
-				"files":          group.AllFiles,
-				"count":          group.Count,
-				"description":    config.Description,
-				"version":        config.Version,
-				"projectVersion": config.ProjectVersion,
-				"urlPrefix":      joinDocURL(config.Version, ""),
+				"name":             group.PackageName,
+				"files":            group.AllFiles,
+				"count":            group.Count,
+				"description":      group.Description,
+				"packageVersion":   group.Version,
+				"version":          config.Version,
+				"projectVersion":   group.Version,
+				"projectCount":     group.Count,
+				"dependencyCount":  0,
+				"urlPrefix":        joinDocURL(config.Version, ""),
+				"packageURLPrefix": joinDocURL(config.Version, filepath.Join(group.PackageName, group.Version)),
 			}, filepath.Join(versionedOutput, group.DetailPath))
 		}
 	}
 
 	renderTemplateToFile(HOME_DOC_TEMPLATE_SOURCE, map[string]interface{}{
-		"sections":        sections,
-		"projectCount":    totalProject,
-		"dependencyCount": totalDependency,
-		"name":            config.Name,
-		"description":     config.Description,
-		"skipHomeButton":  true,
-		"version":         config.Version,
-		"projectVersion":  config.ProjectVersion,
-		"urlPrefix":       joinDocURL(config.Version, ""),
+		"sections":         sections,
+		"packageCount":     len(sections[0].Groups),
+		"totalShaderCount": totalProject + totalDependency,
+		"projectCount":     totalProject,
+		"dependencyCount":  totalDependency,
+		"name":             config.Name,
+		"description":      config.Description,
+		"skipHomeButton":   true,
+		"version":          config.Version,
+		"projectVersion":   config.ProjectVersion,
+		"urlPrefix":        joinDocURL(config.Version, ""),
 	}, filepath.Join(versionedOutput, "index.html"))
 
 	renderTemplateToFile(NOT_FOUND_TEMPLATE_SOURCE, map[string]interface{}{},
@@ -221,36 +231,47 @@ type homeSection struct {
 }
 
 type homeGroup struct {
-	Name       string
-	Count      int
-	Files      []map[string]string
-	AllFiles   []map[string]string
-	DetailPath string
-	Preview    bool
-	Remaining  int
+	Name        string
+	PackageName string
+	Description string
+	Version     string
+	Count       int
+	Files       []map[string]string
+	AllFiles    []map[string]string
+	DetailPath  string
+	Preview     bool
+	Remaining   int
 }
 
 func buildHomeSections(files []wgsl.WgslFile) ([]homeSection, int, int) {
 	projectGroups := map[string][]map[string]string{}
 	dependencyGroups := map[string][]map[string]string{}
+	groupDescriptions := map[string]string{}
+	groupVersions := map[string]string{}
+	groupPackageNames := map[string]string{}
 	for _, file := range files {
 		entry := map[string]string{
 			"file":  file.WgslPath,
 			"label": strings.TrimSuffix(filepath.Base(file.WgslPath), ".html"),
 		}
-		if file.Dependency {
-			parts := strings.Split(file.WgslPath, "/")
-			name := "Other dependencies"
-			if len(parts) >= 2 {
-				name = parts[0] + " " + parts[1]
-			}
-			dependencyGroups[name] = append(dependencyGroups[name], entry)
-			continue
+		parts := strings.Split(file.WgslPath, "/")
+		if len(parts) >= 3 {
+			entry["relative"] = strings.Join(parts[2:], "/")
+		} else {
+			entry["relative"] = file.WgslPath
 		}
 		name := "Project shaders"
-		parts := strings.Split(file.WgslPath, "/")
-		if len(parts) >= 4 && parts[2] == "crates" {
-			name = parts[3]
+		if len(parts) >= 2 {
+			name = parts[0] + " " + parts[1]
+		}
+		if _, exists := groupDescriptions[name]; !exists {
+			groupDescriptions[name] = file.ProjectDescription
+			groupVersions[name] = file.ProjectVersion
+			groupPackageNames[name] = file.ProjectName
+		}
+		if file.Dependency {
+			dependencyGroups[name] = append(dependencyGroups[name], entry)
+			continue
 		}
 		projectGroups[name] = append(projectGroups[name], entry)
 	}
@@ -263,13 +284,16 @@ func buildHomeSections(files []wgsl.WgslFile) ([]homeSection, int, int) {
 				preview = entries[:8]
 			}
 			groups = append(groups, homeGroup{
-				Name:       name,
-				Count:      len(entries),
-				Files:      preview,
-				AllFiles:   entries,
-				DetailPath: "packages/" + packageSlug(name) + ".html",
-				Preview:    len(entries) > len(preview),
-				Remaining:  len(entries) - len(preview),
+				Name:        name,
+				PackageName: groupPackageNames[name],
+				Description: groupDescriptions[name],
+				Version:     groupVersions[name],
+				Count:       len(entries),
+				Files:       preview,
+				AllFiles:    entries,
+				DetailPath:  packageDetailPath(entries),
+				Preview:     len(entries) > len(preview),
+				Remaining:   len(entries) - len(preview),
 			})
 		}
 		slices.SortFunc(groups, func(a, b homeGroup) int { return strings.Compare(a.Name, b.Name) })
@@ -277,13 +301,9 @@ func buildHomeSections(files []wgsl.WgslFile) ([]homeSection, int, int) {
 	}
 	project := toGroups(projectGroups)
 	dependencies := toGroups(dependencyGroups)
-	sections := make([]homeSection, 0, 2)
-	if len(project) > 0 {
-		sections = append(sections, homeSection{Title: "Project shaders", Groups: project})
-	}
-	if len(dependencies) > 0 {
-		sections = append(sections, homeSection{Title: "Dependencies", Groups: dependencies})
-	}
+	all := append(project, dependencies...)
+	slices.SortFunc(all, func(a, b homeGroup) int { return strings.Compare(a.Name, b.Name) })
+	sections := []homeSection{{Title: "Packages", Groups: all}}
 	return sections, countGroups(project), countGroups(dependencies)
 }
 
@@ -298,6 +318,17 @@ func packageSlug(name string) string {
 		}
 	}
 	return strings.Trim(builder.String(), "-")
+}
+
+func packageDetailPath(entries []map[string]string) string {
+	if len(entries) == 0 {
+		return "packages/unknown/index.html"
+	}
+	parts := strings.Split(entries[0]["file"], "/")
+	if len(parts) >= 2 {
+		return filepath.Join(parts[0], parts[1], "index.html")
+	}
+	return "packages/unknown/index.html"
 }
 
 func countGroups(groups []homeGroup) int {
@@ -348,10 +379,13 @@ func getWgslFilesList(config config.Config) []string {
 }
 
 type shaderInput struct {
-	Path       string
-	Config     config.Config
-	Prefix     string
-	Dependency bool
+	Path               string
+	Config             config.Config
+	Prefix             string
+	Dependency         bool
+	PackageName        string
+	PackageDescription string
+	PackageVersion     string
 }
 
 func getShaderInputs(config config.Config) []shaderInput {
@@ -363,7 +397,7 @@ func getShaderInputs(config config.Config) []shaderInput {
 		if config.PackageName != "" && config.ProjectVersion != "" {
 			prefix = filepath.Join(config.PackageName, config.ProjectVersion)
 		}
-		inputs = append(inputs, shaderInput{Path: filePath, Config: config, Prefix: prefix})
+		inputs = append(inputs, shaderInput{Path: filePath, Config: config, Prefix: prefix, PackageName: config.Name, PackageDescription: config.Description, PackageVersion: config.ProjectVersion})
 		seenPaths[filePath] = true
 	}
 	if config.NoDeps {
@@ -384,6 +418,18 @@ func getShaderInputs(config config.Config) []shaderInput {
 		log.Printf("warning: dependency discovery skipped: %v%s; continuing with project shaders", err, modeHint)
 		return inputs
 	}
+	for i := range inputs {
+		if pkg, ok := discovery.PackageForPath(metadata.Packages, inputs[i].Path); ok {
+			inputs[i].Config.SourcePath = filepath.Dir(pkg.ManifestPath)
+			inputs[i].PackageName = pkg.Name
+			inputs[i].PackageDescription = pkg.Description
+			if pkg.ManifestPath == manifestPath && config.Description != "" {
+				inputs[i].PackageDescription = config.Description
+			}
+			inputs[i].PackageVersion = pkg.Version
+			inputs[i].Prefix = filepath.Join(pkg.Name, pkg.Version)
+		}
+	}
 	packages := discovery.FilterCargoPackages(metadata, config.DependencyInclude, config.DependencyTransitive)
 	dependencies, err := discovery.DiscoverDependencyShaders(packages, config.Exclude)
 	if err != nil {
@@ -402,9 +448,18 @@ func getShaderInputs(config config.Config) []shaderInput {
 			continue
 		}
 		seenPaths[dependency.Path] = true
-		inputs = append(inputs, shaderInput{Path: dependency.Path, Config: dependencyConfig, Prefix: filepath.Join(dependency.Package, dependency.Version), Dependency: true})
+		inputs = append(inputs, shaderInput{Path: dependency.Path, Config: dependencyConfig, Prefix: filepath.Join(dependency.Package, dependency.Version), Dependency: true, PackageName: dependency.Package, PackageDescription: dependencyDescription(metadata, dependency.Package, dependency.Version), PackageVersion: dependency.Version})
 	}
 	return inputs
+}
+
+func dependencyDescription(metadata discovery.CargoMetadata, name, version string) string {
+	for _, pkg := range metadata.Packages {
+		if pkg.Name == name && pkg.Version == version {
+			return pkg.Description
+		}
+	}
+	return ""
 }
 
 func findCargoManifest(metadata discovery.CargoMetadata, name, version string) string {

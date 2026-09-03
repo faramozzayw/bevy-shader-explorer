@@ -1,34 +1,21 @@
 <html lang="en">
   {{>head title=name}}
-
-  <body>
-    {{> project-header }}
-
-    {{#each sections}}
-      <section class="shader-section">
-        <header>
-          <h2>{{Title}}</h2>
-        </header>
-
-        <div class="shader-groups">
+  <body class="catalogue-page">
+    {{> header urlPrefix=urlPrefix version=version skipHomeButton=true }}
+    <main class="catalogue-main">
+      
+      <section class="release-list">
+        <h2>Packages</h2>
+        {{#each sections}}
           {{#each Groups}}
-            <article class="shader-group {{#if Preview}}shader-group-large{{/if}}">
-              <div class="shader-group-header">
-                <a class="shader-group-name" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{DetailPath}}">{{Name}}</a>
-                <span class="shader-count">{{Count}} shaders</span>
-              </div>
-              <ul class="shader-list">
-                {{#each Files}}
-                  <li><a class="shader-chip" title="{{file}}" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{file}}">{{label}}</a></li>
-                {{/each}}
-              </ul>
-              {{#if Preview}}
-                <a class="shader-group-more" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{DetailPath}}">View all {{Count}} shaders →</a>
-              {{/if}}
+            <article class="release-row">
+              <div class="release-main"><a class="release-name" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{DetailPath}}">{{PackageName}}</a><span class="release-version">{{Version}}</span></div>
+              <p>{{Description}}</p>
+              <div class="release-meta"><span>{{Count}} shaders</span><a href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{DetailPath}}">Browse package →</a></div>
             </article>
           {{/each}}
-        </div>
+        {{/each}}
       </section>
-    {{/each}}
+    </main>
   </body>
 </html>

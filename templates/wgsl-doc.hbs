@@ -2,7 +2,13 @@
   {{>head title=projectName}}
 
   <body>
-    {{> project-header name=projectName description=projectDescription projectVersion=projectVersion projectCount=projectCount dependencyCount=dependencyCount urlPrefix=projectURLPrefix version=version }}
+    {{> header urlPrefix=projectURLPrefix version=version }}
+
+    <nav class="package-nav">
+      <a href="/{{projectURLPrefix}}">Packages</a>
+      <a class="active" href="/{{PackageURLPrefix}}/index.html">{{projectName}}</a>
+    </nav>
+    <div class="breadcrumbs"><a href="/{{projectURLPrefix}}">Packages</a> <span>›</span> <a href="/{{PackageURLPrefix}}/index.html">{{projectName}}</a> {{> version-selector urlPrefix=PackageURLPrefix projectVersion=projectVersion}} <span>›</span> <strong>{{filename}}</strong></div>
 
     <main>
       <h1>

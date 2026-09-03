@@ -113,3 +113,24 @@ func TestFilterCargoPackagesCanDisableTransitiveDependencies(t *testing.T) {
 		t.Fatalf("unexpected non-transitive selection: %#v", packages)
 	}
 }
+
+func TestPackageForPathUsesMostSpecificManifestRoot(t *testing.T) {
+	root := t.TempDir()
+	workspace := filepath.Join(root, "Cargo.toml")
+	memberRoot := filepath.Join(root, "crates", "water")
+	member := filepath.Join(memberRoot, "Cargo.toml")
+	shader := filepath.Join(memberRoot, "shaders", "water.wgsl")
+
+	pkg, ok := PackageForPath([]CargoPackage{
+		{Name: "workspace", Version: "0.1.0", ManifestPath: workspace},
+		{Name: "water", Version: "0.2.0", ManifestPath: member},
+	}, shader)
+	if !ok || pkg.Name != "water" {
+		t.Fatalf("PackageForPath() = (%+v, %v), want water package", pkg, ok)
+	}
+
+	outside, ok := PackageForPath([]CargoPackage{{Name: "workspace", ManifestPath: workspace}}, filepath.Join(t.TempDir(), "other", "shader.wgsl"))
+	if ok || outside.Name != "" {
+		t.Fatalf("PackageForPath() matched outside path: (%+v, %v)", outside, ok)
+	}
+}

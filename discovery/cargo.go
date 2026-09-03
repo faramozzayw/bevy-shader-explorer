@@ -112,6 +112,24 @@ func DiscoverDependencyShaders(packages []CargoPackage, excludes []string) ([]Sh
 	return result, nil
 }
 
+// PackageForPath returns the workspace package whose manifest directory owns
+// filePath. The longest matching root wins, which handles nested fixtures.
+func PackageForPath(packages []CargoPackage, filePath string) (CargoPackage, bool) {
+	var match CargoPackage
+	best := -1
+	for _, pkg := range packages {
+		root := filepath.Dir(pkg.ManifestPath)
+		rel, err := filepath.Rel(root, filePath)
+		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			continue
+		}
+		if len(root) > best {
+			match, best = pkg, len(root)
+		}
+	}
+	return match, best >= 0
+}
+
 func discoverWGSLFiles(root string, excludes []string) ([]string, error) {
 	var result []string
 	err := filepath.WalkDir(root, func(filePath string, entryDirent fs.DirEntry, err error) error {
@@ -159,6 +177,7 @@ type CargoPackage struct {
 	Version      string `json:"version"`
 	ManifestPath string `json:"manifest_path"`
 	Source       string `json:"source"`
+	Description  string `json:"description"`
 }
 
 type CargoResolve struct {
