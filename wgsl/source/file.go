@@ -13,6 +13,9 @@ func New(text string) File {
 }
 
 func (f File) LineAt(byteOffset int) int {
+	if byteOffset < 0 {
+		byteOffset = 0
+	}
 	if byteOffset > len(f.Text) {
 		byteOffset = len(f.Text)
 	}

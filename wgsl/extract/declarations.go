@@ -173,13 +173,16 @@ func inferConstType(value string) string {
 	if strings.HasSuffix(value, "u") {
 		return "u32"
 	}
-	if strings.Contains(value, ".") {
-		return "AbstractFloat"
-	}
 	if strings.HasPrefix(value, "vec") {
 		if end := strings.Index(value, "("); end > 0 {
 			return value[:end]
 		}
+	}
+	if value == "true" || value == "false" {
+		return "bool"
+	}
+	if strings.Contains(value, ".") {
+		return "AbstractFloat"
 	}
 	if value != "" {
 		return "AbstractInt"
