@@ -11,6 +11,8 @@ import (
 type Config struct {
 	Name                 string
 	Description          string
+	ProjectVersion       string
+	PackageName          string
 	SourcePath           string
 	FileFilter           string
 	OutputDir            string
@@ -65,11 +67,13 @@ func Load(projectPath string) (Config, error) {
 	if file.Project != "" {
 		cfg.SourcePath = resolveRelative(projectPath, file.Project)
 	}
-	cargoName, cargoDescription := loadCargoMetadata(cfg.SourcePath)
+	cargoName, cargoDescription, cargoVersion := loadCargoMetadata(cfg.SourcePath)
 	if cargoName != "" {
 		cfg.Name = cargoName
+		cfg.PackageName = cargoName
 	}
 	cfg.Description = cargoDescription
+	cfg.ProjectVersion = cargoVersion
 	if file.Name != "" {
 		cfg.Name = file.Name
 	}
@@ -98,17 +102,34 @@ type fileConfig struct {
 
 type cargoManifest struct {
 	Package struct {
-		Name        string `toml:"name"`
-		Description string `toml:"description"`
+		Name        string      `toml:"name"`
+		Description string      `toml:"description"`
+		Version     interface{} `toml:"version"`
 	} `toml:"package"`
+	Workspace struct {
+		Package struct {
+			Version string `toml:"version"`
+		} `toml:"package"`
+	} `toml:"workspace"`
 }
 
-func loadCargoMetadata(projectPath string) (string, string) {
+func loadCargoMetadata(projectPath string) (string, string, string) {
 	var manifest cargoManifest
 	if _, err := toml.DecodeFile(filepath.Join(projectPath, "Cargo.toml"), &manifest); err != nil {
-		return "", ""
+		return "", "", ""
 	}
-	return manifest.Package.Name, manifest.Package.Description
+	version := versionValue(manifest.Package.Version)
+	if version == "" {
+		version = manifest.Workspace.Package.Version
+	}
+	return manifest.Package.Name, manifest.Package.Description, version
+}
+
+func versionValue(value interface{}) string {
+	if version, ok := value.(string); ok {
+		return version
+	}
+	return ""
 }
 
 type dependencyConfig struct {

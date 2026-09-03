@@ -62,7 +62,7 @@ description = "Ocean shaders"
 	if err != nil {
 		t.Fatal(err)
 	}
-	if cfg.Name != "bevy-aqua" || cfg.Description != "Ocean shaders" {
+	if cfg.Name != "bevy-aqua" || cfg.Description != "Ocean shaders" || cfg.ProjectVersion != "0.1.0" {
 		t.Fatalf("Cargo metadata not used: %+v", cfg)
 	}
 }

@@ -1,10 +1,8 @@
 <html lang="en">
-  {{>head title=filename}}
-
-  {{> version-selector }}
+  {{>head title=projectName}}
 
   <body>
-    {{> header version=version }}
+    {{> project-header name=projectName description=projectDescription projectVersion=projectVersion projectCount=projectCount dependencyCount=dependencyCount urlPrefix=projectURLPrefix version=version }}
 
     <main>
       <h1>

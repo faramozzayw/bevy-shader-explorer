@@ -14,16 +14,16 @@
           {{#each Groups}}
             <article class="shader-group {{#if Preview}}shader-group-large{{/if}}">
               <div class="shader-group-header">
-                <a class="shader-group-name" href="/{{@root/version}}/{{DetailPath}}">{{Name}}</a>
+                <a class="shader-group-name" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{DetailPath}}">{{Name}}</a>
                 <span class="shader-count">{{Count}} shaders</span>
               </div>
               <ul class="shader-list">
                 {{#each Files}}
-                  <li><a class="shader-chip" title="{{file}}" href="/{{@root/version}}/{{file}}">{{label}}</a></li>
+                  <li><a class="shader-chip" title="{{file}}" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{file}}">{{label}}</a></li>
                 {{/each}}
               </ul>
               {{#if Preview}}
-                <a class="shader-group-more" href="/{{@root/version}}/{{DetailPath}}">View all {{Count}} shaders →</a>
+                <a class="shader-group-more" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{DetailPath}}">View all {{Count}} shaders →</a>
               {{/if}}
             </article>
           {{/each}}
