@@ -1,6 +1,16 @@
 package config
 
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/BurntSushi/toml"
+)
+
 type Config struct {
+	Name                 string
+	Description          string
 	SourcePath           string
 	FileFilter           string
 	OutputDir            string
@@ -11,4 +21,99 @@ type Config struct {
 	Offline              bool
 	DependencyInclude    []string
 	DependencyTransitive bool
+}
+
+// Load reads the optional project-local wgsl-docs.toml file. Defaults are
+// returned when the file does not exist.
+func Load(projectPath string) (Config, error) {
+	cfg := Config{
+		SourcePath:           projectPath,
+		FileFilter:           "*.wgsl",
+		OutputDir:            "./shader-docs",
+		Version:              "project",
+		Name:                 "WGSL Documentation",
+		DependencyInclude:    []string{"bevy", "bevy_*"},
+		DependencyTransitive: true,
+	}
+	filePath := filepath.Join(projectPath, "wgsl-docs.toml")
+	var file fileConfig
+	metadata, err := toml.DecodeFile(filePath, &file)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return Config{}, fmt.Errorf("parse %s: %w", filePath, err)
+		}
+	} else {
+		if unknown := metadata.Undecoded(); len(unknown) > 0 {
+			return Config{}, fmt.Errorf("unknown settings in %s: %v", filePath, unknown)
+		}
+		if file.Output != "" {
+			cfg.OutputDir = resolveRelative(projectPath, file.Output)
+		}
+		if file.FileFilter != "" {
+			cfg.FileFilter = file.FileFilter
+		}
+		cfg.Exclude = file.Exclude
+		cfg.NoDeps = file.Dependencies.Enabled != nil && !*file.Dependencies.Enabled
+		cfg.Offline = file.Dependencies.Offline
+		if file.Dependencies.Include != nil {
+			cfg.DependencyInclude = file.Dependencies.Include
+		}
+		if file.Dependencies.Transitive != nil {
+			cfg.DependencyTransitive = *file.Dependencies.Transitive
+		}
+	}
+	if file.Project != "" {
+		cfg.SourcePath = resolveRelative(projectPath, file.Project)
+	}
+	cargoName, cargoDescription := loadCargoMetadata(cfg.SourcePath)
+	if cargoName != "" {
+		cfg.Name = cargoName
+	}
+	cfg.Description = cargoDescription
+	if file.Name != "" {
+		cfg.Name = file.Name
+	}
+	if file.Description != "" {
+		cfg.Description = file.Description
+	}
+	return cfg, nil
+}
+
+func resolveRelative(root, value string) string {
+	if filepath.IsAbs(value) {
+		return value
+	}
+	return filepath.Join(root, value)
+}
+
+type fileConfig struct {
+	Name         string           `toml:"name"`
+	Description  string           `toml:"description"`
+	Project      string           `toml:"project"`
+	Output       string           `toml:"output"`
+	FileFilter   string           `toml:"file_filter"`
+	Exclude      []string         `toml:"exclude"`
+	Dependencies dependencyConfig `toml:"dependencies"`
+}
+
+type cargoManifest struct {
+	Package struct {
+		Name        string `toml:"name"`
+		Description string `toml:"description"`
+	} `toml:"package"`
+}
+
+func loadCargoMetadata(projectPath string) (string, string) {
+	var manifest cargoManifest
+	if _, err := toml.DecodeFile(filepath.Join(projectPath, "Cargo.toml"), &manifest); err != nil {
+		return "", ""
+	}
+	return manifest.Package.Name, manifest.Package.Description
+}
+
+type dependencyConfig struct {
+	Enabled    *bool    `toml:"enabled"`
+	Offline    bool     `toml:"offline"`
+	Include    []string `toml:"include"`
+	Transitive *bool    `toml:"transitive"`
 }

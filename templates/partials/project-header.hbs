@@ -1,0 +1,17 @@
+<div class="project-hero">
+  <div class="project-identity">
+    <div class="project-title">
+      <span class="project-mark">◈</span>
+      <h1>{{name}}</h1>
+      {{> version-selector }}
+    </div>
+    {{#if description}}<p class="project-description">{{description}}</p>{{/if}}
+    {{#if projectCount}}
+      <div class="project-stats">
+        <span>{{projectCount}} project shaders</span>
+        {{#if dependencyCount}}<span>{{dependencyCount}} dependency shaders</span>{{/if}}
+      </div>
+    {{/if}}
+  </div>
+</div>
+{{> header }}

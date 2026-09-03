@@ -116,19 +116,55 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
 }
-body > header {
-  position: sticky;
-  top: 0;
+.project-hero {
   border-radius: 10px;
-  background-color: var(--header-bg);
+  background: linear-gradient(135deg, var(--section-bg), var(--header-bg));
   box-shadow: 0px 1px 5px 0px var(--shadow-color);
+  padding: 16px 20px 10px;
+  margin-bottom: 8px;
 }
-body > header > div:first-child {
-  padding: 10px 20px;
+.project-identity {
+  position: relative;
+  padding-right: 260px;
+}
+.project-title {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  column-gap: 5%;
+  gap: 9px;
+}
+.project-mark {
+  color: var(--function-name-color);
+}
+.project-title h1 {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  font-size: 1.35rem;
+}
+.project-description {
+  color: var(--search-placeholder);
+  margin: 3px 0 0;
+  max-width: 80ch;
+}
+.project-stats {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  color: var(--function-name-color);
+  font-size: 0.85rem;
+}
+body > header {
+	position: sticky;
+	top: 0;
+	z-index: 10;
+	margin-bottom: 24px;
+  border: 1px solid var(--search-border);
+  border-radius: 7px;
+  background-color: var(--bg-color);
+  box-shadow: none;
 }
 .header-link {
   display: flex;
@@ -145,9 +181,17 @@ h1 {
   border-bottom: 2px solid #3498db;
   padding-bottom: 10px;
 }
-.home-summary {
-  color: var(--file-name-color);
-  margin: 18px 0;
+@media (max-width: 700px) {
+  .project-identity {
+    padding-right: 0;
+  }
+  .project-stats {
+    position: static;
+    flex-direction: column;
+    text-align: left;
+    align-items: flex-start;
+    margin-top: 8px;
+  }
 }
 .shader-section h2 {
   margin: 0;
@@ -505,12 +549,9 @@ a.item-name:hover {
 /* Version select */
 
 .version-select {
-  position: fixed;
-  top: 1em;
-  left: 1em;
-
-  padding: 10px 15px;
-  font-size: 1em;
+  position: static;
+  padding: 3px 7px;
+  font-size: 0.75em;
   border: 1px solid var(--code-border-color);
   border-radius: 5px;
   background-color: var(--code-bg);

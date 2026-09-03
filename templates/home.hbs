@@ -1,17 +1,8 @@
 <html lang="en">
-  {{>head title="Bevy WGSL Explorer"}}
-
-  {{> version-selector }}
+  {{>head title=name}}
 
   <body>
-    <h1>WGSL Documentation</h1>
-
-    {{> header }}
- 
-    <p class="home-summary">
-      {{projectCount}} project shaders
-      {{#if dependencyCount}} · {{dependencyCount}} dependency shaders{{/if}}
-    </p>
+    {{> project-header }}
 
     {{#each sections}}
       <section class="shader-section">

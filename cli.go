@@ -39,22 +39,32 @@ func newGenerateCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "generate",
 		Short: "Generate shader documentation",
-		RunE: func(_ *cobra.Command, _ []string) error {
+		RunE: func(command *cobra.Command, _ []string) error {
 			if format != "html" {
 				return fmt.Errorf("unsupported format %q (only html is currently supported)", format)
 			}
-			generate(config.Config{
-				SourcePath:           project,
-				FileFilter:           "*.wgsl",
-				OutputDir:            output,
-				SourceGithubURL:      sourceURL,
-				Version:              version,
-				Exclude:              exclude,
-				NoDeps:               noDeps,
-				Offline:              offline,
-				DependencyInclude:    []string{"bevy", "bevy_*"},
-				DependencyTransitive: true,
-			})
+			cfg, err := config.Load(project)
+			if err != nil {
+				return err
+			}
+			if command.Flags().Changed("project") {
+				cfg.SourcePath = project
+			}
+			if command.Flags().Changed("output") {
+				cfg.OutputDir = output
+			}
+			if command.Flags().Changed("exclude") {
+				cfg.Exclude = exclude
+			}
+			if command.Flags().Changed("no-deps") {
+				cfg.NoDeps = noDeps
+			}
+			if command.Flags().Changed("offline") {
+				cfg.Offline = offline
+			}
+			cfg.SourceGithubURL = sourceURL
+			cfg.Version = version
+			generate(cfg)
 			return nil
 		},
 	}

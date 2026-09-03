@@ -16,6 +16,7 @@ require (
 replace github.com/gpuweb/tree-sitter-wgsl => ./third_party/tree-sitter-wgsl
 
 require (
+	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect

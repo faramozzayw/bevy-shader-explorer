@@ -163,10 +163,11 @@ func generate(config config.Config) {
 				log.Fatal(err)
 			}
 			renderTemplateToFile(PACKAGE_DOC_TEMPLATE_SOURCE, map[string]interface{}{
-				"name":    group.Name,
-				"files":   group.AllFiles,
-				"count":   group.Count,
-				"version": config.Version,
+				"name":        group.Name,
+				"files":       group.AllFiles,
+				"count":       group.Count,
+				"description": config.Description,
+				"version":     config.Version,
 			}, filepath.Join(versionedOutput, group.DetailPath))
 		}
 	}
@@ -175,6 +176,8 @@ func generate(config config.Config) {
 		"sections":        sections,
 		"projectCount":    totalProject,
 		"dependencyCount": totalDependency,
+		"name":            config.Name,
+		"description":     config.Description,
 		"skipHomeButton":  true,
 		"version":         config.Version,
 	}, filepath.Join(versionedOutput, "index.html"))
