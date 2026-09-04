@@ -1,6 +1,6 @@
 # Shader Explorer
 
-Shader Explorer generates docs.rs-style, searchable HTML documentation for WGSL shaders. It parses shader declarations, links source locations, and can include shader-bearing Bevy dependencies discovered through Cargo.
+Shader Explorer generates docs.rs-style, searchable HTML documentation for WGSL and WESL shaders. It parses shader declarations, links source locations, and can include shader-bearing Bevy dependencies discovered through Cargo. The default file filter includes both `.wgsl` and `.wesl` files; custom filters remain opt-in.
 
 ## Quick start
 
@@ -30,6 +30,8 @@ wgsl-docs generate [flags]
 ```
 
 For the bundled Bevy catalogue, `just generate-all` clones the configured source revisions into `sources/` and writes the site to `dist/`. `just deploy-prod` deploys the existing `dist/` output without regenerating it.
+
+The catalogue is defined in `wgsl-docs-build.toml`. Run `go run ./cmd/wgsl-docs-build --config path/to/matrix.toml clone` or `generate` to use another release matrix.
 
 ## License
 

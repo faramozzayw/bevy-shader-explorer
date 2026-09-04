@@ -32,6 +32,7 @@ func newGenerateCommand() *cobra.Command {
 		exclude   []string
 		version   string
 		sourceURL string
+		sourceRef string
 		noDeps    bool
 		offline   bool
 	)
@@ -62,7 +63,12 @@ func newGenerateCommand() *cobra.Command {
 			if command.Flags().Changed("offline") {
 				cfg.Offline = offline
 			}
-			cfg.SourceGithubURL = sourceURL
+			if command.Flags().Changed("source-url") {
+				cfg.SourceGithubURL = sourceURL
+			}
+			if command.Flags().Changed("source-ref") {
+				cfg.SourceGithubRef = sourceRef
+			}
 			cfg.Version = version
 			generate(cfg)
 			return nil
@@ -74,6 +80,7 @@ func newGenerateCommand() *cobra.Command {
 	command.Flags().StringArrayVar(&exclude, "exclude", nil, "directory or pattern to exclude (repeatable)")
 	command.Flags().StringVar(&version, "version", "project", "documentation version label")
 	command.Flags().StringVar(&sourceURL, "source-url", "", "base URL for source links")
+	command.Flags().StringVar(&sourceRef, "source-ref", "", "source branch, tag, or commit for source links")
 	command.Flags().BoolVar(&noDeps, "no-deps", false, "disable dependency shader discovery")
 	command.Flags().BoolVar(&offline, "offline", false, "use Cargo's offline metadata mode")
 	return command

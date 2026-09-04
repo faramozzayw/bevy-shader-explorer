@@ -1,0 +1,155 @@
+[[sources]]
+name = "aqua"
+repo = "https://github.com/sayhisam1/bevy-aqua.git"
+root = "sources/aqua"
+
+[[sources.releases]]
+version = "project"
+ref = "main"
+
+[[sources]]
+name = "bevy"
+repo = "https://github.com/bevyengine/bevy.git"
+root = "sources/bevy"
+
+[[sources.releases]]
+version = "0.15.0"
+ref = "release-0.15.0"
+[[sources.releases]]
+version = "0.15.1"
+ref = "release-0.15.1"
+[[sources.releases]]
+version = "0.15.2"
+ref = "release-0.15.2"
+[[sources.releases]]
+version = "0.15.3"
+ref = "release-0.15.3"
+[[sources.releases]]
+version = "0.15.4"
+ref = "release-0.15.4"
+[[sources.releases]]
+version = "0.16.0"
+ref = "release-0.16.0"
+[[sources.releases]]
+version = "0.16.1"
+ref = "release-0.16.1"
+[[sources.releases]]
+version = "0.16.2"
+ref = "release-0.16.2"
+[[sources.releases]]
+version = "0.17.0"
+ref = "release-0.17.0"
+[[sources.releases]]
+version = "0.17.1"
+ref = "release-0.17.1"
+[[sources.releases]]
+version = "0.17.2"
+ref = "release-0.17.2"
+[[sources.releases]]
+version = "0.17.3"
+ref = "release-0.17.3"
+[[sources.releases]]
+version = "0.18.0"
+ref = "release-0.18.0"
+[[sources.releases]]
+version = "0.18.1"
+ref = "release-0.18.1"
+[[sources.releases]]
+version = "0.19.0"
+ref = "release-0.19.0"
+[[sources.releases]]
+version = "0.19.1"
+ref = "release-0.19.1"
+
+[[sources]]
+name = "hanabi"
+repo = "https://github.com/djeedai/bevy_hanabi.git"
+root = "sources/hanabi"
+
+[[sources.releases]]
+version = "0.15.0"
+ref = "v0.15.0"
+[[sources.releases]]
+version = "0.15.1"
+ref = "v0.15.1"
+[[sources.releases]]
+version = "0.16.0"
+ref = "v0.16.0"
+[[sources.releases]]
+version = "0.17.0"
+ref = "v0.17.0"
+[[sources.releases]]
+version = "0.18.0"
+ref = "v0.18.0"
+[[sources.releases]]
+version = "0.19.0"
+ref = "v0.19.0"
+
+[[sources]]
+name = "bevy_water"
+repo = "https://github.com/Neopallium/bevy_water.git"
+root = "sources/bevy_water"
+
+[[sources.releases]]
+version = "0.15.0"
+ref = "bevy_0.15"
+[[sources.releases]]
+version = "0.16.0"
+ref = "bevy_0.16"
+[[sources.releases]]
+version = "0.17.0"
+ref = "bevy_0.17"
+[[sources.releases]]
+version = "0.18.0"
+ref = "bevy_0.18"
+
+[[sources]]
+name = "bevy_mod_outline"
+repo = "https://github.com/komadori/bevy_mod_outline.git"
+root = "sources/bevy_mod_outline"
+
+[[sources.releases]]
+version = "0.15.0"
+ref = "v0.9.2"
+[[sources.releases]]
+version = "0.16.0"
+ref = "bevy-0.16"
+[[sources.releases]]
+version = "0.17.0"
+ref = "bevy-0.17"
+[[sources.releases]]
+version = "0.18.0"
+ref = "bevy-0.18"
+[[sources.releases]]
+version = "0.19.0"
+ref = "bevy-0.19"
+
+[[sources]]
+name = "bevy_gaussian_splatting"
+repo = "https://github.com/mosure/bevy_gaussian_splatting.git"
+root = "sources/bevy_gaussian_splatting"
+
+[[sources.releases]]
+version = "0.15.0"
+ref = "v3.0.0"
+[[sources.releases]]
+version = "0.16.0"
+ref = "v5.1.0"
+[[sources.releases]]
+version = "0.17.0"
+ref = "v6.0.0"
+
+[[sources]]
+name = "bevy_atmosphere"
+repo = "https://github.com/JonahPlusPlus/bevy_atmosphere.git"
+root = "sources/bevy_atmosphere"
+
+[[sources.releases]]
+version = "0.11.0"
+ref = "0.11.0"
+[[sources.releases]]
+version = "0.12.0"
+ref = "0.12.0"
+[[sources.releases]]
+version = "0.13.0"
+ref = "0.13.0"

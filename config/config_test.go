@@ -16,6 +16,34 @@ func TestLoadDefaultsWithoutConfig(t *testing.T) {
 	}
 }
 
+func TestMatchesShaderFileIncludesWESLWithDefaultFilter(t *testing.T) {
+	if !MatchesShaderFile("*.wgsl", "shader.wgsl") || !MatchesShaderFile("*.wgsl", "library.wesl") {
+		t.Fatal("default shader filter should include WGSL and WESL files")
+	}
+	if MatchesShaderFile("*.shader.wgsl", "library.wesl") {
+		t.Fatal("custom shader filters should remain exact")
+	}
+}
+
+func TestLoadUsesCargoRepositoryForSourceLinks(t *testing.T) {
+	root := t.TempDir()
+	cargo := `[package]
+name = "demo"
+version = "0.1.0"
+repository = "https://github.com/example/demo"
+`
+	if err := os.WriteFile(filepath.Join(root, "Cargo.toml"), []byte(cargo), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.SourceGithubURL != "https://github.com/example/demo" {
+		t.Fatalf("unexpected repository URL: %q", cfg.SourceGithubURL)
+	}
+}
+
 func TestLoadProjectConfig(t *testing.T) {
 	root := t.TempDir()
 	contents := `project = "crates/demo"

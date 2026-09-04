@@ -13,7 +13,7 @@
     <main>
       <h1>
         <code>{{filename}}</code>
-        <a href="{{githubLink}}" target="_blank" rel="noopener noreferrer">
+        {{#if githubLink}}<a href="{{githubLink}}" target="_blank" rel="noopener noreferrer">
           <picture>
             <source
               srcset="/public/github-mark-white.png"
@@ -21,7 +21,7 @@
             />
             <img src="/public/github-mark.png" width="20" height="20" />
           </picture>
-        </a>
+        </a>{{/if}}
       </h1>
 
       {{#if importPath}}

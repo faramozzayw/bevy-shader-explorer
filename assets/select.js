@@ -18,7 +18,13 @@
         const option = document.createElement("option");
         option.value = "/" + version.url;
         option.textContent = version.label;
-        option.selected = location.pathname === option.value;
+        // A shader page has the package version followed by the shader path,
+        // so compare the version segment instead of the complete URL.
+        const packagePrefix = "/" + packageName + "/";
+        const currentVersion = location.pathname.startsWith(packagePrefix)
+          ? location.pathname.slice(packagePrefix.length).split("/")[0]
+          : "";
+        option.selected = currentVersion === version.label;
         return option;
       }));
     });
