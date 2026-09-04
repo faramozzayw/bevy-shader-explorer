@@ -37,7 +37,7 @@ build-bevy: generate-all
 deploy-prod:
 	test -d ./dist || (echo "./dist does not exist; run 'just generate-all' first" >&2; exit 1)
 	vercel build --prod --local-config vercel.deploy.json
-	vercel deploy --prebuilt --prod --yes
+	vercel deploy --prebuilt --prod --yes --archive=tgz
 
 deploy-dev:
     vercel build
