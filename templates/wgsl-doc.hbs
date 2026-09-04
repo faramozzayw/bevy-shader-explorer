@@ -2,7 +2,7 @@
   {{>head title=projectName}}
 
   <body>
-    {{> header urlPrefix=projectURLPrefix version=version }}
+    {{> header urlPrefix=projectURLPrefix version=version searchScope="package" searchPackage=projectName searchVersion=projectVersion searchIndex=version }}
 
     <nav class="package-nav">
       <a href="/{{projectURLPrefix}}">Packages</a>

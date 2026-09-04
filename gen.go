@@ -94,6 +94,8 @@ func generate(config config.Config) {
 		for _, fn := range wgslFile.Functions {
 			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
 				Link:           normalizedLink,
+				PackageName:    wgslFile.ProjectName,
+				PackageVersion: wgslFile.ProjectVersion,
 				Filename:       wgslFile.Filename,
 				Exportable:     exportable,
 				Name:           fn.Name,
@@ -105,31 +107,37 @@ func generate(config config.Config) {
 
 		for _, structure := range wgslFile.Structures {
 			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
-				Link:       normalizedLink,
-				Filename:   wgslFile.Filename,
-				Exportable: exportable,
-				Name:       structure.Name,
-				Type:       "struct",
+				Link:           normalizedLink,
+				PackageName:    wgslFile.ProjectName,
+				PackageVersion: wgslFile.ProjectVersion,
+				Filename:       wgslFile.Filename,
+				Exportable:     exportable,
+				Name:           structure.Name,
+				Type:           "struct",
 			})
 		}
 
 		for _, consts := range wgslFile.Consts {
 			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
-				Link:       normalizedLink,
-				Filename:   wgslFile.Filename,
-				Exportable: exportable,
-				Name:       consts.Name,
-				Type:       "const",
+				Link:           normalizedLink,
+				PackageName:    wgslFile.ProjectName,
+				PackageVersion: wgslFile.ProjectVersion,
+				Filename:       wgslFile.Filename,
+				Exportable:     exportable,
+				Name:           consts.Name,
+				Type:           "const",
 			})
 		}
 
 		for _, binding := range wgslFile.Bindings {
 			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
-				Link:       normalizedLink,
-				Filename:   wgslFile.Filename,
-				Exportable: exportable,
-				Name:       binding.Name,
-				Type:       "binding",
+				Link:           normalizedLink,
+				PackageName:    wgslFile.ProjectName,
+				PackageVersion: wgslFile.ProjectVersion,
+				Filename:       wgslFile.Filename,
+				Exportable:     exportable,
+				Name:           binding.Name,
+				Type:           "binding",
 			})
 		}
 
@@ -755,6 +763,8 @@ func copyItemsToPublic(config *config.Config, searchInfo []ShaderSearchableInfo)
 
 type ShaderSearchableInfo struct {
 	Link           string `json:"link"`
+	PackageName    string `json:"packageName"`
+	PackageVersion string `json:"packageVersion"`
 	Filename       string `json:"filename"`
 	Exportable     bool   `json:"exportable"`
 	Name           string `json:"name"`

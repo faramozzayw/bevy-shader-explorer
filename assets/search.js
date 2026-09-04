@@ -1,11 +1,17 @@
 const fuseOptions = {
   includeMatches: true,
   useExtendedSearch: true,
-  keys: ["filename", "name", "comment", "stageAttribute", "type"],
+  keys: ["filename", "name", "comment", "stageAttribute", "type", "packageName", "version", "description"],
 };
 
 const currentUrl = new URL(window.location);
-const version = currentUrl.pathname.split("/").filter(Boolean).at(0);
+const searchHeader = document.querySelector("header[data-search-scope]");
+const pathParts = currentUrl.pathname.split("/").filter(Boolean);
+const legacyPackagePage = !searchHeader && pathParts.length >= 2;
+const searchScope = searchHeader?.dataset.searchScope || (legacyPackagePage ? "package" : "packages");
+const searchPackage = searchHeader?.dataset.searchPackage || (legacyPackagePage ? pathParts[0] : "");
+const searchVersion = searchHeader?.dataset.searchVersion || (legacyPackagePage ? pathParts[1] : "");
+const searchIndex = searchHeader?.dataset.searchIndex || (legacyPackagePage ? pathParts[1] : "project");
 
 async function loadTemplate() {
   const response = await fetch("/public/search-result.hbs");
@@ -43,8 +49,27 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-fetch(`/public/search-info-${version}.json`)
-  .then((res) => res.json())
+const loadSearchData = async () => {
+  if (searchScope === "packages") {
+    const response = await fetch("/public/packages.json");
+    const packages = await response.json();
+    return packages.map((pkg) => ({
+      kind: "package",
+      name: pkg.packageName,
+      packageName: pkg.packageName,
+      version: pkg.version,
+      description: pkg.description,
+      comment: pkg.description,
+      link: `/${pkg.detailPath}`,
+      filename: "",
+    }));
+  }
+  const response = await fetch(`/public/search-info-${searchIndex}.json`);
+  const items = await response.json();
+  return items.filter((item) => item.packageName === searchPackage && item.packageVersion === searchVersion);
+};
+
+loadSearchData()
   .then(async (shadersFunctions) => {
     const input = document.getElementById("search-input");
     const resultsContainer = document.getElementById("results");

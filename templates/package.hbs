@@ -2,7 +2,7 @@
   {{>head title=name}}
 
   <body>
-    {{> header urlPrefix=urlPrefix version=version }}
+    {{> header urlPrefix=urlPrefix version=version searchScope="package" searchPackage=name searchVersion=packageVersion searchIndex=version }}
 
     <nav class="package-nav">
       <a href="/{{urlPrefix}}">Overview</a>

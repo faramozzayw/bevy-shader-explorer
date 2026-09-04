@@ -1,6 +1,12 @@
 <ul>
   {{#each this}}
     <li class="search-result-item">
+      {{#if kind}}
+        <a class="function-name" href="{{link}}">{{name}}</a>
+        <span>[<b>package</b>]</span>
+        <span>{{version}}</span>
+        {{#if description}}<span>{{description}}</span>{{/if}}
+      {{else}}
       <a class="function-name" href="{{link}}#{{name}}">{{name}}</a>
       <span>[
         {{#if stageAttribute}}
@@ -15,6 +21,7 @@
       <span>(from <i>{{filename}}</i>)</span>
       {{#if exportable}}
         <small>exportable</small>
+      {{/if}}
       {{/if}}
     </li>
   {{/each}}
