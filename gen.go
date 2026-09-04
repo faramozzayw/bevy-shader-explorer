@@ -38,6 +38,14 @@ var copyToPublic = []string{
 }
 
 func generate(config config.Config) {
+	if sourcePath, err := filepath.Abs(config.SourcePath); err == nil {
+		config.SourcePath = sourcePath
+	}
+	if config.SourceGithubRoot != "" {
+		if repositoryRoot, err := filepath.Abs(config.SourceGithubRoot); err == nil {
+			config.SourceGithubRoot = repositoryRoot
+		}
+	}
 	fmt.Println("🚀 Starting WGSL Documentation Generator")
 	fmt.Println("========================================")
 	fmt.Printf("📂 Project Directory     : %s\n", config.SourcePath)
@@ -98,6 +106,17 @@ func generate(config config.Config) {
 			defer wg.Done()
 			defer func() { <-sem }()
 
+			// A combined build may encounter the same package first as a
+			// dependency and later as a canonical matrix source. Preserve an
+			// already-rendered page during dependency passes so those later
+			// canonical pages cannot be overwritten by a less precise source ref.
+			if wgslFile.Dependency {
+				pagePath := filepath.Join(versionedOutput, wgslFile.WgslPath)
+				if _, err := os.Stat(pagePath); err == nil {
+					processingBar.Add(1)
+					return
+				}
+			}
 			wgslFile.ResolveTypeLinks(declaredImportPaths)
 			wgslFile.GenerateWgslPage(compiledTemplate, versionedOutput)
 			processingBar.Add(1)
@@ -793,6 +812,9 @@ func getShaderInputs(config config.Config) []shaderInput {
 				continue
 			}
 			inputs[i].Config.SourcePath = filepath.Dir(pkg.ManifestPath)
+			if inputs[i].Config.SourceGithubRoot == "" {
+				inputs[i].Config.SourceGithubRoot = config.SourcePath
+			}
 			inputs[i].PackageName = pkg.Name
 			inputs[i].PackageDescription = pkg.Description
 			if pkg.ManifestPath == manifestPath && config.Description != "" {
@@ -817,12 +839,14 @@ func getShaderInputs(config config.Config) []shaderInput {
 		}
 		dependencyConfig := config
 		dependencyConfig.SourcePath = filepath.Dir(manifest)
+		dependencyConfig.SourceGithubRoot = discovery.RepositoryRootForPackage(manifest)
 		// Cargo metadata records the upstream repository for each resolved
 		// package. Preserve it so dependency shader pages can link back to the
 		// exact source file just like project shaders do.
 		dependencyConfig.SourceGithubURL = dependencyRepository(metadata, dependency.Package, dependency.Version)
+		dependencyConfig.SourceGithubSubpath = discovery.RepositorySubpathForPackage(manifest, dependencyConfig.SourceGithubURL, dependency.Package)
 		if dependencyConfig.SourceGithubURL != config.SourceGithubURL {
-			dependencyConfig.SourceGithubRef = ""
+			dependencyConfig.SourceGithubRef = inferDependencyGithubRef(dependency.Version)
 		}
 		if seenPaths[dependency.Path] {
 			continue
@@ -831,6 +855,24 @@ func getShaderInputs(config config.Config) []shaderInput {
 		inputs = append(inputs, shaderInput{Path: dependency.Path, Config: dependencyConfig, Prefix: filepath.Join(dependency.Package, dependency.Version), Dependency: true, PackageName: dependency.Package, PackageDescription: dependencyDescription(metadata, dependency.Package, dependency.Version), PackageVersion: dependency.Version})
 	}
 	return inputs
+}
+
+// inferDependencyGithubRef covers the two common tag conventions used by
+// shader-bearing Rust repositories: major-version tags (v29 for wgpu) and
+// full semantic-version tags (v0.12.1 for most 0.x crates). Canonical matrix
+// sources still provide their exact refs explicitly.
+func inferDependencyGithubRef(version string) string {
+	major := version
+	if dot := strings.IndexByte(version, '.'); dot >= 0 {
+		major = version[:dot]
+	}
+	if major != "0" && major != "" {
+		return "v" + major
+	}
+	if version != "" {
+		return "v" + version
+	}
+	return "main"
 }
 
 func dependencyDescription(metadata discovery.CargoMetadata, name, version string) string {

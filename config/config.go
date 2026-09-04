@@ -21,11 +21,15 @@ func MatchesShaderFile(filter, name string) bool {
 }
 
 type Config struct {
-	Name                 string
-	Description          string
-	ProjectVersion       string
-	PackageName          string
-	SourcePath           string
+	Name           string
+	Description    string
+	ProjectVersion string
+	PackageName    string
+	SourcePath     string
+	// SourceGithubRoot is the repository root used for source links. It can
+	// differ from SourcePath when a shader belongs to a workspace member.
+	SourceGithubRoot     string
+	SourceGithubSubpath  string
 	FileFilter           string
 	OutputDir            string
 	SourceGithubURL      string
@@ -80,6 +84,7 @@ func Load(projectPath string) (Config, error) {
 	if file.Project != "" {
 		cfg.SourcePath = resolveRelative(projectPath, file.Project)
 	}
+	cfg.SourceGithubRoot = cfg.SourcePath
 	cargoName, cargoDescription, cargoVersion := loadCargoMetadata(cfg.SourcePath)
 	if cargoName != "" {
 		cfg.Name = cargoName

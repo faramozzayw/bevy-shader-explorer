@@ -246,12 +246,16 @@ func GetGithubLink(config *config.Config, dir string, basename string) string {
 	if config.SourceGithubURL == "" {
 		return ""
 	}
-	innerPath, err := filepath.Rel(config.SourcePath, dir)
+	repositoryRoot := config.SourceGithubRoot
+	if repositoryRoot == "" {
+		repositoryRoot = config.SourcePath
+	}
+	innerPath, err := filepath.Rel(repositoryRoot, dir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	joinedPath := filepath.Join(innerPath, basename)
+	joinedPath := filepath.Join(config.SourceGithubSubpath, innerPath, basename)
 
 	ref := config.SourceGithubRef
 	if ref == "" {

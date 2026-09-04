@@ -136,6 +136,39 @@ func TestPackageForPathUsesMostSpecificManifestRoot(t *testing.T) {
 	}
 }
 
+func TestRepositoryRootForPackageFindsWorkspaceRoot(t *testing.T) {
+	root := t.TempDir()
+	member := filepath.Join(root, "wgpu")
+	if err := os.MkdirAll(member, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "Cargo.toml"), []byte("[workspace]\nmembers = [\"wgpu\"]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	manifest := filepath.Join(member, "Cargo.toml")
+	if err := os.WriteFile(manifest, []byte("[package]\nname = \"wgpu\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := RepositoryRootForPackage(manifest); got != root {
+		t.Fatalf("RepositoryRootForPackage() = %q, want %q", got, root)
+	}
+}
+
+func TestRepositorySubpathForPackageInfersSameNamedCrateDirectory(t *testing.T) {
+	root := t.TempDir()
+	manifest := filepath.Join(root, "wgpu-29.0.4", "Cargo.toml")
+	if err := os.MkdirAll(filepath.Dir(manifest), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(manifest, []byte("[package]\nname = \"wgpu\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := RepositorySubpathForPackage(manifest, "https://github.com/gfx-rs/wgpu", "wgpu")
+	if got != "wgpu" {
+		t.Fatalf("RepositorySubpathForPackage() = %q, want wgpu", got)
+	}
+}
+
 func TestIsWorkspaceRootPackage(t *testing.T) {
 	metadata := CargoMetadata{
 		WorkspaceRoot: "/tmp/project",

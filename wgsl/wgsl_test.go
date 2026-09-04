@@ -17,6 +17,29 @@ func TestGetGithubLinkUsesConfiguredSourceRef(t *testing.T) {
 	assert.Equal(t, "https://github.com/bevyengine/bevy/blob/release-0.19.1/assets/shaders/extended_material_bindless.wgsl", got)
 }
 
+func TestGetGithubLinkUsesRepositoryRootForWorkspaceMembers(t *testing.T) {
+	cfg := config.Config{
+		SourcePath:       "/project/crates/bevy_pbr",
+		SourceGithubRoot: "/project",
+		SourceGithubURL:  "https://github.com/bevyengine/bevy",
+		SourceGithubRef:  "release-0.19.1",
+	}
+	got := GetGithubLink(&cfg, "/project/crates/bevy_pbr/src/light_probe", "environment_filter.wgsl")
+	assert.Equal(t, "https://github.com/bevyengine/bevy/blob/release-0.19.1/crates/bevy_pbr/src/light_probe/environment_filter.wgsl", got)
+}
+
+func TestGetGithubLinkUsesRepositorySubpathForNestedCrate(t *testing.T) {
+	cfg := config.Config{
+		SourcePath:          "/registry/wgpu-29.0.4",
+		SourceGithubRoot:    "/registry/wgpu-29.0.4",
+		SourceGithubSubpath: "wgpu",
+		SourceGithubURL:     "https://github.com/gfx-rs/wgpu",
+		SourceGithubRef:     "v29",
+	}
+	got := GetGithubLink(&cfg, "/registry/wgpu-29.0.4/src/util", "blit.wgsl")
+	assert.Equal(t, "https://github.com/gfx-rs/wgpu/blob/v29/wgpu/src/util/blit.wgsl", got)
+}
+
 //go:embed testdata/all_items.wgsl
 var allItemsFixture string
 

@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"main/config"
 )
 
@@ -210,6 +211,43 @@ type CargoPackage struct {
 	License      string   `json:"license"`
 	Repository   string   `json:"repository"`
 	Homepage     string   `json:"homepage"`
+}
+
+// RepositoryRootForPackage finds the checkout root for a Cargo package.
+// Workspace members live below that root (for example wgpu/wgpu), while
+// ordinary crates use their manifest directory as the repository root.
+func RepositoryRootForPackage(manifestPath string) string {
+	dir := filepath.Dir(manifestPath)
+	for {
+		var manifest struct {
+			Workspace map[string]interface{} `toml:"workspace"`
+		}
+		if _, err := toml.DecodeFile(filepath.Join(dir, "Cargo.toml"), &manifest); err == nil && manifest.Workspace != nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return filepath.Dir(manifestPath)
+		}
+		dir = parent
+	}
+}
+
+// RepositorySubpathForPackage returns the path from a repository checkout to
+// a package's sources. It preserves real workspace-relative paths and handles
+// registry archives of repositories whose crates live in a same-named folder.
+func RepositorySubpathForPackage(manifestPath, repository string, packageName string) string {
+	root := RepositoryRootForPackage(manifestPath)
+	packageDir := filepath.Dir(manifestPath)
+	if filepath.Clean(root) != filepath.Clean(packageDir) {
+		// The package already has a meaningful checkout-relative path.
+		return ""
+	}
+	repoName := strings.TrimSuffix(filepath.Base(strings.TrimRight(repository, "/")), ".git")
+	if repoName == packageName || strings.HasPrefix(packageName, repoName+"-") {
+		return packageName
+	}
+	return ""
 }
 
 type CargoResolve struct {

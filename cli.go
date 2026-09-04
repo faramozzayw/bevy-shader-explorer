@@ -50,6 +50,7 @@ func newGenerateCommand() *cobra.Command {
 			}
 			if command.Flags().Changed("project") {
 				cfg.SourcePath = project
+				cfg.SourceGithubRoot = project
 			}
 			if command.Flags().Changed("output") {
 				cfg.OutputDir = output
