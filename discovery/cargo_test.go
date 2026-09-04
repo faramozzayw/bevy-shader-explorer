@@ -135,3 +135,25 @@ func TestPackageForPathUsesMostSpecificManifestRoot(t *testing.T) {
 		t.Fatalf("PackageForPath() matched outside path: (%+v, %v)", outside, ok)
 	}
 }
+
+func TestIsWorkspaceRootPackage(t *testing.T) {
+	metadata := CargoMetadata{
+		WorkspaceRoot: "/tmp/project",
+		Packages: []CargoPackage{
+			{Name: "root", ManifestPath: "/tmp/project/Cargo.toml"},
+			{Name: "member", ManifestPath: "/tmp/project/crates/member/Cargo.toml"},
+			{Name: "serde", ManifestPath: "/tmp/registry/serde/Cargo.toml", Source: "registry+https://example.invalid"},
+		},
+	}
+	if !IsWorkspaceRootPackage(metadata, "/tmp/project/Cargo.toml") {
+		t.Fatal("workspace root package was not detected")
+	}
+	if IsWorkspaceRootPackage(metadata, "/tmp/project/crates/member/Cargo.toml") {
+		t.Fatal("workspace member was incorrectly treated as the root package")
+	}
+
+	metadata.Packages = metadata.Packages[:1]
+	if IsWorkspaceRootPackage(metadata, "/tmp/project/Cargo.toml") {
+		t.Fatal("standalone package was incorrectly treated as a workspace root")
+	}
+}

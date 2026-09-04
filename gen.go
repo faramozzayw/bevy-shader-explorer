@@ -755,8 +755,12 @@ func getShaderInputs(config config.Config) []shaderInput {
 		log.Printf("warning: dependency discovery skipped: %v%s; continuing with project shaders", err, modeHint)
 		return inputs
 	}
+	filteredInputs := inputs[:0]
 	for i := range inputs {
 		if pkg, ok := discovery.PackageForPath(metadata.Packages, inputs[i].Path); ok {
+			if discovery.IsWorkspaceRootPackage(metadata, pkg.ManifestPath) {
+				continue
+			}
 			inputs[i].Config.SourcePath = filepath.Dir(pkg.ManifestPath)
 			inputs[i].PackageName = pkg.Name
 			inputs[i].PackageDescription = pkg.Description
@@ -766,7 +770,9 @@ func getShaderInputs(config config.Config) []shaderInput {
 			inputs[i].PackageVersion = pkg.Version
 			inputs[i].Prefix = filepath.Join(pkg.Name, pkg.Version)
 		}
+		filteredInputs = append(filteredInputs, inputs[i])
 	}
+	inputs = filteredInputs
 	packages := discovery.FilterCargoPackages(metadata, config.DependencyInclude, config.DependencyTransitive)
 	dependencies, err := discovery.DiscoverDependencyShaders(packages, config.Exclude)
 	if err != nil {

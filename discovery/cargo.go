@@ -30,6 +30,32 @@ type CargoMetadata struct {
 	Resolve       *CargoResolve  `json:"resolve"`
 }
 
+// IsWorkspaceRootPackage reports whether manifestPath belongs to a real
+// package declared at the workspace root, as opposed to a standalone crate.
+// Cargo metadata does not expose the member list directly, so the presence of
+// another source-less package is used to identify workspace members.
+func IsWorkspaceRootPackage(metadata CargoMetadata, manifestPath string) bool {
+	workspaceRoot := filepath.Clean(metadata.WorkspaceRoot)
+	if workspaceRoot == "." || workspaceRoot == "" {
+		return false
+	}
+	rootManifest := filepath.Clean(filepath.Join(workspaceRoot, "Cargo.toml"))
+	if filepath.Clean(manifestPath) != rootManifest {
+		return false
+	}
+	for _, pkg := range metadata.Packages {
+		candidateManifest := filepath.Clean(pkg.ManifestPath)
+		if candidateManifest == rootManifest || pkg.Source != "" {
+			continue
+		}
+		relative, err := filepath.Rel(workspaceRoot, filepath.Dir(candidateManifest))
+		if err == nil && relative != "." && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
+}
+
 // cargoMetadataCommand is kept injectable so discovery can be tested without
 // requiring a Cargo installation, registry access, or a populated cache.
 var cargoMetadataCommand = runCargoMetadata
