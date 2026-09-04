@@ -6,9 +6,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"main/config"
 	"main/wgsl/bevy"
 	"main/wgsl/extract"
 )
+
+func TestGetGithubLinkUsesConfiguredSourceRef(t *testing.T) {
+	cfg := config.Config{SourcePath: "/project", SourceGithubURL: "https://github.com/bevyengine/bevy", SourceGithubRef: "release-0.19.1"}
+	got := GetGithubLink(&cfg, "/project/assets/shaders", "extended_material_bindless.wgsl")
+	assert.Equal(t, "https://github.com/bevyengine/bevy/blob/release-0.19.1/assets/shaders/extended_material_bindless.wgsl", got)
+}
 
 //go:embed testdata/all_items.wgsl
 var allItemsFixture string

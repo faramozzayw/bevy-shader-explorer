@@ -43,4 +43,7 @@ type WgslFile struct {
 	GithubLink            string              `json:"githubLink"`
 	Link                  string              `json:"link"`
 	Dependency            bool                `json:"dependency"`
+	SourcePath            string              `json:"-"`
+	SourceRoot            string              `json:"-"`
+	OutputPrefix          string              `json:"-"`
 }

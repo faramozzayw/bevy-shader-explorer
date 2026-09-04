@@ -29,6 +29,7 @@ type Config struct {
 	FileFilter           string
 	OutputDir            string
 	SourceGithubURL      string
+	SourceGithubRef      string
 	Version              string
 	Exclude              []string
 	NoDeps               bool
@@ -86,6 +87,7 @@ func Load(projectPath string) (Config, error) {
 	}
 	cfg.Description = cargoDescription
 	cfg.ProjectVersion = cargoVersion
+	cfg.SourceGithubURL = loadCargoRepository(cfg.SourcePath)
 	if file.Name != "" {
 		cfg.Name = file.Name
 	}
@@ -117,12 +119,24 @@ type cargoManifest struct {
 		Name        string      `toml:"name"`
 		Description string      `toml:"description"`
 		Version     interface{} `toml:"version"`
+		Repository  interface{} `toml:"repository"`
 	} `toml:"package"`
 	Workspace struct {
 		Package struct {
 			Version string `toml:"version"`
 		} `toml:"package"`
 	} `toml:"workspace"`
+}
+
+func loadCargoRepository(projectPath string) string {
+	var manifest cargoManifest
+	if _, err := toml.DecodeFile(filepath.Join(projectPath, "Cargo.toml"), &manifest); err != nil {
+		return ""
+	}
+	if repository, ok := manifest.Package.Repository.(string); ok {
+		return repository
+	}
+	return ""
 }
 
 func loadCargoMetadata(projectPath string) (string, string, string) {

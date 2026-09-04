@@ -31,12 +31,6 @@ func ParseWGSLFile(
 	basename := filepath.Base(wgslFilePath)
 	extension := filepath.Ext(basename)
 	filename := strings.TrimSuffix(basename, extension)
-	// WGSL and WESL files can share a basename (for example Bevy's
-	// custom_material files). Keep the WESL extension in the generated path so
-	// one page cannot overwrite the other.
-	if strings.EqualFold(extension, ".wesl") {
-		filename += extension
-	}
 	originalDir := filepath.Dir(wgslFilePath)
 	innerPath, err := filepath.Rel(config.SourcePath, originalDir)
 	if err != nil {
@@ -249,6 +243,9 @@ func anyShaderDefs[T any](input []T) bool {
 }
 
 func GetGithubLink(config *config.Config, dir string, basename string) string {
+	if config.SourceGithubURL == "" {
+		return ""
+	}
 	innerPath, err := filepath.Rel(config.SourcePath, dir)
 	if err != nil {
 		log.Fatal(err)
@@ -256,7 +253,11 @@ func GetGithubLink(config *config.Config, dir string, basename string) string {
 
 	joinedPath := filepath.Join(innerPath, basename)
 
-	baseURL, err := url.Parse(config.SourceGithubURL)
+	ref := config.SourceGithubRef
+	if ref == "" {
+		ref = "main"
+	}
+	baseURL, err := url.Parse(strings.TrimRight(config.SourceGithubURL, "/") + "/blob/" + url.PathEscape(ref) + "/")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -65,6 +65,9 @@ func generate(config config.Config) {
 			wgslFile.WgslPath = filepath.Join(input.Prefix, wgslFile.WgslPath)
 		}
 		wgslFile.Dependency = input.Dependency
+		wgslFile.SourcePath = input.Path
+		wgslFile.SourceRoot = input.Config.SourcePath
+		wgslFile.OutputPrefix = input.Prefix
 		wgslFile.ProjectName = input.PackageName
 		wgslFile.ProjectDescription = input.PackageDescription
 		wgslFile.ProjectVersion = input.PackageVersion
@@ -76,74 +79,13 @@ func generate(config config.Config) {
 		wgslFile.VersionOptions = packageVersionOptions(config.OutputDir, input.PackageName, input.PackageVersion)
 		wgslFile.WgslPath = strings.Replace(wgslFile.WgslPath, "src/", "", 1)
 		wgslFile.WgslPath = utils.DedupPathParts(wgslFile.WgslPath)
-		wgslFile.Link = joinDocURL("project", wgslFile.WgslPath)
 		wgslFiles = append(wgslFiles, wgslFile)
-
-		normalizedLink := utils.NormalizeLink(wgslFile.Link)
-
-		exportable := wgslFile.ImportPath != nil
-
-		if exportable {
-			declaredImportPaths[*wgslFile.ImportPath] = normalizedLink
-		}
-
-		localSearchInfo := make([]ShaderSearchableInfo, 0,
-			len(wgslFile.Functions)+len(wgslFile.Structures)+len(wgslFile.Consts)+len(wgslFile.Bindings),
-		)
-
-		for _, fn := range wgslFile.Functions {
-			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
-				Link:           normalizedLink,
-				PackageName:    wgslFile.ProjectName,
-				PackageVersion: wgslFile.ProjectVersion,
-				Filename:       wgslFile.Filename,
-				Exportable:     exportable,
-				Name:           fn.Name,
-				Type:           "function",
-				StageAttribute: fn.StageAttribute,
-				Comment:        fn.Comment,
-			})
-		}
-
-		for _, structure := range wgslFile.Structures {
-			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
-				Link:           normalizedLink,
-				PackageName:    wgslFile.ProjectName,
-				PackageVersion: wgslFile.ProjectVersion,
-				Filename:       wgslFile.Filename,
-				Exportable:     exportable,
-				Name:           structure.Name,
-				Type:           "struct",
-			})
-		}
-
-		for _, consts := range wgslFile.Consts {
-			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
-				Link:           normalizedLink,
-				PackageName:    wgslFile.ProjectName,
-				PackageVersion: wgslFile.ProjectVersion,
-				Filename:       wgslFile.Filename,
-				Exportable:     exportable,
-				Name:           consts.Name,
-				Type:           "const",
-			})
-		}
-
-		for _, binding := range wgslFile.Bindings {
-			localSearchInfo = append(localSearchInfo, ShaderSearchableInfo{
-				Link:           normalizedLink,
-				PackageName:    wgslFile.ProjectName,
-				PackageVersion: wgslFile.ProjectVersion,
-				Filename:       wgslFile.Filename,
-				Exportable:     exportable,
-				Name:           binding.Name,
-				Type:           "binding",
-			})
-		}
-
-		searchInfo = append(searchInfo, localSearchInfo...)
-
 		parsingBar.Add(1)
+	}
+	resolveWgslPathCollisions(wgslFiles)
+	for i := range wgslFiles {
+		wgslFiles[i].Link = joinDocURL("project", wgslFiles[i].WgslPath)
+		appendSearchInfo(&searchInfo, &declaredImportPaths, wgslFiles[i])
 	}
 
 	sections, totalProject, totalDependency := buildHomeSections(wgslFiles)
@@ -243,6 +185,146 @@ func generate(config config.Config) {
 	writePackageVersionsManifest(config.OutputDir)
 
 	copyItemsToPublic(&config, searchInfo)
+}
+
+func resolveWgslPathCollisions(files []wgsl.WgslFile) {
+	byStem := make(map[string][]int)
+	for i, file := range files {
+		byStem[strings.TrimSuffix(file.WgslPath, ".html")] = append(byStem[strings.TrimSuffix(file.WgslPath, ".html")], i)
+	}
+	for _, indexes := range byStem {
+		if len(indexes) < 2 {
+			continue
+		}
+		extensions := make(map[string]bool)
+		for _, index := range indexes {
+			extensions[strings.TrimPrefix(filepath.Ext(files[index].Filename), ".")] = true
+		}
+		if len(extensions) > 1 {
+			for _, index := range indexes {
+				extension := strings.TrimPrefix(filepath.Ext(files[index].Filename), ".")
+				files[index].WgslPath = strings.TrimSuffix(files[index].WgslPath, ".html") + "." + extension + ".html"
+			}
+		}
+	}
+
+	byPath := make(map[string][]int)
+	for i, file := range files {
+		byPath[file.WgslPath] = append(byPath[file.WgslPath], i)
+	}
+	for _, indexes := range byPath {
+		if len(indexes) < 2 {
+			continue
+		}
+		for _, index := range indexes {
+			dir, err := filepath.Rel(files[index].SourceRoot, filepath.Dir(files[index].SourcePath))
+			if err != nil {
+				continue
+			}
+			parts := []string{"root"}
+			if dir != "." {
+				parts = strings.Split(filepath.ToSlash(dir), "/")
+			}
+			for width := 1; width <= len(parts); width++ {
+				suffix := strings.Join(parts[len(parts)-width:], "/")
+				unique := true
+				for _, other := range indexes {
+					if other == index {
+						continue
+					}
+					otherDir, _ := filepath.Rel(files[other].SourceRoot, filepath.Dir(files[other].SourcePath))
+					otherParts := []string{"root"}
+					if otherDir != "." {
+						otherParts = strings.Split(filepath.ToSlash(otherDir), "/")
+					}
+					if len(otherParts) >= width && strings.Join(otherParts[len(otherParts)-width:], "/") == suffix {
+						unique = false
+						break
+					}
+				}
+				if unique {
+					files[index].WgslPath = filepath.ToSlash(filepath.Join(files[index].OutputPrefix, suffix, filepath.Base(files[index].WgslPath)))
+					break
+				}
+			}
+		}
+	}
+}
+
+// moduleLabels returns the compact names shown in package shader lists. Most
+// files can use their basename, but repeated basenames need a path suffix so
+// users can tell them apart (for example, deferred/top and prepass/top).
+func moduleLabels(files []wgsl.WgslFile) []string {
+	labels := make([]string, len(files))
+	groups := make(map[string][]int)
+	for i, file := range files {
+		labels[i] = strings.TrimSuffix(filepath.Base(file.WgslPath), ".html")
+		key := file.ProjectName + "\x00" + file.ProjectVersion + "\x00" + labels[i]
+		groups[key] = append(groups[key], i)
+	}
+
+	for _, indexes := range groups {
+		if len(indexes) < 2 {
+			continue
+		}
+		for _, index := range indexes {
+			parts := sourceDirectoryParts(files[index])
+			for width := 1; width <= len(parts); width++ {
+				suffix := strings.Join(parts[len(parts)-width:], "/")
+				unique := true
+				for _, other := range indexes {
+					if other == index {
+						continue
+					}
+					otherParts := sourceDirectoryParts(files[other])
+					if len(otherParts) >= width && strings.Join(otherParts[len(otherParts)-width:], "/") == suffix {
+						unique = false
+						break
+					}
+				}
+				if unique {
+					labels[index] = suffix + "/" + labels[index]
+					break
+				}
+			}
+		}
+	}
+	return labels
+}
+
+func sourceDirectoryParts(file wgsl.WgslFile) []string {
+	if file.SourcePath == "" || file.SourceRoot == "" {
+		dir := filepath.ToSlash(filepath.Dir(file.WgslPath))
+		if dir == "." || dir == "" {
+			return []string{"root"}
+		}
+		return strings.Split(dir, "/")
+	}
+	dir, err := filepath.Rel(file.SourceRoot, filepath.Dir(file.SourcePath))
+	if err != nil || dir == "." || dir == "" {
+		return []string{"root"}
+	}
+	return strings.Split(filepath.ToSlash(dir), "/")
+}
+
+func appendSearchInfo(searchInfo *[]ShaderSearchableInfo, imports *map[string]string, file wgsl.WgslFile) {
+	link := utils.NormalizeLink(file.Link)
+	exportable := file.ImportPath != nil
+	if exportable {
+		(*imports)[*file.ImportPath] = link
+	}
+	for _, fn := range file.Functions {
+		*searchInfo = append(*searchInfo, ShaderSearchableInfo{Link: link, PackageName: file.ProjectName, PackageVersion: file.ProjectVersion, Filename: file.Filename, Exportable: exportable, Name: fn.Name, Type: "function", StageAttribute: fn.StageAttribute, Comment: fn.Comment})
+	}
+	for _, item := range file.Structures {
+		*searchInfo = append(*searchInfo, ShaderSearchableInfo{Link: link, PackageName: file.ProjectName, PackageVersion: file.ProjectVersion, Filename: file.Filename, Exportable: exportable, Name: item.Name, Type: "struct"})
+	}
+	for _, item := range file.Consts {
+		*searchInfo = append(*searchInfo, ShaderSearchableInfo{Link: link, PackageName: file.ProjectName, PackageVersion: file.ProjectVersion, Filename: file.Filename, Exportable: exportable, Name: item.Name, Type: "const"})
+	}
+	for _, item := range file.Bindings {
+		*searchInfo = append(*searchInfo, ShaderSearchableInfo{Link: link, PackageName: file.ProjectName, PackageVersion: file.ProjectVersion, Filename: file.Filename, Exportable: exportable, Name: item.Name, Type: "binding"})
+	}
 }
 
 type packageRegistryEntry struct {
@@ -495,10 +577,11 @@ func buildHomeSections(files []wgsl.WgslFile) ([]homeSection, int, int) {
 	groupDescriptions := map[string]string{}
 	groupVersions := map[string]string{}
 	groupPackageNames := map[string]string{}
-	for _, file := range files {
+	labels := moduleLabels(files)
+	for i, file := range files {
 		entry := map[string]string{
 			"file":  file.WgslPath,
-			"label": strings.TrimSuffix(filepath.Base(file.WgslPath), ".html"),
+			"label": labels[i],
 		}
 		parts := strings.Split(file.WgslPath, "/")
 		if len(parts) >= 3 {
@@ -612,7 +695,7 @@ func getWgslFilesList(config config.Config) []string {
 			}
 			return nil
 		}
-		if matched, _ := path.Match(config.FileFilter, entry.Name()); matched && !shouldExclude(config.SourcePath, filePath, config.Exclude) {
+		if matchesShaderFile(config.FileFilter, entry.Name()) && !shouldExclude(config.SourcePath, filePath, config.Exclude) {
 			filePaths = append(filePaths, filePath)
 		}
 		return nil
@@ -622,6 +705,14 @@ func getWgslFilesList(config config.Config) []string {
 	}
 	slices.Sort(filePaths)
 	return filePaths
+}
+
+func matchesShaderFile(filter, name string) bool {
+	if filter == "*.wgsl" && strings.EqualFold(filepath.Ext(name), ".wesl") {
+		return true
+	}
+	matched, _ := path.Match(filter, name)
+	return matched
 }
 
 type shaderInput struct {
@@ -689,7 +780,13 @@ func getShaderInputs(config config.Config) []shaderInput {
 		}
 		dependencyConfig := config
 		dependencyConfig.SourcePath = filepath.Dir(manifest)
-		dependencyConfig.SourceGithubURL = ""
+		// Cargo metadata records the upstream repository for each resolved
+		// package. Preserve it so dependency shader pages can link back to the
+		// exact source file just like project shaders do.
+		dependencyConfig.SourceGithubURL = dependencyRepository(metadata, dependency.Package, dependency.Version)
+		if dependencyConfig.SourceGithubURL != config.SourceGithubURL {
+			dependencyConfig.SourceGithubRef = ""
+		}
 		if seenPaths[dependency.Path] {
 			continue
 		}
@@ -703,6 +800,15 @@ func dependencyDescription(metadata discovery.CargoMetadata, name, version strin
 	for _, pkg := range metadata.Packages {
 		if pkg.Name == name && pkg.Version == version {
 			return pkg.Description
+		}
+	}
+	return ""
+}
+
+func dependencyRepository(metadata discovery.CargoMetadata, name, version string) string {
+	for _, pkg := range metadata.Packages {
+		if pkg.Name == name && pkg.Version == version {
+			return pkg.Repository
 		}
 	}
 	return ""
