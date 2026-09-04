@@ -32,7 +32,18 @@ type Result struct {
 }
 
 func Parse(code, parserCode string, comments map[int]string, shaderDefs []ShaderDefBlock) (Result, error) {
-	extractor, err := newSyntaxExtractor(code, parserCode, comments, shaderDefs)
+	return parseWithGrammar(code, parserCode, comments, shaderDefs, false)
+}
+
+// ParseWESL extracts the same documented declarations from a WESL file.
+// WESL-specific syntax is handled by the WESL Tree-sitter grammar while the
+// resulting declarations use the existing documentation model.
+func ParseWESL(code, parserCode string, comments map[int]string, shaderDefs []ShaderDefBlock) (Result, error) {
+	return parseWithGrammar(code, parserCode, comments, shaderDefs, true)
+}
+
+func parseWithGrammar(code, parserCode string, comments map[int]string, shaderDefs []ShaderDefBlock, wesl bool) (Result, error) {
+	extractor, err := newSyntaxExtractor(code, parserCode, comments, shaderDefs, wesl)
 	if err != nil {
 		return Result{}, err
 	}
@@ -75,8 +86,12 @@ type syntaxExtractor struct {
 	shaderDefs   []ShaderDefBlock
 }
 
-func newSyntaxExtractor(code, parserCode string, lineComments map[int]string, shaderDefs []ShaderDefBlock) (*syntaxExtractor, error) {
-	tree, err := syntax.Parse(code, parserCode)
+func newSyntaxExtractor(code, parserCode string, lineComments map[int]string, shaderDefs []ShaderDefBlock, wesl bool) (*syntaxExtractor, error) {
+	parse := syntax.Parse
+	if wesl {
+		parse = syntax.ParseWESL
+	}
+	tree, err := parse(code, parserCode)
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +118,11 @@ func childOfKind(node syntax.Node, kind string) syntax.Node {
 		if child.Kind() == kind {
 			return child
 		}
+	}
+	// WESL's grammar uses the clearer `identifier` node name where the
+	// original WGSL grammar uses `ident`/`member_ident`.
+	if kind == "ident" || kind == "member_ident" {
+		return childOfKind(node, "identifier")
 	}
 	return syntax.Node{}
 }
@@ -134,7 +154,13 @@ func (e *syntaxExtractor) namedType(node syntax.Node, annotations []Annotation) 
 	if !name.Valid() {
 		name = childOfKind(node, "member_ident")
 	}
+	if !name.Valid() {
+		name = node.Field("name")
+	}
 	typ := childOfKind(node, "type_specifier")
+	if !typ.Valid() {
+		typ = node.Field("type")
+	}
 	fullType := e.text(typ)
 	return NamedType{
 		Annotations:   annotations,
@@ -150,7 +176,7 @@ func (e *syntaxExtractor) consts() []Const {
 	for _, node := range descendantsOfKind(e.root, "global_value_decl") {
 		declaration := childOfKind(node, "optionally_typed_ident")
 		if !declaration.Valid() {
-			continue
+			declaration = node
 		}
 		line := e.line(node)
 		shaderDefs := getShaderDefsByLine(e.shaderDefs, line)
@@ -205,7 +231,11 @@ func (e *syntaxExtractor) structures() []Structure {
 		for _, field := range fields {
 			fieldsShaderDefs = fieldsShaderDefs || field.HasShaderDefs
 		}
-		result = append(result, Structure{Name: e.text(childOfKind(node, "ident")), Fields: fields, LineNumber: line, Comment: strings.Join(getItemComments(line, e.lineComments), "\n"), HasShaderDefs: len(shaderDefs) > 0, ShaderDefs: shaderDefs, HasFields: len(fields) > 0, FieldsShaderDefs: fieldsShaderDefs})
+		name := childOfKind(node, "ident")
+		if !name.Valid() {
+			name = node.Field("name")
+		}
+		result = append(result, Structure{Name: e.text(name), Fields: fields, LineNumber: line, Comment: strings.Join(getItemComments(line, e.lineComments), "\n"), HasShaderDefs: len(shaderDefs) > 0, ShaderDefs: shaderDefs, HasFields: len(fields) > 0, FieldsShaderDefs: fieldsShaderDefs})
 	}
 	return result
 }
@@ -232,7 +262,11 @@ func (e *syntaxExtractor) functions() []Function {
 			returnType.Type = utils.RemovePath(e.text(declared))
 			returnType.FullTypePath = e.text(declared)
 		}
-		result = append(result, Function{StageAttribute: stage, WorkgroupSize: workgroup, HasWorkgroupSize: len(workgroup) > 0, Name: e.text(childOfKind(header, "ident")), LineNumber: line, Params: params, ReturnTypeInfo: returnType, HasShaderDefs: len(shaderDefs) > 0, ShaderDefs: shaderDefs, Comment: strings.Join(getItemComments(line, e.lineComments), "\n"), HasParams: len(params) > 0})
+		name := childOfKind(header, "ident")
+		if !name.Valid() {
+			name = header.Field("name")
+		}
+		result = append(result, Function{StageAttribute: stage, WorkgroupSize: workgroup, HasWorkgroupSize: len(workgroup) > 0, Name: e.text(name), LineNumber: line, Params: params, ReturnTypeInfo: returnType, HasShaderDefs: len(shaderDefs) > 0, ShaderDefs: shaderDefs, Comment: strings.Join(getItemComments(line, e.lineComments), "\n"), HasParams: len(params) > 0})
 	}
 	return result
 }

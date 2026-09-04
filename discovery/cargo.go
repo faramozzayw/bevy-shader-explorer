@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"main/config"
 )
 
 // ShaderSource identifies a WGSL file and the package that owns it.
@@ -142,7 +144,7 @@ func discoverWGSLFiles(root string, excludes []string) ([]string, error) {
 			}
 			return nil
 		}
-		if matched, _ := path.Match("*.wgsl", filepath.Base(filePath)); matched && !excludedPath(root, filePath, excludes) {
+		if config.MatchesShaderFile("*.wgsl", filepath.Base(filePath)) && !excludedPath(root, filePath, excludes) {
 			result = append(result, filePath)
 		}
 		return nil
@@ -172,16 +174,16 @@ func excludedPath(root, filePath string, excludes []string) bool {
 }
 
 type CargoPackage struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Version      string `json:"version"`
-	ManifestPath string `json:"manifest_path"`
-	Source       string `json:"source"`
-	Description  string `json:"description"`
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	Version      string   `json:"version"`
+	ManifestPath string   `json:"manifest_path"`
+	Source       string   `json:"source"`
+	Description  string   `json:"description"`
 	Authors      []string `json:"authors"`
-	License      string `json:"license"`
-	Repository   string `json:"repository"`
-	Homepage     string `json:"homepage"`
+	License      string   `json:"license"`
+	Repository   string   `json:"repository"`
+	Homepage     string   `json:"homepage"`
 }
 
 type CargoResolve struct {

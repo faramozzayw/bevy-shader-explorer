@@ -6,6 +6,7 @@ require (
 	github.com/aymerick/raymond v2.0.2+incompatible
 	github.com/gomarkdown/markdown v0.0.0-20250311123330-531bef5e742b
 	github.com/gpuweb/tree-sitter-wgsl v0.0.0
+	github.com/webgpu-tools/tree-sitter-wesl v0.0.0
 	github.com/samber/lo v1.49.1
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/spf13/cobra v1.9.1
@@ -14,6 +15,8 @@ require (
 )
 
 replace github.com/gpuweb/tree-sitter-wgsl => ./third_party/tree-sitter-wgsl
+
+replace github.com/webgpu-tools/tree-sitter-wesl => ./third_party/tree-sitter-wesl
 
 require (
 	github.com/BurntSushi/toml v1.4.0 // indirect

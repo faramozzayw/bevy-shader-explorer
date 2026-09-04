@@ -79,6 +79,7 @@ func TestDiscoverDependencyShadersScansSelectedRootsOnly(t *testing.T) {
 	for _, file := range []string{
 		filepath.Join(bevyRoot, "Cargo.toml"),
 		filepath.Join(bevyRoot, "shader.wgsl"),
+		filepath.Join(bevyRoot, "library.wesl"),
 		filepath.Join(bevyRoot, "target", "generated.wgsl"),
 		filepath.Join(otherRoot, "other.wgsl"),
 	} {
@@ -91,7 +92,7 @@ func TestDiscoverDependencyShadersScansSelectedRootsOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(shaders) != 1 || shaders[0].Path != filepath.Join(bevyRoot, "shader.wgsl") {
+	if len(shaders) != 2 || shaders[0].Path != filepath.Join(bevyRoot, "library.wesl") || shaders[1].Path != filepath.Join(bevyRoot, "shader.wgsl") {
 		t.Fatalf("unexpected shaders: %#v", shaders)
 	}
 	if shaders[0].Package != "bevy_render" || !shaders[0].Dependency {

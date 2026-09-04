@@ -163,6 +163,29 @@ const VALUE: u32 = 1u;
 	}
 }
 
+func TestWESLGrammarParsesWGSLDeclarationsWithExtensions(t *testing.T) {
+	code := `import package::colors::chartreuse;
+
+@if(DEBUG)
+const DEBUG_COLOR: vec3f = chartreuse;
+
+struct Vertex {
+    position: vec3f,
+}
+
+fn shade(value: vec3f) -> vec3f {
+    return value;
+}`
+
+	declarations, err := extract.ParseWESL(code, code, map[int]string{}, nil)
+	if !assert.NoError(t, err) || !assert.Len(t, declarations.Consts, 1) || !assert.Len(t, declarations.Structures, 1) || !assert.Len(t, declarations.Functions, 1) {
+		return
+	}
+	assert.Equal(t, "DEBUG_COLOR", declarations.Consts[0].Name)
+	assert.Equal(t, "Vertex", declarations.Structures[0].Name)
+	assert.Equal(t, "shade", declarations.Functions[0].Name)
+}
+
 func TestExtractionRegressionForAllItemKinds(t *testing.T) {
 	code := allItemsFixture
 

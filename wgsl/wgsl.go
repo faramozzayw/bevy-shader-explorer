@@ -29,7 +29,14 @@ func ParseWGSLFile(
 	normalizedCode := source.New(string(wgslCodeBytes)).Text
 
 	basename := filepath.Base(wgslFilePath)
-	filename := strings.TrimSuffix(basename, ".wgsl")
+	extension := filepath.Ext(basename)
+	filename := strings.TrimSuffix(basename, extension)
+	// WGSL and WESL files can share a basename (for example Bevy's
+	// custom_material files). Keep the WESL extension in the generated path so
+	// one page cannot overwrite the other.
+	if strings.EqualFold(extension, ".wesl") {
+		filename += extension
+	}
 	originalDir := filepath.Dir(wgslFilePath)
 	innerPath, err := filepath.Rel(config.SourcePath, originalDir)
 	if err != nil {
@@ -49,7 +56,13 @@ func ParseWGSLFile(
 	for _, definition := range definitions {
 		extractDefs = append(extractDefs, extract.ShaderDefBlock{DefName: definition.Name, IfdefLine: definition.IfLine, ElseLine: definition.ElseLine, EndifLine: definition.EndifLine})
 	}
-	declarations, err := extract.Parse(normalizedCode, bevy.MaskDirectives(normalizedCode), lineComments, extractDefs)
+	parserCode := bevy.MaskDirectives(normalizedCode)
+	parseDeclarations := extract.Parse
+	if extension == ".wesl" {
+		parserCode = normalizedCode
+		parseDeclarations = extract.ParseWESL
+	}
+	declarations, err := parseDeclarations(normalizedCode, parserCode, lineComments, extractDefs)
 	if err != nil {
 		log.Fatal(err)
 	}

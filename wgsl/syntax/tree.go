@@ -3,9 +3,11 @@ package syntax
 
 import (
 	"fmt"
+	"unsafe"
 
 	wgsl "github.com/gpuweb/tree-sitter-wgsl/bindings/go"
 	tree_sitter "github.com/tree-sitter/go-tree-sitter"
+	wesl "github.com/webgpu-tools/tree-sitter-wesl/bindings/go"
 )
 
 type Tree struct {
@@ -16,10 +18,20 @@ type Tree struct {
 }
 
 func Parse(sourceText, parserText string) (*Tree, error) {
+	return parse(sourceText, parserText, wgsl.Language(), "WGSL")
+}
+
+// ParseWESL parses WESL source. WESL is a WGSL-compatible superset, but has
+// its own grammar for imports, conditional attributes, and other extensions.
+func ParseWESL(sourceText, parserText string) (*Tree, error) {
+	return parse(sourceText, parserText, wesl.Language(), "WESL")
+}
+
+func parse(sourceText, parserText string, languagePtr unsafe.Pointer, languageName string) (*Tree, error) {
 	parser := tree_sitter.NewParser()
-	if err := parser.SetLanguage(tree_sitter.NewLanguage(wgsl.Language())); err != nil {
+	if err := parser.SetLanguage(tree_sitter.NewLanguage(languagePtr)); err != nil {
 		parser.Close()
-		return nil, fmt.Errorf("configure WGSL parser: %w", err)
+		return nil, fmt.Errorf("configure %s parser: %w", languageName, err)
 	}
 	source := []byte(sourceText)
 	tree := parser.Parse([]byte(parserText), nil)

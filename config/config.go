@@ -3,10 +3,22 @@ package config
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 )
+
+// MatchesShaderFile keeps the historical *.wgsl default while also treating
+// WESL files as shaders. A custom file_filter remains exact and opt-in.
+func MatchesShaderFile(filter, name string) bool {
+	if filter == "*.wgsl" && strings.EqualFold(filepath.Ext(name), ".wesl") {
+		return true
+	}
+	matched, _ := path.Match(filter, name)
+	return matched
+}
 
 type Config struct {
 	Name                 string
