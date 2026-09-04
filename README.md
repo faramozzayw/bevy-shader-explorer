@@ -30,3 +30,11 @@ wgsl-docs generate [flags]
 ```
 
 For the bundled Bevy catalogue, `just generate-all` clones the configured source revisions into `sources/` and writes the site to `dist/`. `just deploy-prod` deploys the existing `dist/` output without regenerating it.
+
+## License
+
+Shader Explorer is dual-licensed under the [MIT License](LICENSE-MIT) or
+the [Apache License 2.0](LICENSE-APACHE), at your option.
+
+Generated documentation may include WGSL files from third-party projects;
+those files remain under their original licenses.
