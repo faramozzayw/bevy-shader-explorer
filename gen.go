@@ -55,33 +55,8 @@ func generate(config config.Config) {
 
 	searchInfo := make([]ShaderSearchableInfo, 0, 4096)
 	declaredImportPaths := make(map[string]string)
-	wgslFiles := make([]wgsl.WgslFile, 0, len(inputs))
-
 	parsingBar := progressbar.Default(totalFiles, "📄 Reading WGSL Files")
-
-	for _, input := range inputs {
-		wgslFile := wgsl.ParseWGSLFile(&input.Config, input.Path)
-		if input.Prefix != "" {
-			wgslFile.WgslPath = filepath.Join(input.Prefix, wgslFile.WgslPath)
-		}
-		wgslFile.Dependency = input.Dependency
-		wgslFile.SourcePath = input.Path
-		wgslFile.SourceRoot = input.Config.SourcePath
-		wgslFile.OutputPrefix = input.Prefix
-		wgslFile.ProjectName = input.PackageName
-		wgslFile.ProjectDescription = input.PackageDescription
-		wgslFile.ProjectVersion = input.PackageVersion
-		if wgslFile.ProjectVersion == "" {
-			wgslFile.ProjectVersion = config.ProjectVersion
-		}
-		wgslFile.ProjectURLPrefix = joinDocURL("project", "")
-		wgslFile.PackageURLPrefix = joinDocURL("project", filepath.Join(input.PackageName, input.PackageVersion))
-		wgslFile.VersionOptions = packageVersionOptions(config.OutputDir, input.PackageName, input.PackageVersion)
-		wgslFile.WgslPath = strings.Replace(wgslFile.WgslPath, "src/", "", 1)
-		wgslFile.WgslPath = utils.DedupPathParts(wgslFile.WgslPath)
-		wgslFiles = append(wgslFiles, wgslFile)
-		parsingBar.Add(1)
-	}
+	wgslFiles := parseShaderInputs(inputs, config.ProjectVersion, config.OutputDir, parsingBar)
 	resolveWgslPathCollisions(wgslFiles)
 	for i := range wgslFiles {
 		wgslFiles[i].Link = joinDocURL("project", wgslFiles[i].WgslPath)
@@ -185,6 +160,62 @@ func generate(config config.Config) {
 	writePackageVersionsManifest(config.OutputDir)
 
 	copyItemsToPublic(&config, searchInfo)
+}
+
+// parseShaderInputs parses files concurrently while storing results by input
+// index. Keeping the original order makes collision resolution and generated
+// navigation deterministic regardless of worker scheduling.
+func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, progress *progressbar.ProgressBar) []wgsl.WgslFile {
+	files := make([]wgsl.WgslFile, len(inputs))
+	workers := runtime.NumCPU()
+	if workers > 8 {
+		workers = 8
+	}
+	if workers > len(inputs) {
+		workers = len(inputs)
+	}
+	if workers == 0 {
+		return files
+	}
+
+	jobs := make(chan int)
+	var wg sync.WaitGroup
+	for worker := 0; worker < workers; worker++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for index := range jobs {
+				input := inputs[index]
+				file := wgsl.ParseWGSLFile(&input.Config, input.Path)
+				if input.Prefix != "" {
+					file.WgslPath = filepath.Join(input.Prefix, file.WgslPath)
+				}
+				file.Dependency = input.Dependency
+				file.SourcePath = input.Path
+				file.SourceRoot = input.Config.SourcePath
+				file.OutputPrefix = input.Prefix
+				file.ProjectName = input.PackageName
+				file.ProjectDescription = input.PackageDescription
+				file.ProjectVersion = input.PackageVersion
+				if file.ProjectVersion == "" {
+					file.ProjectVersion = projectVersion
+				}
+				file.ProjectURLPrefix = joinDocURL("project", "")
+				file.PackageURLPrefix = joinDocURL("project", filepath.Join(input.PackageName, input.PackageVersion))
+				file.VersionOptions = packageVersionOptions(outputDir, input.PackageName, input.PackageVersion)
+				file.WgslPath = strings.Replace(file.WgslPath, "src/", "", 1)
+				file.WgslPath = utils.DedupPathParts(file.WgslPath)
+				files[index] = file
+				progress.Add(1)
+			}
+		}()
+	}
+	for index := range inputs {
+		jobs <- index
+	}
+	close(jobs)
+	wg.Wait()
+	return files
 }
 
 func resolveWgslPathCollisions(files []wgsl.WgslFile) {
