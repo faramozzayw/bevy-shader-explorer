@@ -1,5 +1,5 @@
 {
-  "buildCommand": "just generate-all",
+  "buildCommand": "true",
   "outputDirectory": "dist",
   "framework": null
 }

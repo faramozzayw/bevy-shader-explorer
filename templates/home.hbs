@@ -1,5 +1,5 @@
 <html lang="en">
-  {{>head title=name}}
+  {{>head title="Shader Explorer"}}
   <body class="catalogue-page">
     {{> header urlPrefix=urlPrefix version=version skipHomeButton=true }}
     <main class="catalogue-main">
@@ -9,9 +9,12 @@
         {{#each sections}}
           {{#each Groups}}
             <article class="release-row">
-              <div class="release-main"><a class="release-name" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{DetailPath}}">{{PackageName}}</a><span class="release-version">{{Version}}</span></div>
-              <p>{{Description}}</p>
-              <div class="release-meta"><span>{{Count}} shaders</span><a href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{DetailPath}}">Browse package →</a></div>
+              <a class="release-row-content" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{DetailPath}}">
+                <div class="release-main"><span class="release-name">{{PackageName}}</span></div>
+                <p>{{Description}}</p>
+                <div class="release-meta"><span>{{Count}} shaders</span><span>Browse package →</span></div>
+              </a>
+              {{> version-selector packageName=PackageName versionOptions=VersionOptions}}
             </article>
           {{/each}}
         {{/each}}

@@ -1,40 +1,43 @@
 set shell := ["bash", "-cu"]
 
-branches_versions := "release-0.15.3:bevy-0.15.3 release-0.16.0:bevy-0.16.0"
+bevy_versions := "0.15.0 0.15.1 0.15.2 0.15.3 0.15.4 0.16.0 0.16.1 0.16.2 0.17.0 0.17.1 0.17.2 0.17.3 0.18.0 0.18.1 0.19.0 0.19.1"
+hanabi_versions := "0.15.0 0.15.1 0.16.0 0.17.0 0.18.0 0.19.0"
 
-default: build-bevy
+default: generate-all
 
 serve:
     npx http-server ./dist/ -p 3000
 
 clean:
-    rm -rf ./bevy-* ./dist
+	rm -rf ./sources ./dist
 
-clone-bevy:
-    for entry in {{ branches_versions }}; do \
-        branch=${entry%%:*}; \
-        dir=${entry##*:}; \
-        if [ ! -d "$dir" ]; then \
-            echo "Cloning $branch into $dir..."; \
-            git clone --branch "$branch" --depth=1 https://github.com/bevyengine/bevy.git "$dir" && \
-            rm -rf "$dir/.git"; \
-        else \
-            echo "$dir already exists. Skipping..."; \
-        fi; \
-    done
+clone-all:
+	mkdir -p ./sources/bevy ./sources/hanabi
+	for version in {{ bevy_versions }}; do \
+		dir="./sources/bevy/$version"; \
+		if [ ! -d "$dir" ]; then git clone --branch "release-$version" --depth=1 https://github.com/bevyengine/bevy.git "$dir" && rm -rf "$dir/.git"; fi; \
+	done
+	for version in {{ hanabi_versions }}; do \
+		dir="./sources/hanabi/$version"; \
+		if [ ! -d "$dir" ]; then git clone --branch "v$version" --depth=1 https://github.com/djeedai/bevy_hanabi.git "$dir" && rm -rf "$dir/.git"; fi; \
+	done
+	if [ ! -d ./sources/aqua ]; then git clone --depth=1 https://github.com/sayhisam1/bevy-aqua.git ./sources/aqua && rm -rf ./sources/aqua/.git; fi
 
-build-bevy: clone-bevy
-    for entry in {{ branches_versions }}; do \
-        branch=${entry%%:*}; \
-        dir=${entry##*:}; \
-        version=$(echo "$dir" | sed 's/bevy-//'); \
-        go run . generate --project "./$dir/" --output ./dist --version "$version" --source-url "https://github.com/bevyengine/bevy/tree/$branch/"; \
-        echo ""; \
-    done
+generate-all: clone-all
+	go run . generate --project ./sources/aqua --output ./dist
+	for version in {{ bevy_versions }}; do \
+		go run . generate --project "./sources/bevy/$version" --output ./dist --version "$version"; \
+	done
+	for version in {{ hanabi_versions }}; do \
+		go run . generate --project "./sources/hanabi/$version" --output ./dist --version "$version"; \
+	done
+
+build-bevy: generate-all
 
 deploy-prod:
-    vercel build --prod
-    vercel --prebuilt --prod
+	test -d ./dist || (echo "./dist does not exist; run 'just generate-all' first" >&2; exit 1)
+	vercel build --prod --local-config vercel.deploy.json
+	vercel deploy --prebuilt --prod --yes
 
 deploy-dev:
     vercel build

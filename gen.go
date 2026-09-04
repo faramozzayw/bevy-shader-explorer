@@ -47,6 +47,7 @@ func generate(config config.Config) {
 	fmt.Println("========================================")
 
 	inputs := getShaderInputs(config)
+	cargoMetadata := loadOptionalCargoMetadata(config)
 	totalFiles := int64(len(inputs))
 
 	utils.LoadWgslTypes()
@@ -70,11 +71,12 @@ func generate(config config.Config) {
 		if wgslFile.ProjectVersion == "" {
 			wgslFile.ProjectVersion = config.ProjectVersion
 		}
-		wgslFile.ProjectURLPrefix = joinDocURL(config.Version, "")
-		wgslFile.PackageURLPrefix = joinDocURL(config.Version, filepath.Join(input.PackageName, input.PackageVersion))
+		wgslFile.ProjectURLPrefix = joinDocURL("project", "")
+		wgslFile.PackageURLPrefix = joinDocURL("project", filepath.Join(input.PackageName, input.PackageVersion))
+		wgslFile.VersionOptions = packageVersionOptions(config.OutputDir, input.PackageName, input.PackageVersion)
 		wgslFile.WgslPath = strings.Replace(wgslFile.WgslPath, "src/", "", 1)
 		wgslFile.WgslPath = utils.DedupPathParts(wgslFile.WgslPath)
-		wgslFile.Link = joinDocURL(config.Version, wgslFile.WgslPath)
+		wgslFile.Link = joinDocURL("project", wgslFile.WgslPath)
 		wgslFiles = append(wgslFiles, wgslFile)
 
 		normalizedLink := utils.NormalizeLink(wgslFile.Link)
@@ -137,6 +139,12 @@ func generate(config config.Config) {
 	}
 
 	sections, totalProject, totalDependency := buildHomeSections(wgslFiles)
+	// Keep a durable registry of every package/version generated into this
+	// output directory. A build may contain only one package, but the homepage
+	// should still represent packages produced by earlier builds.
+	registry := updatePackageRegistry(config.OutputDir, sections)
+	registrySections := packageRegistrySections(registry)
+	registryShaderCount := packageRegistryShaderCount(registry)
 	for i := range wgslFiles {
 		wgslFiles[i].ProjectShaderCount = totalProject
 		wgslFiles[i].DependencyShaderCount = totalDependency
@@ -155,9 +163,6 @@ func generate(config config.Config) {
 	sem := make(chan struct{}, runtime.NumCPU())
 
 	versionedOutput := config.OutputDir
-	if config.Version != "project" {
-		versionedOutput = filepath.Join(config.OutputDir, config.Version)
-	}
 
 	for _, wgslFile := range wgslFiles {
 		wgslFile := wgslFile
@@ -181,26 +186,40 @@ func generate(config config.Config) {
 			if err := os.MkdirAll(filepath.Join(versionedOutput, filepath.Dir(group.DetailPath)), os.ModePerm); err != nil {
 				log.Fatal(err)
 			}
+			dependencies := packageDependencies(wgslFiles, group.PackageName, group.Version)
+			metadata := findPackageMetadata(cargoMetadata, group.PackageName, group.Version)
+			directDependencies, transitiveDependencies := cargoPackageDependencies(cargoMetadata, group.PackageName, group.Version, wgslFiles)
 			renderTemplateToFile(PACKAGE_DOC_TEMPLATE_SOURCE, map[string]interface{}{
-				"name":             group.PackageName,
-				"files":            group.AllFiles,
-				"count":            group.Count,
-				"description":      group.Description,
+				"name":                      group.PackageName,
+				"files":                     group.AllFiles,
+				"count":                     group.Count,
+				"description":               group.Description,
+				"dependencies":              dependencies,
+				"hasDependencies":           len(dependencies) > 0,
+				"dependencyCount":           len(dependencies),
+				"directDependencies":        directDependencies,
+				"transitiveDependencies":    transitiveDependencies,
+				"hasDirectDependencies":     len(directDependencies) > 0,
+				"hasTransitiveDependencies": len(transitiveDependencies) > 0,
+				"directDependencyCount":     len(directDependencies),
+				"transitiveDependencyCount": len(transitiveDependencies),
+				"authors":                   metadata.Authors, "license": metadata.License,
+				"repository": metadata.Repository, "homepage": metadata.Homepage,
 				"packageVersion":   group.Version,
 				"version":          config.Version,
 				"projectVersion":   group.Version,
 				"projectCount":     group.Count,
-				"dependencyCount":  0,
-				"urlPrefix":        joinDocURL(config.Version, ""),
-				"packageURLPrefix": joinDocURL(config.Version, filepath.Join(group.PackageName, group.Version)),
+				"urlPrefix":        joinDocURL("project", ""),
+				"packageURLPrefix": joinDocURL("project", filepath.Join(group.PackageName, group.Version)),
+				"versionOptions":   packageVersionOptions(config.OutputDir, group.PackageName, group.Version),
 			}, filepath.Join(versionedOutput, group.DetailPath))
 		}
 	}
 
 	renderTemplateToFile(HOME_DOC_TEMPLATE_SOURCE, map[string]interface{}{
-		"sections":         sections,
-		"packageCount":     len(sections[0].Groups),
-		"totalShaderCount": totalProject + totalDependency,
+		"sections":         registrySections,
+		"packageCount":     len(registry),
+		"totalShaderCount": registryShaderCount,
 		"projectCount":     totalProject,
 		"dependencyCount":  totalDependency,
 		"name":             config.Name,
@@ -208,13 +227,211 @@ func generate(config config.Config) {
 		"skipHomeButton":   true,
 		"version":          config.Version,
 		"projectVersion":   config.ProjectVersion,
-		"urlPrefix":        joinDocURL(config.Version, ""),
+		"urlPrefix":        joinDocURL("project", ""),
 	}, filepath.Join(versionedOutput, "index.html"))
 
 	renderTemplateToFile(NOT_FOUND_TEMPLATE_SOURCE, map[string]interface{}{},
 		filepath.Join(config.OutputDir, "404.html"))
+	writePackageVersionsManifest(config.OutputDir)
 
 	copyItemsToPublic(&config, searchInfo)
+}
+
+type packageRegistryEntry struct {
+	PackageName string `json:"packageName"`
+	Description string `json:"description"`
+	Version     string `json:"version"`
+	Count       int    `json:"count"`
+	DetailPath  string `json:"detailPath"`
+}
+
+func updatePackageRegistry(outputDir string, sections []homeSection) []packageRegistryEntry {
+	registryPath := filepath.Join(outputDir, "public", "packages.json")
+	registry := make([]packageRegistryEntry, 0)
+	if data, err := os.ReadFile(registryPath); err == nil {
+		_ = json.Unmarshal(data, &registry)
+	}
+	byKey := make(map[string]packageRegistryEntry, len(registry))
+	for _, entry := range registry {
+		byKey[entry.PackageName+"\x00"+entry.Version] = entry
+	}
+	for _, section := range sections {
+		for _, group := range section.Groups {
+			key := group.PackageName + "\x00" + group.Version
+			byKey[key] = packageRegistryEntry{
+				PackageName: group.PackageName,
+				Description: group.Description,
+				Version:     group.Version,
+				Count:       group.Count,
+				DetailPath:  group.DetailPath,
+			}
+		}
+	}
+	registry = registry[:0]
+	for _, entry := range byKey {
+		registry = append(registry, entry)
+	}
+	slices.SortFunc(registry, func(a, b packageRegistryEntry) int {
+		if c := strings.Compare(a.PackageName, b.PackageName); c != 0 {
+			return c
+		}
+		return strings.Compare(b.Version, a.Version)
+	})
+	data, err := json.MarshalIndent(registry, "", "  ")
+	if err == nil {
+		_ = os.MkdirAll(filepath.Dir(registryPath), os.ModePerm)
+		_ = os.WriteFile(registryPath, data, 0644)
+	}
+	return registry
+}
+
+func packageRegistrySections(registry []packageRegistryEntry) []homeSection {
+	byPackage := make(map[string][]packageRegistryEntry)
+	for _, entry := range registry {
+		byPackage[entry.PackageName] = append(byPackage[entry.PackageName], entry)
+	}
+	groups := make([]homeGroup, 0, len(byPackage))
+	for packageName, entries := range byPackage {
+		slices.SortFunc(entries, func(a, b packageRegistryEntry) int { return strings.Compare(b.Version, a.Version) })
+		latest := entries[0]
+		options := make([]map[string]string, 0, len(entries))
+		for _, entry := range entries {
+			options = append(options, map[string]string{"label": entry.Version, "url": entry.DetailPath})
+		}
+		groups = append(groups, homeGroup{Name: packageName, PackageName: packageName, Description: latest.Description, Version: latest.Version, Count: latest.Count, DetailPath: latest.DetailPath, VersionOptions: options})
+	}
+	slices.SortFunc(groups, func(a, b homeGroup) int { return strings.Compare(a.PackageName, b.PackageName) })
+	return []homeSection{{Title: "Packages", Groups: groups}}
+}
+
+func packageRegistryShaderCount(registry []packageRegistryEntry) int {
+	total := 0
+	for _, entry := range registry {
+		total += entry.Count
+	}
+	return total
+}
+
+func packageDependencies(files []wgsl.WgslFile, packageName, version string) []map[string]string {
+	seen := make(map[string]bool)
+	dependencies := make([]map[string]string, 0)
+	for _, file := range files {
+		if !file.Dependency || (file.ProjectName == packageName && file.ProjectVersion == version) {
+			continue
+		}
+		key := file.ProjectName + "\x00" + file.ProjectVersion
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		dependencies = append(dependencies, map[string]string{"name": file.ProjectName, "version": file.ProjectVersion, "url": filepath.ToSlash(filepath.Join(file.ProjectName, file.ProjectVersion, "index.html"))})
+	}
+	slices.SortFunc(dependencies, func(a, b map[string]string) int { return strings.Compare(a["name"], b["name"]) })
+	return dependencies
+}
+
+func loadOptionalCargoMetadata(config config.Config) discovery.CargoMetadata {
+	if config.NoDeps {
+		return discovery.CargoMetadata{}
+	}
+	metadata, err := discovery.ReadCargoMetadata(context.Background(), config.SourcePath, config.Offline)
+	if err != nil {
+		return discovery.CargoMetadata{}
+	}
+	return metadata
+}
+
+func findPackageMetadata(metadata discovery.CargoMetadata, name, version string) discovery.CargoPackage {
+	for _, pkg := range metadata.Packages {
+		if pkg.Name == name && pkg.Version == version {
+			return pkg
+		}
+	}
+	return discovery.CargoPackage{}
+}
+
+func cargoPackageDependencies(metadata discovery.CargoMetadata, name, version string, files []wgsl.WgslFile) ([]map[string]string, []map[string]string) {
+	if metadata.Resolve == nil {
+		return nil, nil
+	}
+	packages := make(map[string]discovery.CargoPackage)
+	ids := make(map[string]string)
+	for _, pkg := range metadata.Packages {
+		packages[pkg.ID] = pkg
+		ids[pkg.Name+"\x00"+pkg.Version] = pkg.ID
+	}
+	rootID := ids[name+"\x00"+version]
+	if rootID == "" {
+		return nil, nil
+	}
+	nodes := make(map[string]discovery.CargoNode)
+	for _, node := range metadata.Resolve.Nodes {
+		nodes[node.ID] = node
+	}
+	available := make(map[string]bool)
+	for _, file := range files {
+		available[file.ProjectName+"\x00"+file.ProjectVersion] = true
+	}
+	seen := map[string]bool{rootID: true}
+	queue := []string{rootID}
+	depth := map[string]int{rootID: 0}
+	var direct, transitive []map[string]string
+	for len(queue) > 0 {
+		id := queue[0]
+		queue = queue[1:]
+		for _, dep := range nodes[id].Deps {
+			if seen[dep.PackageID] {
+				continue
+			}
+			seen[dep.PackageID] = true
+			queue = append(queue, dep.PackageID)
+			depth[dep.PackageID] = depth[id] + 1
+			pkg, ok := packages[dep.PackageID]
+			if !ok || !available[pkg.Name+"\x00"+pkg.Version] {
+				continue
+			}
+			item := map[string]string{"name": pkg.Name, "version": pkg.Version, "url": filepath.ToSlash(filepath.Join(pkg.Name, pkg.Version, "index.html"))}
+			if depth[dep.PackageID] == 1 {
+				direct = append(direct, item)
+			} else {
+				transitive = append(transitive, item)
+			}
+		}
+	}
+	slices.SortFunc(direct, func(a, b map[string]string) int { return strings.Compare(a["name"], b["name"]) })
+	slices.SortFunc(transitive, func(a, b map[string]string) int { return strings.Compare(a["name"], b["name"]) })
+	return direct, transitive
+}
+
+func writePackageVersionsManifest(outputDir string) {
+	packages := make(map[string][]map[string]string)
+	entries, err := os.ReadDir(outputDir)
+	if err != nil {
+		return
+	}
+	for _, pkg := range entries {
+		if !pkg.IsDir() || pkg.Name() == "public" {
+			continue
+		}
+		versions, err := os.ReadDir(filepath.Join(outputDir, pkg.Name()))
+		if err != nil {
+			continue
+		}
+		for _, version := range versions {
+			if version.IsDir() {
+				packages[pkg.Name()] = append(packages[pkg.Name()], map[string]string{
+					"label": version.Name(),
+					"url":   filepath.ToSlash(filepath.Join(pkg.Name(), version.Name(), "index.html")),
+				})
+			}
+		}
+	}
+	data, err := json.Marshal(packages)
+	if err != nil {
+		return
+	}
+	_ = os.MkdirAll(filepath.Join(outputDir, "public"), os.ModePerm)
+	_ = os.WriteFile(filepath.Join(outputDir, "public", "package-versions.json"), data, 0644)
 }
 
 func joinDocURL(version, filePath string) string {
@@ -225,22 +442,43 @@ func joinDocURL(version, filePath string) string {
 	return strings.Trim(strings.Join([]string{prefix, filepath.ToSlash(filePath)}, "/"), "/")
 }
 
+// packageVersionOptions finds sibling version builds in a combined output
+// directory and returns links to the same package in each version.
+func packageVersionOptions(outputDir, packageName, packageVersion string) []map[string]string {
+	options := []map[string]string{{"label": packageVersion, "url": filepath.ToSlash(filepath.Join(packageName, packageVersion, "index.html"))}}
+	versions, err := os.ReadDir(filepath.Join(outputDir, packageName))
+	if err != nil {
+		return options
+	}
+	for _, version := range versions {
+		if !version.IsDir() || version.Name() == packageVersion {
+			continue
+		}
+		options = append(options, map[string]string{
+			"label": version.Name(),
+			"url":   filepath.ToSlash(filepath.Join(packageName, version.Name(), "index.html")),
+		})
+	}
+	return options
+}
+
 type homeSection struct {
 	Title  string
 	Groups []homeGroup
 }
 
 type homeGroup struct {
-	Name        string
-	PackageName string
-	Description string
-	Version     string
-	Count       int
-	Files       []map[string]string
-	AllFiles    []map[string]string
-	DetailPath  string
-	Preview     bool
-	Remaining   int
+	Name           string
+	PackageName    string
+	Description    string
+	Version        string
+	Count          int
+	Files          []map[string]string
+	AllFiles       []map[string]string
+	DetailPath     string
+	Preview        bool
+	Remaining      int
+	VersionOptions []map[string]string
 }
 
 func buildHomeSections(files []wgsl.WgslFile) ([]homeSection, int, int) {

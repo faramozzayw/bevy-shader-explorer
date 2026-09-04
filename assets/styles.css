@@ -152,8 +152,11 @@ body {
 .catalogue-welcome #results { max-width: 470px; margin: 0 auto; text-align: left; }
 .release-list { margin-top: 62px; }
 .release-list h2 { font-size: 1.25rem; color: var(--function-name-color); border-bottom: 1px solid var(--search-border); padding-bottom: 9px; }
-.release-row { padding: 13px 10px; border-bottom: 1px solid var(--search-border); border-radius: 4px; }
+.release-row { position: relative; padding: 13px 10px; border-bottom: 1px solid var(--search-border); border-radius: 4px; }
 .release-row:hover { background: var(--header-bg); }
+.release-row-content { display: block; color: inherit; text-decoration: none; padding-right: 100px; }
+.release-row-content:hover .release-name { text-decoration: underline; }
+.release-row .version-select { position: absolute; top: 13px; right: 10px; }
 .release-main, .release-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
 .release-name { color: var(--function-name-color); font-weight: bold; }
 .release-version { color: var(--text-color); border: 1px solid var(--search-border); border-radius: 4px; padding: 1px 6px; font-size: .8rem; }
@@ -323,6 +326,13 @@ h1 {
 .package-description-block { padding: 15px; margin: 18px 0 20px; border: 0; border-radius: 5px; background: var(--section-bg); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); }
 .package-description-block h2 { margin: 0; color: var(--text-color); font-size: 1.15rem; }
 .package-description-block p { margin: 4px 0 0; color: var(--search-placeholder); }
+.package-dependencies { padding: 15px; margin-bottom: 20px; }
+.package-metadata { display: flex; gap: 16px; align-items: center; padding: 10px 15px; margin-bottom: 12px; color: var(--search-placeholder); font-size: .85rem; }
+.package-metadata a { color: var(--function-name-color); }
+.package-dependencies header { margin-bottom: 10px; }
+.package-dependencies h2 { margin: 0; font-size: 1.15rem; }
+.dependency-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.dependency-chip small { color: var(--search-placeholder); margin-left: 4px; }
 .package-summary { margin: 3px 0 0; color: var(--search-placeholder); font-size: .9rem; font-weight: normal; }
 .module-row { flex: 1 1 100%; border-bottom: 1px solid var(--search-border); }
 .module-link { display: flex; justify-content: space-between; gap: 20px; padding: 9px 4px; }
@@ -330,6 +340,11 @@ h1 {
 .module-link code { color: var(--search-placeholder); font-size: .8rem; }
 .package-page .shader-list {
   gap: 8px;
+}
+.module-chip-list .module-chip {
+  display: block;
+  padding: 5px 9px;
+  font-size: .9rem;
 }
 section {
   overflow: visible;

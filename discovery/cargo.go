@@ -178,6 +178,10 @@ type CargoPackage struct {
 	ManifestPath string `json:"manifest_path"`
 	Source       string `json:"source"`
 	Description  string `json:"description"`
+	Authors      []string `json:"authors"`
+	License      string `json:"license"`
+	Repository   string `json:"repository"`
+	Homepage     string `json:"homepage"`
 }
 
 type CargoResolve struct {

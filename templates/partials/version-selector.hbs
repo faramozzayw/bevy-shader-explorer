@@ -1,5 +1,11 @@
-<select class="version-select" onchange="window.location.href=this.value">
-  <option value="/{{urlPrefix}}">{{#if projectVersion}}{{projectVersion}}{{else}}{{version}}{{/if}}</option>
+<select class="version-select" data-package="{{packageName}}" onchange="window.location.href=this.value">
+  {{#if versionOptions}}
+    {{#each versionOptions}}
+      <option value="/{{url}}">{{label}}</option>
+    {{/each}}
+  {{else}}
+    <option value="/{{urlPrefix}}">{{#if projectVersion}}{{projectVersion}}{{else}}{{version}}{{/if}}</option>
+  {{/if}}
 </select>
 
 <script src="/public/select.js" type="text/javascript"></script>

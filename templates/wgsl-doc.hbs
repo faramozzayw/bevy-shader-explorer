@@ -8,7 +8,7 @@
       <a href="/{{projectURLPrefix}}">Packages</a>
       <a class="active" href="/{{PackageURLPrefix}}/index.html">{{projectName}}</a>
     </nav>
-    <div class="breadcrumbs"><a href="/{{projectURLPrefix}}">Packages</a> <span>›</span> <a href="/{{PackageURLPrefix}}/index.html">{{projectName}}</a> {{> version-selector urlPrefix=PackageURLPrefix projectVersion=projectVersion}} <span>›</span> <strong>{{filename}}</strong></div>
+    <div class="breadcrumbs"><a href="/{{projectURLPrefix}}">Packages</a> <span>›</span> <a href="/{{PackageURLPrefix}}/index.html">{{projectName}}</a> {{> version-selector packageName=projectName urlPrefix=PackageURLPrefix projectVersion=projectVersion versionOptions=versionOptions}} <span>›</span> <strong>{{filename}}</strong></div>
 
     <main>
       <h1>
