@@ -31,7 +31,54 @@ wgsl-docs generate [flags]
 
 For the bundled Bevy catalogue, `just generate-all` clones the configured source revisions into `sources/` and writes the site to `dist/`. `just deploy-prod` deploys the existing `dist/` output without regenerating it.
 
-The catalogue is defined in `wgsl-docs-build.toml`. Run `go run ./cmd/wgsl-docs-build --config path/to/matrix.toml clone` or `generate` to use another release matrix.
+The source matrix is defined in `shader-sources.toml`. Run `go run ./cmd/wgsl-docs-build --config path/to/matrix.toml clone` or `generate` to use another release matrix.
+
+## Add a library to the catalogue
+
+Add a `[[sources]]` entry to `shader-sources.toml`. The `root` is where
+sources are cloned, and `repo` is used for source links in the generated
+pages. Use `versions` with `ref_pattern` when releases follow a predictable
+tag convention:
+
+```toml
+[[sources]]
+name = "bevy_hanabi"
+repo = "https://github.com/djeedai/bevy_hanabi.git"
+root = "sources/hanabi"
+ref_pattern = "v{version}"
+versions = ["0.15.0", "0.16.0", "0.17.0", "0.18.0", "0.19.0"]
+```
+
+For a project with unusual tags, keep the common pattern and override only
+the releases that differ:
+
+```toml
+[[sources]]
+name = "my-shader-library"
+repo = "https://github.com/example/my-shader-library.git"
+root = "sources/my-shader-library"
+ref_pattern = "v{version}"
+versions = ["1.2.0", "1.3.0"]
+
+[[sources.releases]]
+version = "1.3.0"
+ref = "release-1.3"
+```
+
+Then fetch and generate the catalogue:
+
+```bash
+just clone-all
+just generate-all
+```
+
+This is the same pattern used for adding third-party Bevy shader projects;
+the generated pages include package versions, shader modules, metadata, and
+links back to the original repository.
+
+If you would like a library added but do not want to edit the configuration,
+open an issue with its repository and release information. I will most likely
+prepare and submit the PR for you.
 
 ## License
 

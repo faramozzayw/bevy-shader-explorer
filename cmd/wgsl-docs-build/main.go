@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/BurntSushi/toml"
@@ -18,10 +19,12 @@ type versionRef struct {
 }
 
 type source struct {
-	Name     string       `toml:"name"`
-	Repo     string       `toml:"repo"`
-	Root     string       `toml:"root"`
-	Releases []versionRef `toml:"releases"`
+	Name       string       `toml:"name"`
+	Repo       string       `toml:"repo"`
+	Root       string       `toml:"root"`
+	RefPattern string       `toml:"ref_pattern"`
+	Versions   []string     `toml:"versions"`
+	Releases   []versionRef `toml:"releases"`
 }
 
 type release struct {
@@ -50,12 +53,30 @@ func loadSources(root, path string) ([]source, error) {
 func allReleases(sources []source) []release {
 	var result []release
 	for _, project := range sources {
+		versions := make([]versionRef, 0, len(project.Versions)+len(project.Releases))
+		indices := make(map[string]int, len(project.Versions))
+		for _, version := range project.Versions {
+			indices[version] = len(versions)
+			versions = append(versions, versionRef{Version: version})
+		}
 		for _, version := range project.Releases {
+			if index, ok := indices[version.Version]; ok {
+				versions[index] = version
+				continue
+			}
+			indices[version.Version] = len(versions)
+			versions = append(versions, version)
+		}
+		for _, version := range versions {
 			dir := project.Root
 			if version.Version != "project" {
 				dir = filepath.Join(dir, version.Version)
 			}
-			result = append(result, release{Name: project.Name, Repo: project.Repo, Dir: dir, Version: version.Version, Ref: version.Ref})
+			ref := version.Ref
+			if ref == "" {
+				ref = strings.ReplaceAll(project.RefPattern, "{version}", version.Version)
+			}
+			result = append(result, release{Name: project.Name, Repo: project.Repo, Dir: dir, Version: version.Version, Ref: ref})
 		}
 	}
 	return result
@@ -63,7 +84,7 @@ func allReleases(sources []source) []release {
 
 func main() {
 	flags := flag.NewFlagSet("wgsl-docs-build", flag.ExitOnError)
-	configPath := flags.String("config", "wgsl-docs-build.toml", "build matrix configuration")
+	configPath := flags.String("config", "shader-sources.toml", "build matrix configuration")
 	if err := flags.Parse(os.Args[1:]); err != nil || flags.NArg() != 1 || (flags.Arg(0) != "clone" && flags.Arg(0) != "generate") {
 		fmt.Fprintln(os.Stderr, "usage: wgsl-docs-build [--config path] <clone|generate>")
 		os.Exit(2)

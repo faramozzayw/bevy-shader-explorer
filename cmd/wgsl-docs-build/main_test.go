@@ -1,12 +1,42 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
 
+func TestAllReleasesResolvesRefPatternAndOverride(t *testing.T) {
+	sources := []source{{
+		Name: "demo", Repo: "https://example.invalid/demo", Root: "sources/demo",
+		RefPattern: "release-{version}",
+		Versions:   []string{"1.2.3", "1.2.4"},
+		Releases:   []versionRef{{Version: "1.2.4", Ref: "special"}},
+	}}
+	got := allReleases(sources)
+	if len(got) != 2 || got[0].Ref != "release-1.2.3" || got[1].Ref != "special" {
+		t.Fatalf("resolved refs = %q, %q", got[0].Ref, got[1].Ref)
+	}
+}
+
+func TestLoadSourcesReadsRefPattern(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "matrix.toml")
+	contents := "[[sources]]\nname = \"demo\"\nrepo = \"https://example.invalid/demo\"\nroot = \"sources/demo\"\nref_pattern = \"v{version}\"\n\n[[sources.releases]]\nversion = \"2.0.0\"\n"
+	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	sources, err := loadSources(root, "matrix.toml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := allReleases(sources)[0].Ref; got != "v2.0.0" {
+		t.Fatalf("resolved ref = %q, want v2.0.0", got)
+	}
+}
+
 func TestReleaseMatrixContainsKnownRefs(t *testing.T) {
-	sources, err := loadSources(filepath.Join("..", ".."), "wgsl-docs-build.toml")
+	sources, err := loadSources(filepath.Join("..", ".."), "shader-sources.toml")
 	if err != nil {
 		t.Fatal(err)
 	}
