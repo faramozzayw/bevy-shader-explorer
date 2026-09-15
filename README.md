@@ -24,10 +24,108 @@ The optional `wgsl-docs.toml` file can override the project name, description, o
 wgsl-docs generate [flags]
   --project PATH       project directory (default: .)
   --output PATH        output directory (default: ./shader-docs)
+  --format FORMAT      documentation format: html or json (default: html)
   --exclude PATTERN    exclude a directory or pattern (repeatable)
   --no-deps            disable Cargo dependency shader discovery
   --offline            use Cargo metadata without network access
 ```
+
+Use `--format json` to export the same home, package, and shader page model
+without rendering HTML. The convenience recipe is:
+
+```bash
+just generate-json ./path/to/project ./dist
+```
+
+It writes `dist/documentation.json`.
+
+## Generation pipeline
+
+Each generation run processes one explicit project directory:
+
+1. The generator discovers `.wgsl` and `.wesl` files and optional Cargo
+   dependency shader sources.
+2. Files are parsed concurrently, source paths and GitHub links are resolved,
+   and filename collisions are disambiguated.
+3. Parsed declarations, package metadata, dependencies, links, and search
+   entries are assembled into one renderer-neutral documentation model.
+4. The selected renderer writes either the HTML site or
+   `documentation.json` from that same model.
+
+The HTML renderer writes package and shader pages plus search and version
+manifests. JSON mode is optional: `documentation.json` is written only when
+`--format json` is selected, and that mode does not render HTML pages.
+
+### Processing flow
+
+```mermaid
+flowchart TD
+    A[Project directory] --> B[Discover shader files]
+    B --> C[Read Cargo metadata]
+    C --> D[Discover dependency shaders]
+    B --> E[Parse WGSL/WESL concurrently]
+    D --> E
+    E --> F[Resolve source links and filename collisions]
+    F --> G[Build documentation site model]
+    G --> H[HTML renderer]
+    G --> I[JSON renderer]
+    H --> J[Package pages, shader pages, manifests, search index]
+    I --> K[documentation.json]
+```
+
+### Documentation model
+
+The renderers consume the same model. JSON mirrors this structure; it is not a
+direct dump of parser internals.
+
+```mermaid
+classDiagram
+    DocumentationSite --> HomePage
+    DocumentationSite --> PackagePage
+    DocumentationSite --> ShaderPage
+    DocumentationSite --> SearchEntry
+    PackagePage --> PackageMetadata
+    PackagePage --> Dependency
+    PackagePage --> ShaderSummary
+    ShaderPage --> ShaderItems
+    ShaderItems --> Constant
+    ShaderItems --> Structure
+    ShaderItems --> Function
+    ShaderItems --> Binding
+
+    class DocumentationSite {
+      version
+      home
+      packages[]
+      shaderPages[]
+      search[]
+    }
+    class HomePage {
+      sections[]
+      packageCount
+      shaderCount
+    }
+    class PackagePage {
+      name
+      version
+      description
+      metadata
+      files[]
+      dependencies[]
+    }
+    class ShaderPage {
+      path
+      sourceLink
+      githubLink
+      items
+    }
+```
+
+`just generate-json` requires a project path deliberately. The repository
+root is not a package; use a concrete source checkout such as
+`./sources/bevy/0.19.1`. The catalogue workflow is separate: `just clone-all`
+fetches the configured sources and `just generate-all` processes the matrix
+into `dist/`.
 
 For the bundled Bevy catalogue, `just generate-all` clones the configured source revisions into `sources/` and writes the site to `dist/`. `just deploy-prod` deploys the existing `dist/` output without regenerating it.
 

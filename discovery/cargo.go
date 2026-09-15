@@ -172,12 +172,12 @@ func discoverWGSLFiles(root string, excludes []string) ([]string, error) {
 			return err
 		}
 		if entryDirent.IsDir() {
-			if filePath != root && excludedPath(root, filePath, excludes) {
+			if filePath != root && IsExcludedPath(root, filePath, excludes) {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		if config.MatchesShaderFile("*.wgsl", filepath.Base(filePath)) && !excludedPath(root, filePath, excludes) {
+		if config.MatchesShaderFile("*.wgsl", filepath.Base(filePath)) && !IsExcludedPath(root, filePath, excludes) {
 			result = append(result, filePath)
 		}
 		return nil
@@ -189,7 +189,10 @@ func discoverWGSLFiles(root string, excludes []string) ([]string, error) {
 	return result, nil
 }
 
-func excludedPath(root, filePath string, excludes []string) bool {
+// IsExcludedPath reports whether a path matches the standard or configured
+// discovery exclusions. It is shared by project and dependency scans so they
+// cannot drift apart.
+func IsExcludedPath(root, filePath string, excludes []string) bool {
 	relative, err := filepath.Rel(root, filePath)
 	if err != nil {
 		return false

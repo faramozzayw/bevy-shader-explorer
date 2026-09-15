@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"main/config"
+	"main/generation"
 )
 
 func main() {
@@ -41,8 +42,8 @@ func newGenerateCommand() *cobra.Command {
 		Use:   "generate",
 		Short: "Generate shader documentation",
 		RunE: func(command *cobra.Command, _ []string) error {
-			if format != "html" {
-				return fmt.Errorf("unsupported format %q (only html is currently supported)", format)
+			if format != "html" && format != "json" {
+				return fmt.Errorf("unsupported format %q (supported formats: html, json)", format)
 			}
 			cfg, err := config.Load(project)
 			if err != nil {
@@ -55,6 +56,7 @@ func newGenerateCommand() *cobra.Command {
 			if command.Flags().Changed("output") {
 				cfg.OutputDir = output
 			}
+			cfg.Format = format
 			if command.Flags().Changed("exclude") {
 				cfg.Exclude = exclude
 			}
@@ -71,12 +73,12 @@ func newGenerateCommand() *cobra.Command {
 				cfg.SourceGithubRef = sourceRef
 			}
 			cfg.Version = version
-			return generate(cfg)
+			return generation.Generate(cfg)
 		},
 	}
 	command.Flags().StringVar(&project, "project", ".", "project directory to scan")
 	command.Flags().StringVar(&output, "output", "./shader-docs", "documentation output directory")
-	command.Flags().StringVar(&format, "format", "html", "documentation format")
+	command.Flags().StringVar(&format, "format", "html", "documentation format (html or json)")
 	command.Flags().StringArrayVar(&exclude, "exclude", nil, "directory or pattern to exclude (repeatable)")
 	command.Flags().StringVar(&version, "version", "project", "documentation version label")
 	command.Flags().StringVar(&sourceURL, "source-url", "", "base URL for source links")

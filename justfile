@@ -14,6 +14,10 @@ clone-all:
 generate-all: clone-all
 	go run ./cmd/wgsl-docs-build generate
 
+# Export one project as page-shaped JSON without rendering HTML.
+generate-json project output="./dist":
+	go run . generate --project "{{project}}" --output "{{output}}" --format json
+
 build-bevy: generate-all
 
 deploy-prod:

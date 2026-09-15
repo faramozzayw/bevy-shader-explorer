@@ -21,6 +21,7 @@ func MatchesShaderFile(filter, name string) bool {
 }
 
 type Config struct {
+	Format         string
 	Name           string
 	Description    string
 	ProjectVersion string
@@ -46,6 +47,7 @@ type Config struct {
 // returned when the file does not exist.
 func Load(projectPath string) (Config, error) {
 	cfg := Config{
+		Format:               "html",
 		SourcePath:           projectPath,
 		FileFilter:           "*.wgsl",
 		OutputDir:            "./shader-docs",
