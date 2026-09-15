@@ -164,9 +164,15 @@ func copyItemsToPublic(config *config.Config, searchInfo []ShaderSearchableInfo)
 		return fmt.Errorf("marshal search index: %w", err)
 	}
 
-	err = os.WriteFile(filepath.Join(publicDir, fmt.Sprintf("search-info-%s.json", config.Version)), searchInfoJSON, 0644)
-	if err != nil {
-		return fmt.Errorf("write search index: %w", err)
+	searchIndexVersions := []string{config.Version}
+	if config.ProjectVersion != "" && config.ProjectVersion != config.Version {
+		searchIndexVersions = append(searchIndexVersions, config.ProjectVersion)
+	}
+	for _, version := range searchIndexVersions {
+		err = os.WriteFile(filepath.Join(publicDir, fmt.Sprintf("search-info-%s.json", version)), searchInfoJSON, 0644)
+		if err != nil {
+			return fmt.Errorf("write search index %s: %w", version, err)
+		}
 	}
 
 	for _, file := range copyToPublic {

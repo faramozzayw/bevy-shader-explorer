@@ -41,6 +41,7 @@ func TestReleaseMatrixContainsKnownRefs(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]string{
+		"sources/aqua":                    "v0.1.3",
 		"sources/bevy/0.19.1":             "release-0.19.1",
 		"sources/hanabi/0.19.0":           "v0.19.0",
 		"sources/bevy_water/0.16.0":       "bevy_0.16",

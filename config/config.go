@@ -130,7 +130,8 @@ type cargoManifest struct {
 	} `toml:"package"`
 	Workspace struct {
 		Package struct {
-			Version string `toml:"version"`
+			Version    string `toml:"version"`
+			Repository string `toml:"repository"`
 		} `toml:"package"`
 	} `toml:"workspace"`
 }
@@ -143,7 +144,7 @@ func loadCargoRepository(projectPath string) string {
 	if repository, ok := manifest.Package.Repository.(string); ok {
 		return repository
 	}
-	return ""
+	return manifest.Workspace.Package.Repository
 }
 
 func loadCargoMetadata(projectPath string) (string, string, string) {

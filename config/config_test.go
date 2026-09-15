@@ -44,6 +44,28 @@ repository = "https://github.com/example/demo"
 	}
 }
 
+func TestLoadUsesWorkspaceRepositoryForSourceLinks(t *testing.T) {
+	root := t.TempDir()
+	cargo := `[workspace.package]
+repository = "https://github.com/example/workspace"
+
+[package]
+name = "member"
+version = "0.1.0"
+repository.workspace = true
+`
+	if err := os.WriteFile(filepath.Join(root, "Cargo.toml"), []byte(cargo), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.SourceGithubURL != "https://github.com/example/workspace" {
+		t.Fatalf("unexpected workspace repository URL: %q", cfg.SourceGithubURL)
+	}
+}
+
 func TestLoadProjectConfig(t *testing.T) {
 	root := t.TempDir()
 	contents := `project = "crates/demo"
