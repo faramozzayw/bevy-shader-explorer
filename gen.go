@@ -81,7 +81,10 @@ func generate(config config.Config) error {
 	// Keep a durable registry of every package/version generated into this
 	// output directory. A build may contain only one package, but the homepage
 	// should still represent packages produced by earlier builds.
-	registry := updatePackageRegistry(config.OutputDir, sections)
+	registry, err := updatePackageRegistry(config.OutputDir, sections)
+	if err != nil {
+		return err
+	}
 	registrySections := packageRegistrySections(registry)
 	registryShaderCount := packageRegistryShaderCount(registry)
 	for i := range wgslFiles {
@@ -195,7 +198,9 @@ func generate(config config.Config) error {
 		filepath.Join(config.OutputDir, "404.html")); err != nil {
 		return fmt.Errorf("render not-found page: %w", err)
 	}
-	writePackageVersionsManifest(config.OutputDir)
+	if err := writePackageVersionsManifest(config.OutputDir); err != nil {
+		return err
+	}
 
 	if err := copyItemsToPublic(&config, searchInfo); err != nil {
 		return err
@@ -425,11 +430,15 @@ type packageRegistryEntry struct {
 	DetailPath  string `json:"detailPath"`
 }
 
-func updatePackageRegistry(outputDir string, sections []homeSection) []packageRegistryEntry {
+func updatePackageRegistry(outputDir string, sections []homeSection) ([]packageRegistryEntry, error) {
 	registryPath := filepath.Join(outputDir, "public", "packages.json")
 	registry := make([]packageRegistryEntry, 0)
 	if data, err := os.ReadFile(registryPath); err == nil {
-		_ = json.Unmarshal(data, &registry)
+		if err := json.Unmarshal(data, &registry); err != nil {
+			return nil, fmt.Errorf("decode package registry %s: %w", registryPath, err)
+		}
+	} else if !os.IsNotExist(err) {
+		return nil, fmt.Errorf("read package registry %s: %w", registryPath, err)
 	}
 	byKey := make(map[string]packageRegistryEntry, len(registry))
 	for _, entry := range registry {
@@ -458,11 +467,16 @@ func updatePackageRegistry(outputDir string, sections []homeSection) []packageRe
 		return strings.Compare(b.Version, a.Version)
 	})
 	data, err := json.MarshalIndent(registry, "", "  ")
-	if err == nil {
-		_ = os.MkdirAll(filepath.Dir(registryPath), os.ModePerm)
-		_ = os.WriteFile(registryPath, data, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("encode package registry: %w", err)
 	}
-	return registry
+	if err := os.MkdirAll(filepath.Dir(registryPath), os.ModePerm); err != nil {
+		return nil, fmt.Errorf("create package registry directory: %w", err)
+	}
+	if err := os.WriteFile(registryPath, data, 0644); err != nil {
+		return nil, fmt.Errorf("write package registry %s: %w", registryPath, err)
+	}
+	return registry, nil
 }
 
 func packageRegistrySections(registry []packageRegistryEntry) []homeSection {
@@ -583,11 +597,11 @@ func cargoPackageDependencies(metadata discovery.CargoMetadata, name, version st
 	return direct, transitive
 }
 
-func writePackageVersionsManifest(outputDir string) {
+func writePackageVersionsManifest(outputDir string) error {
 	packages := make(map[string][]map[string]string)
 	entries, err := os.ReadDir(outputDir)
 	if err != nil {
-		return
+		return fmt.Errorf("read output directory for package versions: %w", err)
 	}
 	for _, pkg := range entries {
 		if !pkg.IsDir() || pkg.Name() == "public" {
@@ -608,10 +622,17 @@ func writePackageVersionsManifest(outputDir string) {
 	}
 	data, err := json.Marshal(packages)
 	if err != nil {
-		return
+		return fmt.Errorf("encode package versions: %w", err)
 	}
-	_ = os.MkdirAll(filepath.Join(outputDir, "public"), os.ModePerm)
-	_ = os.WriteFile(filepath.Join(outputDir, "public", "package-versions.json"), data, 0644)
+	publicDir := filepath.Join(outputDir, "public")
+	if err := os.MkdirAll(publicDir, os.ModePerm); err != nil {
+		return fmt.Errorf("create public directory for package versions: %w", err)
+	}
+	manifestPath := filepath.Join(publicDir, "package-versions.json")
+	if err := os.WriteFile(manifestPath, data, 0644); err != nil {
+		return fmt.Errorf("write package versions %s: %w", manifestPath, err)
+	}
+	return nil
 }
 
 func joinDocURL(version, filePath string) string {
@@ -890,7 +911,7 @@ func getShaderInputs(config config.Config) ([]shaderInput, error) {
 		dependencyConfig.SourceGithubURL = dependencyRepository(metadata, dependency.Package, dependency.Version)
 		dependencyConfig.SourceGithubSubpath = discovery.RepositorySubpathForPackage(manifest, dependencyConfig.SourceGithubURL, dependency.Package)
 		if dependencyConfig.SourceGithubURL != config.SourceGithubURL {
-			dependencyConfig.SourceGithubRef = inferDependencyGithubRef(dependency.Version)
+			dependencyConfig.SourceGithubRef = dependencySourceRef(metadata, dependency.Package, dependency.Version)
 		}
 		if seenPaths[dependency.Path] {
 			continue
@@ -901,22 +922,17 @@ func getShaderInputs(config config.Config) ([]shaderInput, error) {
 	return inputs, nil
 }
 
-// inferDependencyGithubRef covers the two common tag conventions used by
-// shader-bearing Rust repositories: major-version tags (v29 for wgpu) and
-// full semantic-version tags (v0.12.1 for most 0.x crates). Canonical matrix
-// sources still provide their exact refs explicitly.
-func inferDependencyGithubRef(version string) string {
-	major := version
-	if dot := strings.IndexByte(version, '.'); dot >= 0 {
-		major = version[:dot]
+func dependencySourceRef(metadata discovery.CargoMetadata, name, version string) string {
+	for _, pkg := range metadata.Packages {
+		if pkg.Name != name || pkg.Version != version {
+			continue
+		}
+		if hash := strings.LastIndexByte(pkg.Source, '#'); hash >= 0 && hash+1 < len(pkg.Source) {
+			return pkg.Source[hash+1:]
+		}
+		return ""
 	}
-	if major != "0" && major != "" {
-		return "v" + major
-	}
-	if version != "" {
-		return "v" + version
-	}
-	return "main"
+	return ""
 }
 
 func dependencyDescription(metadata discovery.CargoMetadata, name, version string) string {

@@ -78,6 +78,12 @@ func FilterCargoPackages(metadata CargoMetadata, patterns []string, transitive b
 	selected := make(map[string]bool)
 	queue := make([]string, 0)
 	for _, pkg := range metadata.Packages {
+		// Workspace roots such as Bevy's top-level Cargo package are umbrella
+		// manifests, not the crate packages we want to document. Their real
+		// shader-bearing members are discovered separately.
+		if IsWorkspaceRootPackage(metadata, pkg.ManifestPath) {
+			continue
+		}
 		if matchesPackagePattern(pkg.Name, patterns) {
 			selected[pkg.ID] = true
 			queue = append(queue, pkg.ID)

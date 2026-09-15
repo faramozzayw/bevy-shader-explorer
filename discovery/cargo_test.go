@@ -66,6 +66,29 @@ func TestFilterCargoPackagesFollowsTransitiveDependencies(t *testing.T) {
 	}
 }
 
+func TestFilterCargoPackagesExcludesWorkspaceRootPackage(t *testing.T) {
+	metadata := CargoMetadata{
+		WorkspaceRoot: "/tmp/project",
+		Packages: []CargoPackage{
+			{Name: "bevy", Version: "0.19.1", ManifestPath: "/tmp/project/Cargo.toml"},
+			{Name: "bevy_render", Version: "0.19.1", ManifestPath: "/tmp/project/crates/bevy_render/Cargo.toml"},
+			{Name: "bevy_ecs", Version: "0.19.1", ManifestPath: "/tmp/project/crates/bevy_ecs/Cargo.toml"},
+		},
+		Resolve: &CargoResolve{Nodes: []CargoNode{
+			{ID: "bevy", Deps: []CargoDependency{{PackageID: "render"}}},
+			{ID: "render"},
+		}},
+	}
+	metadata.Packages[0].ID = "root"
+	metadata.Packages[1].ID = "render"
+	metadata.Packages[2].ID = "ecs"
+
+	packages := FilterCargoPackages(metadata, []string{"bevy", "bevy_*"}, false)
+	if len(packages) != 2 || packages[0].Name != "bevy_ecs" || packages[1].Name != "bevy_render" {
+		t.Fatalf("unexpected packages: %#v", packages)
+	}
+}
+
 func TestDiscoverDependencyShadersScansSelectedRootsOnly(t *testing.T) {
 	root := t.TempDir()
 	bevyRoot := filepath.Join(root, "bevy")

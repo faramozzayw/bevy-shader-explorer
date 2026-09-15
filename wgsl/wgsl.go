@@ -262,7 +262,7 @@ func GetGithubLink(config *config.Config, dir string, basename string) (string, 
 
 	ref := config.SourceGithubRef
 	if ref == "" {
-		ref = "main"
+		return "", nil
 	}
 	baseURL, err := url.Parse(strings.TrimRight(config.SourceGithubURL, "/") + "/blob/" + url.PathEscape(ref) + "/")
 	if err != nil {

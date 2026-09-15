@@ -27,6 +27,13 @@ func TestGetGithubLinkUsesConfiguredSourceRef(t *testing.T) {
 	assert.Equal(t, "https://github.com/bevyengine/bevy/blob/release-0.19.1/assets/shaders/extended_material_bindless.wgsl", got)
 }
 
+func TestGetGithubLinkOmitsUnknownSourceRef(t *testing.T) {
+	cfg := config.Config{SourcePath: "/project", SourceGithubURL: "https://github.com/example/project"}
+	got, err := GetGithubLink(&cfg, "/project/assets/shaders", "unknown.wgsl")
+	require.NoError(t, err)
+	assert.Empty(t, got)
+}
+
 func TestGetGithubLinkUsesRepositoryRootForWorkspaceMembers(t *testing.T) {
 	cfg := config.Config{
 		SourcePath:       "/project/crates/bevy_pbr",
