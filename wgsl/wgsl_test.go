@@ -2,18 +2,28 @@ package wgsl
 
 import (
 	_ "embed"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"main/config"
 	"main/wgsl/bevy"
 	"main/wgsl/extract"
 )
 
+func TestParseWGSLFileReturnsReadError(t *testing.T) {
+	project := t.TempDir()
+	_, err := ParseWGSLFile(&config.Config{SourcePath: project}, filepath.Join(project, "missing.wgsl"))
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "read source")
+}
+
 func TestGetGithubLinkUsesConfiguredSourceRef(t *testing.T) {
 	cfg := config.Config{SourcePath: "/project", SourceGithubURL: "https://github.com/bevyengine/bevy", SourceGithubRef: "release-0.19.1"}
-	got := GetGithubLink(&cfg, "/project/assets/shaders", "extended_material_bindless.wgsl")
+	got, err := GetGithubLink(&cfg, "/project/assets/shaders", "extended_material_bindless.wgsl")
+	require.NoError(t, err)
 	assert.Equal(t, "https://github.com/bevyengine/bevy/blob/release-0.19.1/assets/shaders/extended_material_bindless.wgsl", got)
 }
 
@@ -24,7 +34,8 @@ func TestGetGithubLinkUsesRepositoryRootForWorkspaceMembers(t *testing.T) {
 		SourceGithubURL:  "https://github.com/bevyengine/bevy",
 		SourceGithubRef:  "release-0.19.1",
 	}
-	got := GetGithubLink(&cfg, "/project/crates/bevy_pbr/src/light_probe", "environment_filter.wgsl")
+	got, err := GetGithubLink(&cfg, "/project/crates/bevy_pbr/src/light_probe", "environment_filter.wgsl")
+	require.NoError(t, err)
 	assert.Equal(t, "https://github.com/bevyengine/bevy/blob/release-0.19.1/crates/bevy_pbr/src/light_probe/environment_filter.wgsl", got)
 }
 
@@ -36,7 +47,8 @@ func TestGetGithubLinkUsesRepositorySubpathForNestedCrate(t *testing.T) {
 		SourceGithubURL:     "https://github.com/gfx-rs/wgpu",
 		SourceGithubRef:     "v29",
 	}
-	got := GetGithubLink(&cfg, "/registry/wgpu-29.0.4/src/util", "blit.wgsl")
+	got, err := GetGithubLink(&cfg, "/registry/wgpu-29.0.4/src/util", "blit.wgsl")
+	require.NoError(t, err)
 	assert.Equal(t, "https://github.com/gfx-rs/wgpu/blob/v29/wgpu/src/util/blit.wgsl", got)
 }
 

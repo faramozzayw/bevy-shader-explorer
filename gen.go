@@ -37,7 +37,7 @@ var copyToPublic = []string{
 	"assets/info-light.png",
 }
 
-func generate(config config.Config) {
+func generate(config config.Config) error {
 	if sourcePath, err := filepath.Abs(config.SourcePath); err == nil {
 		config.SourcePath = sourcePath
 	}
@@ -54,7 +54,10 @@ func generate(config config.Config) {
 	fmt.Printf("🏷️ Documentation Version: %s\n", config.Version)
 	fmt.Println("========================================")
 
-	inputs := getShaderInputs(config)
+	inputs, err := getShaderInputs(config)
+	if err != nil {
+		return err
+	}
 	cargoMetadata := loadOptionalCargoMetadata(config)
 	totalFiles := int64(len(inputs))
 
@@ -64,7 +67,10 @@ func generate(config config.Config) {
 	searchInfo := make([]ShaderSearchableInfo, 0, 4096)
 	declaredImportPaths := make(map[string]string)
 	parsingBar := progressbar.Default(totalFiles, "📄 Reading WGSL Files")
-	wgslFiles := parseShaderInputs(inputs, config.ProjectVersion, config.OutputDir, parsingBar)
+	wgslFiles, err := parseShaderInputs(inputs, config.ProjectVersion, config.OutputDir, parsingBar)
+	if err != nil {
+		return err
+	}
 	resolveWgslPathCollisions(wgslFiles)
 	for i := range wgslFiles {
 		wgslFiles[i].Link = joinDocURL("project", wgslFiles[i].WgslPath)
@@ -87,13 +93,14 @@ func generate(config config.Config) {
 
 	compiledTemplate, err := raymond.Parse(WGSL_DOC_TEMPLATE_SOURCE)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("parse shader template: %w", err)
 	}
 
 	processingBar := progressbar.Default(totalFiles, "🛠️ Generating Documentation")
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, runtime.NumCPU())
+	pageErrors := make(chan error, len(wgslFiles))
 
 	versionedOutput := config.OutputDir
 
@@ -118,22 +125,28 @@ func generate(config config.Config) {
 				}
 			}
 			wgslFile.ResolveTypeLinks(declaredImportPaths)
-			wgslFile.GenerateWgslPage(compiledTemplate, versionedOutput)
+			if err := wgslFile.GenerateWgslPage(compiledTemplate, versionedOutput); err != nil {
+				pageErrors <- fmt.Errorf("render %s: %w", wgslFile.SourcePath, err)
+			}
 			processingBar.Add(1)
 		}()
 	}
 
 	wg.Wait()
+	close(pageErrors)
+	if err := firstError(pageErrors); err != nil {
+		return err
+	}
 
 	for _, section := range sections {
 		for _, group := range section.Groups {
 			if err := os.MkdirAll(filepath.Join(versionedOutput, filepath.Dir(group.DetailPath)), os.ModePerm); err != nil {
-				log.Fatal(err)
+				return fmt.Errorf("create package output directory: %w", err)
 			}
 			dependencies := packageDependencies(wgslFiles, group.PackageName, group.Version)
 			metadata := findPackageMetadata(cargoMetadata, group.PackageName, group.Version)
 			directDependencies, transitiveDependencies := cargoPackageDependencies(cargoMetadata, group.PackageName, group.Version, wgslFiles)
-			renderTemplateToFile(PACKAGE_DOC_TEMPLATE_SOURCE, map[string]interface{}{
+			if err := renderTemplateToFile(PACKAGE_DOC_TEMPLATE_SOURCE, map[string]interface{}{
 				"name":                      group.PackageName,
 				"files":                     group.AllFiles,
 				"count":                     group.Count,
@@ -156,11 +169,13 @@ func generate(config config.Config) {
 				"urlPrefix":        joinDocURL("project", ""),
 				"packageURLPrefix": joinDocURL("project", filepath.Join(group.PackageName, group.Version)),
 				"versionOptions":   packageVersionOptions(config.OutputDir, group.PackageName, group.Version),
-			}, filepath.Join(versionedOutput, group.DetailPath))
+			}, filepath.Join(versionedOutput, group.DetailPath)); err != nil {
+				return fmt.Errorf("render package %s %s: %w", group.PackageName, group.Version, err)
+			}
 		}
 	}
 
-	renderTemplateToFile(HOME_DOC_TEMPLATE_SOURCE, map[string]interface{}{
+	if err := renderTemplateToFile(HOME_DOC_TEMPLATE_SOURCE, map[string]interface{}{
 		"sections":         registrySections,
 		"packageCount":     len(registry),
 		"totalShaderCount": registryShaderCount,
@@ -172,19 +187,26 @@ func generate(config config.Config) {
 		"version":          config.Version,
 		"projectVersion":   config.ProjectVersion,
 		"urlPrefix":        joinDocURL("project", ""),
-	}, filepath.Join(versionedOutput, "index.html"))
+	}, filepath.Join(versionedOutput, "index.html")); err != nil {
+		return fmt.Errorf("render home page: %w", err)
+	}
 
-	renderTemplateToFile(NOT_FOUND_TEMPLATE_SOURCE, map[string]interface{}{},
-		filepath.Join(config.OutputDir, "404.html"))
+	if err := renderTemplateToFile(NOT_FOUND_TEMPLATE_SOURCE, map[string]interface{}{},
+		filepath.Join(config.OutputDir, "404.html")); err != nil {
+		return fmt.Errorf("render not-found page: %w", err)
+	}
 	writePackageVersionsManifest(config.OutputDir)
 
-	copyItemsToPublic(&config, searchInfo)
+	if err := copyItemsToPublic(&config, searchInfo); err != nil {
+		return err
+	}
+	return nil
 }
 
 // parseShaderInputs parses files concurrently while storing results by input
 // index. Keeping the original order makes collision resolution and generated
 // navigation deterministic regardless of worker scheduling.
-func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, progress *progressbar.ProgressBar) []wgsl.WgslFile {
+func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, progress *progressbar.ProgressBar) ([]wgsl.WgslFile, error) {
 	files := make([]wgsl.WgslFile, len(inputs))
 	workers := runtime.NumCPU()
 	if workers > 8 {
@@ -194,10 +216,11 @@ func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, p
 		workers = len(inputs)
 	}
 	if workers == 0 {
-		return files
+		return files, nil
 	}
 
 	jobs := make(chan int)
+	errs := make(chan error, len(inputs))
 	var wg sync.WaitGroup
 	for worker := 0; worker < workers; worker++ {
 		wg.Add(1)
@@ -205,7 +228,11 @@ func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, p
 			defer wg.Done()
 			for index := range jobs {
 				input := inputs[index]
-				file := wgsl.ParseWGSLFile(&input.Config, input.Path)
+				file, err := wgsl.ParseWGSLFile(&input.Config, input.Path)
+				if err != nil {
+					errs <- fmt.Errorf("parse %s: %w", input.Path, err)
+					continue
+				}
 				if input.Prefix != "" {
 					file.WgslPath = filepath.Join(input.Prefix, file.WgslPath)
 				}
@@ -234,7 +261,20 @@ func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, p
 	}
 	close(jobs)
 	wg.Wait()
-	return files
+	close(errs)
+	if err := firstError(errs); err != nil {
+		return nil, err
+	}
+	return files, nil
+}
+
+func firstError(errs <-chan error) error {
+	for err := range errs {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func resolveWgslPathCollisions(files []wgsl.WgslFile) {
@@ -718,22 +758,23 @@ func countGroups(groups []homeGroup) int {
 	return total
 }
 
-func renderTemplateToFile(templateSrc string, context map[string]interface{}, outputPath string) {
+func renderTemplateToFile(templateSrc string, context map[string]interface{}, outputPath string) error {
 	tmpl, err := raymond.Parse(templateSrc)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	html, err := tmpl.Exec(context)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	err = os.WriteFile(outputPath, []byte(html), 0644)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
 
-func getWgslFilesList(config config.Config) []string {
+func getWgslFilesList(config config.Config) ([]string, error) {
 	var filePaths []string
 	err := filepath.WalkDir(config.SourcePath, func(filePath string, entry os.DirEntry, err error) error {
 		if err != nil {
@@ -751,10 +792,10 @@ func getWgslFilesList(config config.Config) []string {
 		return nil
 	})
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("scan %s: %w", config.SourcePath, err)
 	}
 	slices.Sort(filePaths)
-	return filePaths
+	return filePaths, nil
 }
 
 func matchesShaderFile(filter, name string) bool {
@@ -775,8 +816,11 @@ type shaderInput struct {
 	PackageVersion     string
 }
 
-func getShaderInputs(config config.Config) []shaderInput {
-	projectFiles := getWgslFilesList(config)
+func getShaderInputs(config config.Config) ([]shaderInput, error) {
+	projectFiles, err := getWgslFilesList(config)
+	if err != nil {
+		return nil, err
+	}
 	inputs := make([]shaderInput, 0, len(projectFiles))
 	seenPaths := make(map[string]bool, len(projectFiles))
 	for _, filePath := range projectFiles {
@@ -788,11 +832,11 @@ func getShaderInputs(config config.Config) []shaderInput {
 		seenPaths[filePath] = true
 	}
 	if config.NoDeps {
-		return inputs
+		return inputs, nil
 	}
 	manifestPath := filepath.Join(config.SourcePath, "Cargo.toml")
 	if _, err := os.Stat(manifestPath); err != nil {
-		return inputs
+		return inputs, nil
 	}
 	metadata, err := discovery.ReadCargoMetadata(context.Background(), config.SourcePath, config.Offline)
 	if err != nil {
@@ -803,7 +847,7 @@ func getShaderInputs(config config.Config) []shaderInput {
 			modeHint = "; retry with --offline if the Cargo cache and lockfile are available"
 		}
 		log.Printf("warning: dependency discovery skipped: %v%s; continuing with project shaders", err, modeHint)
-		return inputs
+		return inputs, nil
 	}
 	filteredInputs := inputs[:0]
 	for i := range inputs {
@@ -830,7 +874,7 @@ func getShaderInputs(config config.Config) []shaderInput {
 	dependencies, err := discovery.DiscoverDependencyShaders(packages, config.Exclude)
 	if err != nil {
 		log.Printf("warning: dependency shader discovery skipped: %v", err)
-		return inputs
+		return inputs, nil
 	}
 	for _, dependency := range dependencies {
 		manifest := findCargoManifest(metadata, dependency.Package, dependency.Version)
@@ -854,7 +898,7 @@ func getShaderInputs(config config.Config) []shaderInput {
 		seenPaths[dependency.Path] = true
 		inputs = append(inputs, shaderInput{Path: dependency.Path, Config: dependencyConfig, Prefix: filepath.Join(dependency.Package, dependency.Version), Dependency: true, PackageName: dependency.Package, PackageDescription: dependencyDescription(metadata, dependency.Package, dependency.Version), PackageVersion: dependency.Version})
 	}
-	return inputs
+	return inputs, nil
 }
 
 // inferDependencyGithubRef covers the two common tag conventions used by
@@ -919,21 +963,21 @@ func shouldExclude(root, filePath string, excludes []string) bool {
 	return false
 }
 
-func copyItemsToPublic(config *config.Config, searchInfo []ShaderSearchableInfo) {
+func copyItemsToPublic(config *config.Config, searchInfo []ShaderSearchableInfo) error {
 	publicDir := filepath.Join(config.OutputDir, "public")
 	err := os.MkdirAll(publicDir, os.ModePerm)
 	if err != nil {
-		log.Fatal("Error creating public directory:", err)
+		return fmt.Errorf("create public directory: %w", err)
 	}
 
 	searchInfoJSON, err := json.MarshalIndent(searchInfo, "", "  ")
 	if err != nil {
-		log.Fatal("Error marshaling searchInfo:", err)
+		return fmt.Errorf("marshal search index: %w", err)
 	}
 
 	err = os.WriteFile(filepath.Join(publicDir, fmt.Sprintf("search-info-%s.json", config.Version)), searchInfoJSON, 0644)
 	if err != nil {
-		log.Fatal("Error writing search-info.json:", err)
+		return fmt.Errorf("write search index: %w", err)
 	}
 
 	for _, file := range copyToPublic {
@@ -941,9 +985,10 @@ func copyItemsToPublic(config *config.Config, searchInfo []ShaderSearchableInfo)
 		dst := filepath.Join(publicDir, filepath.Base(file))
 		err := utils.CopyFile(src, dst)
 		if err != nil {
-			log.Fatal("Error copying file:", err)
+			return fmt.Errorf("copy public asset %s: %w", src, err)
 		}
 	}
+	return nil
 }
 
 type ShaderSearchableInfo struct {

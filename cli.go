@@ -71,8 +71,7 @@ func newGenerateCommand() *cobra.Command {
 				cfg.SourceGithubRef = sourceRef
 			}
 			cfg.Version = version
-			generate(cfg)
-			return nil
+			return generate(cfg)
 		},
 	}
 	command.Flags().StringVar(&project, "project", ".", "project directory to scan")

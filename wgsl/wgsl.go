@@ -2,7 +2,6 @@ package wgsl
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -21,10 +20,10 @@ import (
 )
 
 func ParseWGSLFile(
-	config *config.Config, wgslFilePath string) WgslFile {
+	config *config.Config, wgslFilePath string) (WgslFile, error) {
 	wgslCodeBytes, err := os.ReadFile(wgslFilePath)
 	if err != nil {
-		log.Fatal(err)
+		return WgslFile{}, fmt.Errorf("read source: %w", err)
 	}
 	normalizedCode := source.New(string(wgslCodeBytes)).Text
 
@@ -34,14 +33,14 @@ func ParseWGSLFile(
 	originalDir := filepath.Dir(wgslFilePath)
 	innerPath, err := filepath.Rel(config.SourcePath, originalDir)
 	if err != nil {
-		log.Fatal(err)
+		return WgslFile{}, fmt.Errorf("resolve source path: %w", err)
 	}
 	innerPath = strings.ReplaceAll(innerPath, "src"+string(filepath.Separator), "")
 	wgslPath := utils.DedupPathParts(filepath.Join(innerPath, filename)) + ".html"
 
 	declaredImports, err := bevy.ExtractAllImports(normalizedCode)
 	if err != nil {
-		log.Fatal(err)
+		return WgslFile{}, fmt.Errorf("extract imports: %w", err)
 	}
 
 	lineComments := extractComments(strings.Split(normalizedCode, "\n"))
@@ -58,14 +57,17 @@ func ParseWGSLFile(
 	}
 	declarations, err := parseDeclarations(normalizedCode, parserCode, lineComments, extractDefs)
 	if err != nil {
-		log.Fatal(err)
+		return WgslFile{}, fmt.Errorf("parse declarations: %w", err)
 	}
 	importPath := extractImportPath(normalizedCode)
 	consts := declarations.Consts
 	structures := declarations.Structures
 	functions := declarations.Functions
 	bindings := declarations.Bindings
-	githubLink := GetGithubLink(config, originalDir, basename)
+	githubLink, err := GetGithubLink(config, originalDir, basename)
+	if err != nil {
+		return WgslFile{}, fmt.Errorf("build source link: %w", err)
+	}
 
 	wgslFile := WgslFile{
 		Version:    config.Version,
@@ -93,7 +95,7 @@ func ParseWGSLFile(
 		Link:       fmt.Sprintf("%s/%s", config.Version, wgslPath),
 	}
 
-	return wgslFile
+	return wgslFile, nil
 }
 
 func (wgslFile *WgslFile) ResolveTypeLinks(declaredImportPaths map[string]string) {
@@ -146,23 +148,24 @@ func (wgslFile *WgslFile) ResolveTypeLinks(declaredImportPaths map[string]string
 	}
 }
 
-func (wgslFile *WgslFile) GenerateWgslPage(compiledTemplate *raymond.Template, outputDir string) {
+func (wgslFile *WgslFile) GenerateWgslPage(compiledTemplate *raymond.Template, outputDir string) error {
 	fileOutputPath := strings.ReplaceAll(filepath.Join(outputDir, wgslFile.WgslPath), "src/", "")
 
 	html, err := compiledTemplate.Exec(wgslFile)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("execute template: %w", err)
 	}
 
 	err = os.MkdirAll(filepath.Dir(filepath.Join(outputDir, wgslFile.WgslPath)), os.ModePerm)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("create output directory: %w", err)
 	}
 
 	err = os.WriteFile(fileOutputPath, []byte(html), 0644)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("write output: %w", err)
 	}
+	return nil
 }
 
 func extractComments(lines []string) map[int]string {
@@ -242,9 +245,9 @@ func anyShaderDefs[T any](input []T) bool {
 	return false
 }
 
-func GetGithubLink(config *config.Config, dir string, basename string) string {
+func GetGithubLink(config *config.Config, dir string, basename string) (string, error) {
 	if config.SourceGithubURL == "" {
-		return ""
+		return "", nil
 	}
 	repositoryRoot := config.SourceGithubRoot
 	if repositoryRoot == "" {
@@ -252,7 +255,7 @@ func GetGithubLink(config *config.Config, dir string, basename string) string {
 	}
 	innerPath, err := filepath.Rel(repositoryRoot, dir)
 	if err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("resolve repository path: %w", err)
 	}
 
 	joinedPath := filepath.Join(config.SourceGithubSubpath, innerPath, basename)
@@ -263,8 +266,8 @@ func GetGithubLink(config *config.Config, dir string, basename string) string {
 	}
 	baseURL, err := url.Parse(strings.TrimRight(config.SourceGithubURL, "/") + "/blob/" + url.PathEscape(ref) + "/")
 	if err != nil {
-		log.Fatal(err)
+		return "", fmt.Errorf("parse repository URL: %w", err)
 	}
 
-	return baseURL.ResolveReference(&url.URL{Path: joinedPath}).String()
+	return baseURL.ResolveReference(&url.URL{Path: joinedPath}).String(), nil
 }
