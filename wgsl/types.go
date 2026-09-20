@@ -46,4 +46,9 @@ type WgslFile struct {
 	SourcePath            string              `json:"-"`
 	SourceRoot            string              `json:"-"`
 	OutputPrefix          string              `json:"-"`
+	SeoDescription        string              `json:"-"`
+	SeoTitle              string              `json:"-"`
+	CanonicalURL          string              `json:"-"`
+	StructuredData        string              `json:"-"`
+	OgImageURL            string              `json:"-"`
 }

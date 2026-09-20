@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"main/config"
@@ -34,6 +35,7 @@ func newGenerateCommand() *cobra.Command {
 		version   string
 		sourceURL string
 		sourceRef string
+		siteURL   string
 		noDeps    bool
 		offline   bool
 	)
@@ -72,6 +74,9 @@ func newGenerateCommand() *cobra.Command {
 			if command.Flags().Changed("source-ref") {
 				cfg.SourceGithubRef = sourceRef
 			}
+			if command.Flags().Changed("site-url") {
+				cfg.SiteURL = strings.TrimRight(siteURL, "/")
+			}
 			cfg.Version = version
 			return generation.Generate(cfg)
 		},
@@ -83,6 +88,7 @@ func newGenerateCommand() *cobra.Command {
 	command.Flags().StringVar(&version, "version", "project", "documentation version label")
 	command.Flags().StringVar(&sourceURL, "source-url", "", "base URL for source links")
 	command.Flags().StringVar(&sourceRef, "source-ref", "", "source branch, tag, or commit for source links")
+	command.Flags().StringVar(&siteURL, "site-url", "", "public site URL used for canonical links and sitemap")
 	command.Flags().BoolVar(&noDeps, "no-deps", false, "disable dependency shader discovery")
 	command.Flags().BoolVar(&offline, "offline", false, "use Cargo's offline metadata mode")
 	return command

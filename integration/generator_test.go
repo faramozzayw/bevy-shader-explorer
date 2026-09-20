@@ -35,14 +35,28 @@ fn vertex_main(@location(0) position: vec3<f32>) -> @builtin(position) vec4<f32>
 
 	output := filepath.Join(t.TempDir(), "dist")
 	root := repoRoot(t)
-	runGenerator(t, root, project, output, "--no-deps", "--source-ref", "release-test")
+	runGenerator(t, root, project, output, "--no-deps", "--source-ref", "release-test", "--site-url", "https://docs.example")
 
 	packagePage := filepath.Join(output, "fixture", "0.1.0", "index.html")
 	shaderPage := filepath.Join(output, "fixture", "0.1.0", "shaders", "simple.html")
-	for _, path := range []string{packagePage, shaderPage, filepath.Join(output, "public", "search-info-0.1.0.json"), filepath.Join(output, "public", "package-versions.json")} {
+	homePage := filepath.Join(output, "index.html")
+	for _, path := range []string{homePage, packagePage, shaderPage, filepath.Join(output, "public", "search-info-0.1.0.json"), filepath.Join(output, "public", "package-versions.json"), filepath.Join(output, "public", "mascot2.jpeg"), filepath.Join(output, "public", "icon.png"), filepath.Join(output, "robots.txt"), filepath.Join(output, "sitemap.xml")} {
 		if _, err := os.Stat(path); err != nil {
 			t.Fatalf("expected generated file %s: %v", path, err)
 		}
+	}
+	ogExtension := ".svg"
+	if _, err := exec.LookPath("rsvg-convert"); err == nil {
+		ogExtension = ".png"
+	} else if _, err := exec.LookPath("resvg"); err == nil {
+		ogExtension = ".png"
+	}
+	if _, err := os.Stat(filepath.Join(output, "public", "og", "site"+ogExtension)); err != nil {
+		t.Fatalf("expected generated homepage social card: %v", err)
+	}
+	ogCard := filepath.Join(output, "public", "og", "fixture-0.1.0"+ogExtension)
+	if _, err := os.Stat(ogCard); err != nil {
+		t.Fatalf("expected generated social card %s: %v", ogCard, err)
 	}
 	page, err := os.ReadFile(packagePage)
 	if err != nil {
@@ -51,12 +65,33 @@ fn vertex_main(@location(0) position: vec3<f32>) -> @builtin(position) vec4<f32>
 	if !strings.Contains(string(page), "simple") || !strings.Contains(string(page), "Generator fixture") {
 		t.Fatalf("package page is missing fixture content")
 	}
+	if !strings.Contains(string(page), `<link rel="canonical" href="https://docs.example/fixture/0.1.0/index.html"`) || !strings.Contains(string(page), `application/ld+json`) || !strings.Contains(string(page), `og/fixture-0.1.0.`) {
+		t.Fatalf("package page is missing SEO metadata")
+	}
+	home, err := os.ReadFile(homePage)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(home), "og/site"+ogExtension) {
+		t.Fatalf("home page is missing social card metadata")
+	}
 	shader, err := os.ReadFile(shaderPage)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(shader), "github.com/example/fixture/blob/release-test/shaders/simple.wgsl") {
 		t.Fatalf("shader page is missing versioned source link")
+	}
+	if !strings.Contains(string(shader), `<meta name="description"`) || !strings.Contains(string(shader), `https://docs.example/fixture/0.1.0/shaders/simple.html`) {
+		t.Fatalf("shader page is missing SEO metadata")
+	}
+	robots, _ := os.ReadFile(filepath.Join(output, "robots.txt"))
+	if !strings.Contains(string(robots), "Sitemap: https://docs.example/sitemap.xml") {
+		t.Fatalf("robots.txt is missing sitemap location")
+	}
+	sitemap, _ := os.ReadFile(filepath.Join(output, "sitemap.xml"))
+	if !strings.Contains(string(sitemap), "https://docs.example/fixture/0.1.0/shaders/simple.html") {
+		t.Fatalf("sitemap is missing generated shader page")
 	}
 	search, err := os.ReadFile(filepath.Join(output, "public", "search-info-0.1.0.json"))
 	if err != nil {

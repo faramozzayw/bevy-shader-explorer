@@ -16,6 +16,7 @@ import (
 var copyToPublic = []string{
 	"assets/styles.css",
 	"assets/favicon.ico",
+	"icon.png",
 	"assets/search.js",
 	"assets/select.js",
 	"assets/404.js",
@@ -26,6 +27,7 @@ var copyToPublic = []string{
 	"generation/templates/search-result.hbs",
 	"assets/info-dark.png",
 	"assets/info-light.png",
+	"mascot2.jpeg",
 }
 
 func Generate(config config.Config) error {
@@ -65,6 +67,16 @@ func Generate(config config.Config) error {
 	resolveWgslPathCollisions(wgslFiles)
 	for i := range wgslFiles {
 		wgslFiles[i].Link = joinDocURL("project", wgslFiles[i].WgslPath)
+		wgslFiles[i].CanonicalURL = canonicalURL(config.SiteURL, wgslFiles[i].Link)
+		wgslFiles[i].OgImageURL = ogShaderImageURL(config, wgslFiles[i].ProjectName, wgslFiles[i].ProjectVersion)
+		wgslFiles[i].StructuredData = jsonValue(map[string]interface{}{
+			"@context":    "https://schema.org",
+			"@type":       "TechArticle",
+			"name":        wgslFiles[i].Filename,
+			"headline":    wgslFiles[i].Filename,
+			"description": wgslFiles[i].SeoDescription,
+			"url":         wgslFiles[i].CanonicalURL,
+		})
 		appendSearchInfo(&searchInfo, &declaredImportPaths, wgslFiles[i])
 	}
 

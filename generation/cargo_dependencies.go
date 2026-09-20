@@ -122,3 +122,47 @@ func cargoPackageDependencies(metadata discovery.CargoMetadata, name, version st
 	sortDependencyLinks(transitive)
 	return direct, transitive
 }
+
+func bevyDependencyVersion(metadata discovery.CargoMetadata, name, version string) string {
+	ids := make(map[string]string, len(metadata.Packages))
+	packages := make(map[string]discovery.CargoPackage, len(metadata.Packages))
+	for _, pkg := range metadata.Packages {
+		ids[pkg.Name+"\x00"+pkg.Version] = pkg.ID
+		packages[pkg.ID] = pkg
+	}
+	rootID := ids[name+"\x00"+version]
+	if rootID == "" {
+		return ""
+	}
+	if name == "bevy" {
+		return version
+	}
+	if metadata.Resolve == nil {
+		return ""
+	}
+	nodes := make(map[string]discovery.CargoNode, len(metadata.Resolve.Nodes))
+	for _, node := range metadata.Resolve.Nodes {
+		nodes[node.ID] = node
+	}
+	seen := map[string]bool{rootID: true}
+	queue := []string{rootID}
+	for len(queue) > 0 {
+		id := queue[0]
+		queue = queue[1:]
+		for _, dependency := range nodes[id].Deps {
+			if seen[dependency.PackageID] {
+				continue
+			}
+			seen[dependency.PackageID] = true
+			pkg, ok := packages[dependency.PackageID]
+			if !ok {
+				continue
+			}
+			if pkg.Name == "bevy" {
+				return pkg.Version
+			}
+			queue = append(queue, dependency.PackageID)
+		}
+	}
+	return ""
+}

@@ -59,6 +59,8 @@ func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, p
 				file.ProjectURLPrefix = joinDocURL("project", "")
 				file.PackageURLPrefix = joinDocURL("project", filepath.Join(input.PackageName, input.PackageVersion))
 				file.VersionOptions = packageVersionOptions(outputDir, input.PackageName, input.PackageVersion)
+				file.SeoDescription = fmt.Sprintf("WGSL shader module %s from %s %s.", file.Filename, file.ProjectName, file.ProjectVersion)
+				file.SeoTitle = fmt.Sprintf("%s — %s", file.Filename, file.ProjectName)
 				file.WgslPath = strings.Replace(file.WgslPath, "src/", "", 1)
 				file.WgslPath = utils.DedupPathParts(file.WgslPath)
 				files[index] = file

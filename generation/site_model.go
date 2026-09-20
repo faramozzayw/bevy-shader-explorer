@@ -47,6 +47,7 @@ type documentationSite struct {
 type documentationPackagePage struct {
 	PackageName            string
 	Version                string
+	BevyVersion            string
 	Description            string
 	Count                  int
 	AllFiles               []map[string]string
@@ -207,6 +208,7 @@ func buildDocumentationSite(config config.Config, sections, homeSections []homeS
 			packages = append(packages, documentationPackagePage{
 				PackageName:            group.PackageName,
 				Version:                group.Version,
+				BevyVersion:            bevyDependencyVersion(metadata, group.PackageName, group.Version),
 				Description:            group.Description,
 				Count:                  group.Count,
 				AllFiles:               group.AllFiles,

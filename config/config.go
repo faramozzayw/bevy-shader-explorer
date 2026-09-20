@@ -33,6 +33,7 @@ type Config struct {
 	SourceGithubSubpath  string
 	FileFilter           string
 	OutputDir            string
+	SiteURL              string
 	SourceGithubURL      string
 	SourceGithubRef      string
 	Version              string
@@ -55,6 +56,7 @@ func Load(projectPath string) (Config, error) {
 		Name:                 "WGSL Documentation",
 		DependencyInclude:    []string{"bevy", "bevy_*"},
 		DependencyTransitive: true,
+		SiteURL:              strings.TrimRight(os.Getenv("SITE_URL"), "/"),
 	}
 	filePath := filepath.Join(projectPath, "wgsl-docs.toml")
 	var file fileConfig
@@ -69,6 +71,9 @@ func Load(projectPath string) (Config, error) {
 		}
 		if file.Output != "" {
 			cfg.OutputDir = resolveRelative(projectPath, file.Output)
+		}
+		if file.SiteURL != "" {
+			cfg.SiteURL = strings.TrimRight(file.SiteURL, "/")
 		}
 		if file.FileFilter != "" {
 			cfg.FileFilter = file.FileFilter
@@ -116,6 +121,7 @@ type fileConfig struct {
 	Description  string           `toml:"description"`
 	Project      string           `toml:"project"`
 	Output       string           `toml:"output"`
+	SiteURL      string           `toml:"site_url"`
 	FileFilter   string           `toml:"file_filter"`
 	Exclude      []string         `toml:"exclude"`
 	Dependencies dependencyConfig `toml:"dependencies"`

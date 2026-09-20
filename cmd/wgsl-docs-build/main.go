@@ -36,7 +36,16 @@ type release struct {
 }
 
 type buildConfig struct {
+	SiteURL string   `toml:"site_url"`
 	Sources []source `toml:"sources"`
+}
+
+func loadSiteURL(root, path string) (string, error) {
+	var config buildConfig
+	if _, err := toml.DecodeFile(filepath.Join(root, path), &config); err != nil {
+		return "", fmt.Errorf("load build config: %w", err)
+	}
+	return strings.TrimRight(config.SiteURL, "/"), nil
 }
 
 func loadSources(root, path string) ([]source, error) {
@@ -101,7 +110,11 @@ func main() {
 		cloneAll(root, sources)
 		return
 	}
-	generateAll(root, sources)
+	siteURL, err := loadSiteURL(root, *configPath)
+	if err != nil {
+		fatal(err)
+	}
+	generateAll(root, sources, siteURL)
 }
 
 func cloneAll(root string, sources []source) {
@@ -142,7 +155,7 @@ func cloneAll(root string, sources []source) {
 	wg.Wait()
 }
 
-func generateAll(root string, sources []source) {
+func generateAll(root string, sources []source, siteURL string) {
 	releases := allReleases(sources)
 	generator := filepath.Join(os.TempDir(), "wgsl-docs-generator")
 	build := exec.Command("go", "build", "-o", generator, ".")
@@ -154,6 +167,9 @@ func generateAll(root string, sources []source) {
 	for _, item := range releases {
 		fmt.Printf("Generating %s %s\n", item.Name, filepath.Base(item.Dir))
 		args := []string{"generate", "--project", filepath.Join(root, item.Dir), "--output", filepath.Join(root, "dist"), "--source-ref", item.Ref}
+		if siteURL != "" {
+			args = append(args, "--site-url", siteURL)
+		}
 		if item.Version != "project" {
 			args = append(args, "--version", item.Version)
 		}

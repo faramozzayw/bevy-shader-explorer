@@ -72,6 +72,7 @@ func TestLoadProjectConfig(t *testing.T) {
 name = "Friendly Aqua"
 description = "Custom shader documentation"
 output = "docs"
+site_url = "https://docs.example"
 file_filter = "*.shader.wgsl"
 exclude = ["vendor", "target"]
 
@@ -90,6 +91,9 @@ transitive = false
 	}
 	if cfg.SourcePath != filepath.Join(root, "crates/demo") || cfg.OutputDir != filepath.Join(root, "docs") {
 		t.Fatalf("paths were not resolved relative to config: %+v", cfg)
+	}
+	if cfg.SiteURL != "https://docs.example" {
+		t.Fatalf("site URL was not loaded: %q", cfg.SiteURL)
 	}
 	if cfg.Name != "Friendly Aqua" || cfg.Description != "Custom shader documentation" {
 		t.Fatalf("metadata overrides not loaded: %+v", cfg)

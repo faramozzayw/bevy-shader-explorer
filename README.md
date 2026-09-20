@@ -28,7 +28,33 @@ wgsl-docs generate [flags]
   --exclude PATTERN    exclude a directory or pattern (repeatable)
   --no-deps            disable Cargo dependency shader discovery
   --offline            use Cargo metadata without network access
+  --site-url URL       public origin for canonical URLs and sitemap
 ```
+
+### Search-engine indexing
+
+HTML generation adds unique titles and descriptions, canonical URLs, Open Graph
+and Twitter metadata, and JSON-LD structured data to the homepage, package
+pages, and shader pages. It also writes `robots.txt` and, when a public origin
+is configured, an absolute `sitemap.xml` containing every generated HTML page.
+Social preview cards are generated under `public/og/`: one site card and one
+package/version card, reused by that package's shader pages. PNG cards are
+rendered with `resvg` when available; otherwise the generator keeps an SVG
+fallback. The homepage uses the repository mascot artwork (`mascot2.jpeg`) as
+its social preview image.
+
+For normal project generation, set the public origin in `wgsl-docs.toml`:
+
+```toml
+site_url = "https://shaders.example.com"
+```
+
+For CI or Vercel builds, set the `SITE_URL` environment variable instead. The
+same value is used for canonical links and the sitemap URL. After deployment,
+verify the domain in Google Search Console and submit `/sitemap.xml`.
+
+The bundled multi-source build reads the same setting from the top level of
+`shader-sources.toml`.
 
 Use `--format json` to export the same home, package, and shader page model
 without rendering HTML. The convenience recipe is:

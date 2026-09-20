@@ -2,13 +2,22 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{{title}}</title>
+  {{#if description}}<meta name="description" content="{{description}}" />{{/if}}
+  {{#if canonical}}<link rel="canonical" href="{{canonical}}" />{{/if}}
+  <meta property="og:title" content="{{title}}" />
+  {{#if description}}<meta property="og:description" content="{{description}}" />{{/if}}
+  {{#if canonical}}<meta property="og:url" content="{{canonical}}" />{{/if}}
+  <meta property="og:type" content="{{#if isShader}}article{{else}}website{{/if}}" />
+  <meta name="twitter:card" content="summary" />
+  {{#if ogImageURL}}<meta property="og:image" content="{{ogImageURL}}" /><meta name="twitter:image" content="{{ogImageURL}}" />{{/if}}
+  {{#if structuredData}}<script type="application/ld+json">{{{structuredData}}}</script>{{/if}}
 
   <link rel="stylesheet" href="/public/styles.css" />
   <link
     href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap"
     rel="stylesheet"
   />
-  <link rel="icon" href="/public/favicon.ico" type="image/svg+xml" />
+  <link rel="icon" href="/public/icon.png" type="image/png" />
 
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
   <script

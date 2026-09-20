@@ -1,3 +1,5 @@
+site_url = "https://bevy-shader-explorer.vercel.app"
+
 [[sources]]
 name = "aqua"
 repo = "https://github.com/sayhisam1/bevy-aqua.git"

@@ -2,6 +2,7 @@ package generation
 
 import (
 	_ "embed"
+	"encoding/json"
 	"strings"
 
 	"github.com/aymerick/raymond"
@@ -49,6 +50,7 @@ func SetupHandlebars() {
 	raymond.RegisterHelper("neq", neq)
 	raymond.RegisterHelper("parse-markdown", parseMarkdown)
 	raymond.RegisterHelper("contains", contains)
+	raymond.RegisterHelper("json", jsonValue)
 
 	raymond.RegisterPartial("shader-defs-list", SHADER_DEFS_LIST_TEMPLATE)
 	raymond.RegisterPartial("type", TYPE_TEMPLATE)
@@ -58,6 +60,14 @@ func SetupHandlebars() {
 	raymond.RegisterPartial("header", HEADER_TEMPLATE)
 	raymond.RegisterPartial("project-header", PROJECT_HEADER_TEMPLATE)
 	raymond.RegisterPartial("version-selector", VERSION_SELECTOR_TEMPLATE)
+}
+
+func jsonValue(value interface{}) string {
+	data, err := json.Marshal(value)
+	if err != nil {
+		return "{}"
+	}
+	return string(data)
 }
 
 func eq(a, b interface{}) bool {

@@ -17,6 +17,12 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 	if config.Format == "json" {
 		return writeDocumentationJSON(config.OutputDir, site)
 	}
+	if err := copyItemsToPublic(&config, site.Search); err != nil {
+		return err
+	}
+	if err := writeOGImages(config, site); err != nil {
+		return err
+	}
 
 	compiledTemplate, err := raymond.Parse(WGSL_DOC_TEMPLATE_SOURCE)
 	if err != nil {
@@ -85,12 +91,20 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 			"authors":                   page.Metadata.Authors, "license": page.Metadata.License,
 			"repository": page.Metadata.Repository, "homepage": page.Metadata.Homepage,
 			"packageVersion":   page.Version,
+			"seoTitle":         fmt.Sprintf("%s %s — Shader Explorer", page.PackageName, page.Version),
 			"version":          config.Version,
 			"projectVersion":   page.Version,
 			"projectCount":     page.Count,
 			"urlPrefix":        joinDocURL("project", ""),
 			"packageURLPrefix": joinDocURL("project", filepath.Join(page.PackageName, page.Version)),
 			"versionOptions":   page.VersionOptions,
+			"canonicalURL":     canonicalURL(config.SiteURL, page.DetailPath),
+			"ogImageURL":       ogImageURL(config, page.PackageName, page.Version),
+			"structuredData": jsonValue(map[string]interface{}{
+				"@context": "https://schema.org", "@type": "SoftwareSourceCode",
+				"name": page.PackageName, "version": page.Version, "description": page.Description,
+				"url": canonicalURL(config.SiteURL, page.DetailPath), "codeRepository": page.Metadata.Repository,
+			}),
 		}, filepath.Join(versionedOutput, page.DetailPath)); err != nil {
 			return fmt.Errorf("render package %s %s: %w", page.PackageName, page.Version, err)
 		}
@@ -108,6 +122,12 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 		"version":          config.Version,
 		"projectVersion":   config.ProjectVersion,
 		"urlPrefix":        joinDocURL("project", ""),
+		"canonicalURL":     canonicalURL(config.SiteURL, ""),
+		"ogImageURL":       ogImageURL(config, "site", config.ProjectVersion),
+		"structuredData": jsonValue(map[string]interface{}{
+			"@context": "https://schema.org", "@type": "WebSite", "name": "Shader Explorer",
+			"description": config.Description, "url": canonicalURL(config.SiteURL, ""),
+		}),
 	}, filepath.Join(versionedOutput, "index.html")); err != nil {
 		return fmt.Errorf("render home page: %w", err)
 	}
@@ -120,7 +140,7 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 		return err
 	}
 
-	if err := copyItemsToPublic(&config, site.Search); err != nil {
+	if err := writeSEOFiles(config.OutputDir, config.SiteURL); err != nil {
 		return err
 	}
 	return nil

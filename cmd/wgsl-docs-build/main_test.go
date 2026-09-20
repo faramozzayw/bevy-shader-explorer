@@ -35,6 +35,17 @@ func TestLoadSourcesReadsRefPattern(t *testing.T) {
 	}
 }
 
+func TestLoadSiteURL(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "matrix.toml"), []byte("site_url = \"https://docs.example/\"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := loadSiteURL(root, "matrix.toml")
+	if err != nil || got != "https://docs.example" {
+		t.Fatalf("site URL = %q, err = %v", got, err)
+	}
+}
+
 func TestReleaseMatrixContainsKnownRefs(t *testing.T) {
 	sources, err := loadSources(filepath.Join("..", ".."), "shader-sources.toml")
 	if err != nil {
