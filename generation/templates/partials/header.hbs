@@ -1,14 +1,12 @@
 <header data-search-scope="{{searchScope}}" data-search-package="{{searchPackage}}" data-search-version="{{searchVersion}}" data-search-index="{{searchIndex}}">
   <div class="header-container">
+    <a class="site-brand" href="/{{urlPrefix}}">Shader Explorer</a>
     <button
       id="menu-toggle"
       class="menu-toggle"
       aria-label="Toggle menu"
     >☰</button>
     <nav id="nav-links" class="nav-links">
-      {{#unless skipHomeButton}}
-        <a href="/{{urlPrefix}}" class="header-link">Home 🏡</a>
-      {{/unless}}
       <a
         href="https://www.w3.org/TR/WGSL"
         target="_blank"
@@ -49,33 +47,14 @@
         class="search-input"
         placeholder="Type ‘S’ or ‘/’ to search 🔍"
       />
-      <div class="tooltip-bottom tooltip-container">
-        <div
-          style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 40px;
-            padding-left: 15px;
-          "
-        >
-          <picture>
-            <source
-              srcset="/public/info-light.png"
-              media="(prefers-color-scheme: dark)"
-            />
-            <img src="/public/info-dark.png" width="25" height="25" />
-          </picture>
-        </div>
-        <div class="tooltip-text">
-          Advanced search tips: use spaces to require multiple terms (AND), |
-          for alternatives (OR), wrap phrases in quotes (="a b"), =term for
-          exact match, 'term to include, !term to exclude, ^term to match
-          prefix, !^term to exclude prefix, .ext$ to match suffix, and !.ext$ to
-          exclude suffix.
-        </div>
-      </div>
+      <span class="search-shortcut" aria-hidden="true">S /</span>
     </div>
+    <details class="header-help">
+      <summary>Syntax <span aria-hidden="true">+</span></summary>
+      <div class="header-help-body">
+        <span><code>space</code> all</span><span><code>|</code> any</span><span><code>=term</code> exact</span><span><code>!term</code> exclude</span><span><code>^term</code> prefix</span><span><code>.ext$</code> suffix</span>
+      </div>
+    </details>
   </div>
   <div id="results"></div>
 </header>

@@ -118,7 +118,6 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 		"dependencyCount":  site.DependencyCount,
 		"name":             config.Name,
 		"description":      config.Description,
-		"skipHomeButton":   true,
 		"version":          config.Version,
 		"projectVersion":   config.ProjectVersion,
 		"urlPrefix":        joinDocURL("project", ""),
