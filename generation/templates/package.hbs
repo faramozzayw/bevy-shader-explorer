@@ -2,7 +2,7 @@
   {{>head title=seoTitle description=description canonical=canonicalURL ogImageURL=ogImageURL structuredData=structuredData}}
 
   <body>
-    {{> header urlPrefix=urlPrefix version=version searchScope="package" searchPackage=name searchVersion=packageVersion searchIndex=version }}
+    {{> header urlPrefix=urlPrefix version=version searchScope="package" searchPackage=name searchVersion=packageVersion searchIndex=searchIndex }}
 
     <nav class="package-nav">
       <a href="/{{urlPrefix}}">Overview</a>
@@ -44,5 +44,6 @@
         {{/each}}
       </ul>
     </section>
+    {{> footer}}
   </body>
 </html>

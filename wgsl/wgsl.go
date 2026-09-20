@@ -161,7 +161,7 @@ func (wgslFile *WgslFile) GenerateWgslPage(compiledTemplate *raymond.Template, o
 		return fmt.Errorf("create output directory: %w", err)
 	}
 
-	err = os.WriteFile(fileOutputPath, []byte(html), 0644)
+	err = utils.WriteFileIfChanged(fileOutputPath, []byte(html), 0644)
 	if err != nil {
 		return fmt.Errorf("write output: %w", err)
 	}

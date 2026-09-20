@@ -47,11 +47,10 @@ func Generate(config config.Config) error {
 	fmt.Printf("🏷️ Documentation Version: %s\n", config.Version)
 	fmt.Println("========================================")
 
-	inputs, err := getShaderInputs(config)
+	inputs, cargoMetadata, err := getShaderInputs(config)
 	if err != nil {
 		return err
 	}
-	cargoMetadata := loadOptionalCargoMetadata(config)
 	totalFiles := int64(len(inputs))
 
 	utils.LoadWgslTypes()
@@ -66,6 +65,7 @@ func Generate(config config.Config) error {
 	}
 	resolveWgslPathCollisions(wgslFiles)
 	for i := range wgslFiles {
+		wgslFiles[i].SearchIndex = packageSearchIndex(wgslFiles[i].ProjectName, wgslFiles[i].ProjectVersion)
 		wgslFiles[i].Link = joinDocURL("project", wgslFiles[i].WgslPath)
 		wgslFiles[i].CanonicalURL = canonicalURL(config.SiteURL, wgslFiles[i].Link)
 		wgslFiles[i].OgImageURL = ogShaderImageURL(config, wgslFiles[i].ProjectName, wgslFiles[i].ProjectVersion)
@@ -85,9 +85,23 @@ func Generate(config config.Config) error {
 	// Keep a durable registry of every package/version generated into this
 	// output directory. A build may contain only one package, but the homepage
 	// should still represent packages produced by earlier builds.
-	registry, err := updatePackageRegistry(config.OutputDir, sections)
-	if err != nil {
-		return err
+	bevyVersions := make(map[string]string)
+	for _, section := range sections {
+		for _, group := range section.Groups {
+			key := group.PackageName + "\x00" + group.Version
+			bevyVersions[key] = bevyDependencyVersion(cargoMetadata, group.PackageName, group.Version)
+		}
+	}
+	var registry []packageRegistryEntry
+	if config.SkipCatalogue {
+		if err := writePendingPackageRegistry(config.OutputDir, sections, bevyVersions); err != nil {
+			return err
+		}
+	} else {
+		registry, err = updatePackageRegistry(config.OutputDir, sections, bevyVersions)
+		if err != nil {
+			return err
+		}
 	}
 	registrySections := packageRegistrySections(registry)
 	registryShaderCount := packageRegistryShaderCount(registry)
@@ -130,7 +144,7 @@ func buildHomeSections(files []wgsl.WgslFile) ([]homeSection, int, int) {
 		}
 		projectGroups[name] = append(projectGroups[name], entry)
 	}
-	toGroups := func(grouped map[string][]map[string]string) []homeGroup {
+	toGroups := func(grouped map[string][]map[string]string, dependency bool) []homeGroup {
 		groups := make([]homeGroup, 0, len(grouped))
 		for name, entries := range grouped {
 			slices.SortFunc(entries, func(a, b map[string]string) int { return strings.Compare(a["file"], b["file"]) })
@@ -149,13 +163,14 @@ func buildHomeSections(files []wgsl.WgslFile) ([]homeSection, int, int) {
 				DetailPath:  packageDetailPath(entries),
 				Preview:     len(entries) > len(preview),
 				Remaining:   len(entries) - len(preview),
+				Dependency:  dependency,
 			})
 		}
 		slices.SortFunc(groups, func(a, b homeGroup) int { return strings.Compare(a.Name, b.Name) })
 		return groups
 	}
-	project := toGroups(projectGroups)
-	dependencies := toGroups(dependencyGroups)
+	project := toGroups(projectGroups, false)
+	dependencies := toGroups(dependencyGroups, true)
 	all := append(project, dependencies...)
 	slices.SortFunc(all, func(a, b homeGroup) int { return strings.Compare(a.Name, b.Name) })
 	sections := []homeSection{{Title: "Packages", Groups: all}}

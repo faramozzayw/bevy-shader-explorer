@@ -1,26 +1,13 @@
 package generation
 
 import (
-	"context"
 	"path/filepath"
 	"slices"
 	"strings"
 
-	"main/config"
 	"main/discovery"
 	"main/wgsl"
 )
-
-func loadOptionalCargoMetadata(cfg config.Config) discovery.CargoMetadata {
-	if cfg.NoDeps {
-		return discovery.CargoMetadata{}
-	}
-	metadata, err := discovery.ReadCargoMetadata(context.Background(), cfg.SourcePath, cfg.Offline)
-	if err != nil {
-		return discovery.CargoMetadata{}
-	}
-	return metadata
-}
 
 func findPackageMetadata(metadata discovery.CargoMetadata, name, version string) discovery.CargoPackage {
 	for _, pkg := range metadata.Packages {

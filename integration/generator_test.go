@@ -40,7 +40,7 @@ fn vertex_main(@location(0) position: vec3<f32>) -> @builtin(position) vec4<f32>
 	packagePage := filepath.Join(output, "fixture", "0.1.0", "index.html")
 	shaderPage := filepath.Join(output, "fixture", "0.1.0", "shaders", "simple.html")
 	homePage := filepath.Join(output, "index.html")
-	for _, path := range []string{homePage, packagePage, shaderPage, filepath.Join(output, "public", "search-info-0.1.0.json"), filepath.Join(output, "public", "package-versions.json"), filepath.Join(output, "public", "mascot2.jpeg"), filepath.Join(output, "public", "icon.png"), filepath.Join(output, "robots.txt"), filepath.Join(output, "sitemap.xml")} {
+	for _, path := range []string{homePage, packagePage, shaderPage, filepath.Join(output, "public", "search-info-fixture-0.1.0.json"), filepath.Join(output, "public", "package-versions.json"), filepath.Join(output, "public", "mascot2.jpeg"), filepath.Join(output, "public", "icon.png"), filepath.Join(output, "robots.txt"), filepath.Join(output, "sitemap.xml")} {
 		if _, err := os.Stat(path); err != nil {
 			t.Fatalf("expected generated file %s: %v", path, err)
 		}
@@ -93,12 +93,43 @@ fn vertex_main(@location(0) position: vec3<f32>) -> @builtin(position) vec4<f32>
 	if !strings.Contains(string(sitemap), "https://docs.example/fixture/0.1.0/shaders/simple.html") {
 		t.Fatalf("sitemap is missing generated shader page")
 	}
-	search, err := os.ReadFile(filepath.Join(output, "public", "search-info-0.1.0.json"))
+	search, err := os.ReadFile(filepath.Join(output, "public", "search-info-fixture-0.1.0.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(search), `"name": "vertex_main"`) || !strings.Contains(string(search), `"packageName": "fixture"`) {
 		t.Fatalf("search index is missing fixture declarations")
+	}
+}
+
+func TestReleaseGenerationCanBeFinalizedSeparately(t *testing.T) {
+	project := t.TempDir()
+	writeFixtureFile(t, filepath.Join(project, "Cargo.toml"), `[package]
+name = "finalize-fixture"
+version = "0.1.0"
+description = "Finalize fixture"
+`)
+	writeFixtureFile(t, filepath.Join(project, "shader.wgsl"), "const VALUE: f32 = 1.0;\n")
+	output := filepath.Join(t.TempDir(), "dist")
+	root := repoRoot(t)
+	runGenerator(t, root, project, output, "--no-deps", "--skip-catalogue", "--site-url", "https://docs.example")
+	if _, err := os.Stat(filepath.Join(output, "index.html")); !os.IsNotExist(err) {
+		t.Fatalf("release pass should not write homepage before finalization")
+	}
+	cmd := exec.Command("go", "run", ".", "finalize", "--output", output, "--site-url", "https://docs.example")
+	cmd.Dir = root
+	if result, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("finalizer failed: %v\n%s", err, result)
+	}
+	for _, path := range []string{
+		filepath.Join(output, "index.html"),
+		filepath.Join(output, "public", "packages.json"),
+		filepath.Join(output, "public", "package-versions.json"),
+		filepath.Join(output, "sitemap.xml"),
+	} {
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("finalizer omitted %s: %v", path, err)
+		}
 	}
 }
 

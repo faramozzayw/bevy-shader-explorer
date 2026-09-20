@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"main/utils"
 )
 
 func canonicalURL(siteURL, docPath string) string {
@@ -50,7 +52,7 @@ func writePackageVersionsManifest(outputDir string) error {
 		return fmt.Errorf("create public directory for package versions: %w", err)
 	}
 	manifestPath := filepath.Join(publicDir, "package-versions.json")
-	if err := os.WriteFile(manifestPath, data, 0644); err != nil {
+	if err := utils.WriteFileIfChanged(manifestPath, data, 0644); err != nil {
 		return fmt.Errorf("write package versions %s: %w", manifestPath, err)
 	}
 	return nil
@@ -89,7 +91,7 @@ func writeSEOFiles(outputDir, siteURL string) error {
 	if siteURL != "" {
 		robots += "Sitemap: " + strings.TrimRight(siteURL, "/") + "/sitemap.xml\n"
 	}
-	if err := os.WriteFile(filepath.Join(outputDir, "robots.txt"), []byte(robots), 0o644); err != nil {
+	if err := utils.WriteFileIfChanged(filepath.Join(outputDir, "robots.txt"), []byte(robots), 0o644); err != nil {
 		return fmt.Errorf("write robots.txt: %w", err)
 	}
 	if siteURL == "" {
@@ -130,7 +132,7 @@ func writeSEOFiles(outputDir, siteURL string) error {
 		sitemap.WriteString("</loc></url>\n")
 	}
 	sitemap.WriteString("</urlset>\n")
-	if err := os.WriteFile(filepath.Join(outputDir, "sitemap.xml"), []byte(sitemap.String()), 0o644); err != nil {
+	if err := utils.WriteFileIfChanged(filepath.Join(outputDir, "sitemap.xml"), []byte(sitemap.String()), 0o644); err != nil {
 		return fmt.Errorf("write sitemap.xml: %w", err)
 	}
 	return nil

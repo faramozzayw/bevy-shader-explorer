@@ -11,7 +11,9 @@ const legacyPackagePage = !searchHeader && pathParts.length >= 2;
 const searchScope = searchHeader?.dataset.searchScope || (legacyPackagePage ? "package" : "packages");
 const searchPackage = searchHeader?.dataset.searchPackage || (legacyPackagePage ? pathParts[0] : "");
 const searchVersion = searchHeader?.dataset.searchVersion || (legacyPackagePage ? pathParts[1] : "");
-const searchIndex = searchHeader?.dataset.searchIndex || (legacyPackagePage ? pathParts[1] : "project");
+const packageSearchIndex = (packageName, version) =>
+  `${packageName}-${version}`.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+const searchIndex = searchHeader?.dataset.searchIndex || (legacyPackagePage ? packageSearchIndex(pathParts[0], pathParts[1]) : "project");
 
 async function loadTemplate() {
   const response = await fetch("/public/search-result.hbs");

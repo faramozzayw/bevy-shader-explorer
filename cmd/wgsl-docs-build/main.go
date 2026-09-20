@@ -42,30 +42,38 @@ type buildConfig struct {
 }
 
 func loadSiteURL(root, path string) (string, error) {
-	var config buildConfig
-	if _, err := toml.DecodeFile(filepath.Join(root, path), &config); err != nil {
-		return "", fmt.Errorf("load build config: %w", err)
+	config, err := loadBuildConfig(root, path)
+	if err != nil {
+		return "", err
 	}
 	return strings.TrimRight(config.SiteURL, "/"), nil
 }
 
 func loadIssueURL(root, path string) (string, error) {
-	var config buildConfig
-	if _, err := toml.DecodeFile(filepath.Join(root, path), &config); err != nil {
-		return "", fmt.Errorf("load build config: %w", err)
+	config, err := loadBuildConfig(root, path)
+	if err != nil {
+		return "", err
 	}
 	return config.IssueURL, nil
 }
 
 func loadSources(root, path string) ([]source, error) {
-	var config buildConfig
-	if _, err := toml.DecodeFile(filepath.Join(root, path), &config); err != nil {
-		return nil, fmt.Errorf("load build config: %w", err)
+	config, err := loadBuildConfig(root, path)
+	if err != nil {
+		return nil, err
 	}
 	if len(config.Sources) == 0 {
 		return nil, fmt.Errorf("build config contains no sources")
 	}
 	return config.Sources, nil
+}
+
+func loadBuildConfig(root, path string) (buildConfig, error) {
+	var config buildConfig
+	if _, err := toml.DecodeFile(filepath.Join(root, path), &config); err != nil {
+		return buildConfig{}, fmt.Errorf("load build config: %w", err)
+	}
+	return config, nil
 }
 
 func allReleases(sources []source) []release {
@@ -111,23 +119,19 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
-	sources, err := loadSources(root, *configPath)
+	buildConfig, err := loadBuildConfig(root, *configPath)
 	if err != nil {
 		fatal(err)
+	}
+	sources := buildConfig.Sources
+	if len(sources) == 0 {
+		fatal(fmt.Errorf("build config contains no sources"))
 	}
 	if flags.Arg(0) == "clone" {
 		cloneAll(root, sources)
 		return
 	}
-	siteURL, err := loadSiteURL(root, *configPath)
-	if err != nil {
-		fatal(err)
-	}
-	issueURL, err := loadIssueURL(root, *configPath)
-	if err != nil {
-		fatal(err)
-	}
-	generateAll(root, sources, siteURL, issueURL)
+	generateAll(root, sources, strings.TrimRight(buildConfig.SiteURL, "/"), buildConfig.IssueURL)
 }
 
 func cloneAll(root string, sources []source) {
@@ -189,12 +193,26 @@ func generateAll(root string, sources []source, siteURL, issueURL string) {
 		if item.Version != "project" {
 			args = append(args, "--version", item.Version)
 		}
+		args = append(args, "--skip-catalogue")
 		cmd := exec.Command(generator, args...)
 		cmd.Dir = root
 		cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
 		if err := cmd.Run(); err != nil {
 			fatal(err)
 		}
+	}
+	args := []string{"finalize", "--output", filepath.Join(root, "dist")}
+	if siteURL != "" {
+		args = append(args, "--site-url", siteURL)
+	}
+	if issueURL != "" {
+		args = append(args, "--issue-url", issueURL)
+	}
+	cmd := exec.Command(generator, args...)
+	cmd.Dir = root
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	if err := cmd.Run(); err != nil {
+		fatal(err)
 	}
 }
 

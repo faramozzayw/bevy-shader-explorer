@@ -1,7 +1,10 @@
 package generation
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -38,7 +41,7 @@ func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, p
 			defer wg.Done()
 			for index := range jobs {
 				input := inputs[index]
-				file, err := wgsl.ParseWGSLFile(&input.Config, input.Path)
+				file, err := parseShaderInputCached(input)
 				if err != nil {
 					errs <- fmt.Errorf("parse %s: %w", input.Path, err)
 					continue
@@ -78,6 +81,49 @@ func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, p
 		return nil, err
 	}
 	return files, nil
+}
+
+const shaderParseCacheVersion = "shader-parse-v1"
+
+// parseShaderInputCached reuses the parser model for identical source content
+// and link-affecting configuration. The cache is outside dist so it never
+// becomes a deployable artifact, and its key includes the source bytes plus
+// every setting that can change ParseWGSLFile's result.
+func parseShaderInputCached(input shaderInput) (wgsl.WgslFile, error) {
+	content, err := os.ReadFile(input.Path)
+	if err != nil {
+		return wgsl.WgslFile{}, fmt.Errorf("read source: %w", err)
+	}
+	hash := sha256.New()
+	hash.Write([]byte(shaderParseCacheVersion))
+	hash.Write([]byte("\x00"))
+	hash.Write(content)
+	for _, value := range []string{
+		input.Config.SourcePath, input.Config.SourceGithubRoot, input.Config.SourceGithubSubpath,
+		input.Config.SourceGithubURL, input.Config.SourceGithubRef, input.Config.Version,
+		input.Config.FileFilter, input.Config.ProjectVersion, input.Path,
+	} {
+		hash.Write([]byte("\x00"))
+		hash.Write([]byte(value))
+	}
+	cacheDir := filepath.Join(os.TempDir(), "bevy-shader-explorer-cache")
+	cachePath := filepath.Join(cacheDir, fmt.Sprintf("%x.json", hash.Sum(nil)))
+	if cached, readErr := os.ReadFile(cachePath); readErr == nil {
+		var file wgsl.WgslFile
+		if json.Unmarshal(cached, &file) == nil {
+			return file, nil
+		}
+	}
+	file, err := wgsl.ParseWGSLFile(&input.Config, input.Path)
+	if err != nil {
+		return wgsl.WgslFile{}, err
+	}
+	if data, marshalErr := json.Marshal(file); marshalErr == nil {
+		if mkdirErr := os.MkdirAll(cacheDir, 0o755); mkdirErr == nil {
+			_ = os.WriteFile(cachePath, data, 0o644)
+		}
+	}
+	return file, nil
 }
 
 func firstError(errs <-chan error) error {

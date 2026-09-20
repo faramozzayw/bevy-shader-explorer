@@ -17,11 +17,19 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 	if config.Format == "json" {
 		return writeDocumentationJSON(config.OutputDir, site)
 	}
-	if err := copyItemsToPublic(&config, site.Search); err != nil {
+	if !config.SkipCatalogue {
+		if err := copyItemsToPublic(&config, site.Search, site.Packages); err != nil {
+			return err
+		}
+	} else if err := copyOGMascot(filepath.Join(config.OutputDir, "public")); err != nil {
+		return err
+	} else if err := writePendingSearchIndexes(config.OutputDir, site.Search, site.Packages); err != nil {
 		return err
 	}
-	if err := writeOGImages(config, site); err != nil {
-		return err
+	if !config.SkipCatalogue {
+		if err := writeSiteOGImage(config); err != nil {
+			return err
+		}
 	}
 
 	compiledTemplate, err := raymond.Parse(WGSL_DOC_TEMPLATE_SOURCE)
@@ -70,7 +78,14 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 		return err
 	}
 
+	renderedPackages := make([]documentationPackagePage, 0, len(site.Packages))
 	for _, page := range site.Packages {
+		pagePath := filepath.Join(versionedOutput, page.DetailPath)
+		if page.Dependency {
+			if _, err := os.Stat(pagePath); err == nil {
+				continue
+			}
+		}
 		if err := os.MkdirAll(filepath.Join(versionedOutput, filepath.Dir(page.DetailPath)), os.ModePerm); err != nil {
 			return fmt.Errorf("create package output directory: %w", err)
 		}
@@ -91,6 +106,7 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 			"authors":                   page.Metadata.Authors, "license": page.Metadata.License,
 			"repository": page.Metadata.Repository, "homepage": page.Metadata.Homepage,
 			"packageVersion":   page.Version,
+			"searchIndex":      packageSearchIndex(page.PackageName, page.Version),
 			"seoTitle":         fmt.Sprintf("%s %s — Shader Explorer", page.PackageName, page.Version),
 			"version":          config.Version,
 			"projectVersion":   page.Version,
@@ -106,9 +122,16 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 				"name": page.PackageName, "version": page.Version, "description": page.Description,
 				"url": canonicalURL(config.SiteURL, page.DetailPath), "codeRepository": page.Metadata.Repository,
 			}),
-		}, filepath.Join(versionedOutput, page.DetailPath)); err != nil {
+		}, pagePath); err != nil {
 			return fmt.Errorf("render package %s %s: %w", page.PackageName, page.Version, err)
 		}
+		renderedPackages = append(renderedPackages, page)
+	}
+	if err := writePackageOGImages(config, documentationSite{Packages: renderedPackages}); err != nil {
+		return err
+	}
+	if config.SkipCatalogue {
+		return nil
 	}
 
 	if err := renderTemplateToFile(HOME_DOC_TEMPLATE_SOURCE, map[string]interface{}{

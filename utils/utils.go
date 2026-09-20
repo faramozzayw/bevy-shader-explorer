@@ -83,12 +83,26 @@ func CopyFile(src, dst string) error {
 		return fmt.Errorf("failed to read source file: %v", err)
 	}
 
-	err = os.WriteFile(dst, input, 0644)
+	err = WriteFileIfChanged(dst, input, 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write destination file: %v", err)
 	}
 
 	return nil
+}
+
+// WriteFileIfChanged avoids replacing an output file whose content is already
+// current. Besides reducing I/O this preserves mtimes for deploy tooling that
+// uses them to detect changed artifacts.
+func WriteFileIfChanged(path string, data []byte, perm os.FileMode) error {
+	existing, err := os.ReadFile(path)
+	if err == nil && string(existing) == string(data) {
+		return nil
+	}
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return os.WriteFile(path, data, perm)
 }
 
 func DedupPathParts(path string) string {

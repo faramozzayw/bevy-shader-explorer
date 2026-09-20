@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"main/config"
 	"main/discovery"
+	"main/utils"
 	"main/wgsl"
 )
 
@@ -27,6 +30,7 @@ type homeGroup struct {
 	DetailPath     string
 	Preview        bool
 	Remaining      int
+	Dependency     bool
 	VersionOptions []map[string]string
 }
 
@@ -57,6 +61,7 @@ type documentationPackagePage struct {
 	TransitiveDependencies []map[string]string
 	Metadata               discovery.CargoPackage
 	VersionOptions         []map[string]string
+	Dependency             bool
 }
 
 type documentationJSON struct {
@@ -90,6 +95,7 @@ type documentationGroupJSON struct {
 	DetailPath     string              `json:"detailPath"`
 	Preview        bool                `json:"preview"`
 	Remaining      int                 `json:"remaining"`
+	Dependency     bool                `json:"dependency,omitempty"`
 	VersionOptions []map[string]string `json:"versionOptions,omitempty"`
 }
 
@@ -169,7 +175,7 @@ func writeDocumentationJSON(outputDir string, site documentationSite) error {
 	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("create JSON output directory: %w", err)
 	}
-	if err := os.WriteFile(filepath.Join(outputDir, "documentation.json"), data, 0o644); err != nil {
+	if err := utils.WriteFileIfChanged(filepath.Join(outputDir, "documentation.json"), data, 0o644); err != nil {
 		return fmt.Errorf("write documentation JSON: %w", err)
 	}
 	return nil
@@ -183,7 +189,7 @@ func documentationSectionsJSON(sections []homeSection) []documentationSectionJSO
 			converted.Groups = append(converted.Groups, documentationGroupJSON{
 				Name: group.Name, PackageName: group.PackageName, Version: group.Version,
 				Description: group.Description, Count: group.Count, Files: group.AllFiles,
-				DetailPath: group.DetailPath, Preview: group.Preview, Remaining: group.Remaining,
+				DetailPath: group.DetailPath, Preview: group.Preview, Remaining: group.Remaining, Dependency: group.Dependency,
 				VersionOptions: group.VersionOptions,
 			})
 		}
@@ -195,17 +201,13 @@ func documentationSectionsJSON(sections []homeSection) []documentationSectionJSO
 func buildDocumentationSite(config config.Config, sections, homeSections []homeSection, totalShaderCount, projectCount, dependencyCount int, files []wgsl.WgslFile, search []ShaderSearchableInfo, metadata discovery.CargoMetadata, declaredImportPaths map[string]string) documentationSite {
 	shaders := append([]wgsl.WgslFile(nil), files...)
 	for i := range shaders {
-		shaders[i].ProjectShaderCount = projectCount
-		shaders[i].DependencyShaderCount = dependencyCount
-		shaders[i].ProjectCount = projectCount
-		shaders[i].DependencyCount = dependencyCount
 		shaders[i].ResolveTypeLinks(declaredImportPaths)
 	}
 
-	packages := make([]documentationPackagePage, 0)
+	packagesByKey := make(map[string]documentationPackagePage)
 	for _, section := range sections {
 		for _, group := range section.Groups {
-			packages = append(packages, documentationPackagePage{
+			page := documentationPackagePage{
 				PackageName:            group.PackageName,
 				Version:                group.Version,
 				BevyVersion:            bevyDependencyVersion(metadata, group.PackageName, group.Version),
@@ -218,9 +220,24 @@ func buildDocumentationSite(config config.Config, sections, homeSections []homeS
 				TransitiveDependencies: cargoDependenciesForPage(metadata, group.PackageName, group.Version, shaders, true),
 				Metadata:               findPackageMetadata(metadata, group.PackageName, group.Version),
 				VersionOptions:         packageVersionOptions(config.OutputDir, group.PackageName, group.Version),
-			})
+				Dependency:             group.Dependency,
+			}
+			key := group.PackageName + "\x00" + group.Version
+			if existing, ok := packagesByKey[key]; !ok || (existing.Dependency && !page.Dependency) {
+				packagesByKey[key] = page
+			}
 		}
 	}
+	packages := make([]documentationPackagePage, 0, len(packagesByKey))
+	for _, page := range packagesByKey {
+		packages = append(packages, page)
+	}
+	slices.SortFunc(packages, func(a, b documentationPackagePage) int {
+		if c := strings.Compare(a.PackageName, b.PackageName); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Version, b.Version)
+	})
 
 	return documentationSite{
 		Version:          config.Version,

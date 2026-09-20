@@ -2,7 +2,7 @@
   {{>head title=seoTitle description=seoDescription canonical=canonicalURL ogImageURL=ogImageURL isShader=true structuredData=structuredData}}
 
   <body>
-    {{> header urlPrefix=projectURLPrefix version=version searchScope="package" searchPackage=projectName searchVersion=projectVersion searchIndex=version }}
+    {{> header urlPrefix=projectURLPrefix version=version searchScope="package" searchPackage=projectName searchVersion=projectVersion searchIndex=searchIndex }}
 
     <nav class="package-nav">
       <a href="/{{projectURLPrefix}}">Packages</a>
@@ -254,5 +254,6 @@
         {{/each}}
       {{/if}}
     </main>
+    {{> footer}}
   </body>
 </html>

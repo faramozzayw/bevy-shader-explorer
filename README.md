@@ -29,7 +29,21 @@ wgsl-docs generate [flags]
   --no-deps            disable Cargo dependency shader discovery
   --offline            use Cargo metadata without network access
   --site-url URL       public origin for canonical URLs and sitemap
+  --skip-catalogue     render release pages without catalogue-wide finalization
 ```
+
+The catalogue matrix uses a two-phase workflow. Release passes write package
+and shader pages plus per-release registry fragments; one finalization pass
+merges the catalogue, copies shared assets, and writes the homepage, OG card,
+manifests, `robots.txt`, and the sitemap:
+
+```bash
+wgsl-docs finalize --output ./dist --site-url https://shaders.example.com
+```
+
+`just generate-all` runs this release/finalization workflow automatically.
+Parser models are cached outside `dist` using source-content and link-settings
+digests, so repeated matrix runs reuse unchanged shader parses safely.
 
 ### Search-engine indexing
 
@@ -93,10 +107,12 @@ flowchart TD
     D --> E
     E --> F[Resolve source links and filename collisions]
     F --> G[Build documentation site model]
-    G --> H[HTML renderer]
+    G --> H[Release renderer]
     G --> I[JSON renderer]
-    H --> J[Package pages, shader pages, manifests, search index]
-    I --> K[documentation.json]
+    H --> J[Package and shader pages]
+    J --> K[Finalization]
+    K --> L[Homepage, assets, OG cards, manifests, sitemap]
+    I --> M[documentation.json]
 ```
 
 ### Documentation model

@@ -23,22 +23,51 @@ func newRootCommand() *cobra.Command {
 		Short: "Generate documentation for WGSL shaders",
 	}
 	root.AddCommand(newGenerateCommand())
+	root.AddCommand(newFinalizeCommand())
 	return root
+}
+
+func newFinalizeCommand() *cobra.Command {
+	var output, siteURL, issueURL string
+	command := &cobra.Command{
+		Use:   "finalize",
+		Short: "Write catalogue-wide artifacts after release generation",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			cfg, err := config.Load(".")
+			if err != nil {
+				return err
+			}
+			cfg.OutputDir = output
+			cfg.Format = "html"
+			if siteURL != "" {
+				cfg.SiteURL = strings.TrimRight(siteURL, "/")
+			}
+			if issueURL != "" {
+				cfg.IssueURL = issueURL
+			}
+			return generation.Finalize(cfg)
+		},
+	}
+	command.Flags().StringVar(&output, "output", "./shader-docs", "documentation output directory")
+	command.Flags().StringVar(&siteURL, "site-url", "", "public site URL used for canonical links and sitemap")
+	command.Flags().StringVar(&issueURL, "issue-url", "", "URL for requesting documentation for a crate")
+	return command
 }
 
 func newGenerateCommand() *cobra.Command {
 	var (
-		project   string
-		output    string
-		format    string
-		exclude   []string
-		version   string
-		sourceURL string
-		sourceRef string
-		siteURL   string
-		issueURL  string
-		noDeps    bool
-		offline   bool
+		project       string
+		output        string
+		format        string
+		exclude       []string
+		version       string
+		sourceURL     string
+		sourceRef     string
+		siteURL       string
+		issueURL      string
+		noDeps        bool
+		offline       bool
+		skipCatalogue bool
 	)
 
 	command := &cobra.Command{
@@ -69,6 +98,9 @@ func newGenerateCommand() *cobra.Command {
 			if command.Flags().Changed("offline") {
 				cfg.Offline = offline
 			}
+			if command.Flags().Changed("skip-catalogue") {
+				cfg.SkipCatalogue = skipCatalogue
+			}
 			if command.Flags().Changed("source-url") {
 				cfg.SourceGithubURL = sourceURL
 			}
@@ -96,5 +128,6 @@ func newGenerateCommand() *cobra.Command {
 	command.Flags().StringVar(&issueURL, "issue-url", "", "URL for requesting documentation for a crate")
 	command.Flags().BoolVar(&noDeps, "no-deps", false, "disable dependency shader discovery")
 	command.Flags().BoolVar(&offline, "offline", false, "use Cargo's offline metadata mode")
+	command.Flags().BoolVar(&skipCatalogue, "skip-catalogue", false, "skip catalogue-wide finalization during release generation")
 	return command
 }

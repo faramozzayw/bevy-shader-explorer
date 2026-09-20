@@ -44,7 +44,7 @@ func ogImageExtension() string {
 	return ".svg"
 }
 
-func writeOGImages(cfg configpkg.Config, site documentationSite) error {
+func writeSiteOGImage(cfg configpkg.Config) error {
 	const siteTagline = "Explore Bevy's WGSL and WESL shaders with fast, searchable documentation."
 	siteImage := filepath.Join(cfg.OutputDir, "public", "og", ogImageName("site", ""))
 	if _, err := os.Stat(siteImage); err != nil {
@@ -55,6 +55,10 @@ func writeOGImages(cfg configpkg.Config, site documentationSite) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func writePackageOGImages(cfg configpkg.Config, site documentationSite) error {
 	for _, page := range site.Packages {
 		if err := writeOGCard(cfg.OutputDir, page.PackageName, page.Version, page.BevyVersion, page.Description, page.PackageName); err != nil {
 			return err
