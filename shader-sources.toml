@@ -1,4 +1,5 @@
 site_url = "https://bevy-shader-explorer.vercel.app"
+issue_url = "https://github.com/faramozzayw/bevy-shader-explorer/issues/new?template=crate-request.yml"
 
 [[sources]]
 name = "aqua"

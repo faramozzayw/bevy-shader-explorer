@@ -5,7 +5,10 @@
     <main class="catalogue-main">
       
       <section class="release-list">
-        <h2>Packages</h2>
+        <div class="release-heading">
+          <h2>Packages</h2>
+          {{#if issueURL}}<a class="request-crate" href="{{issueURL}}">Request a crate</a>{{/if}}
+        </div>
         {{#each sections}}
           {{#each Groups}}
             <article class="release-row">

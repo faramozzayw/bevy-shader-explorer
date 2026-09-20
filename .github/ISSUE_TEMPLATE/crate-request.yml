@@ -1,0 +1,38 @@
+name: Add a crate
+description: Request documentation for a Bevy-related crate or shader project
+title: "[Crate request]: "
+labels:
+  - crate-request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping expand Shader Explorer. Please check that the crate is not already documented before submitting.
+
+  - type: input
+    id: crate-name
+    attributes:
+      label: Crate or project name
+      description: The package name as published on crates.io, if applicable.
+      placeholder: bevy_example
+    validations:
+      required: true
+
+  - type: input
+    id: repository
+    attributes:
+      label: Repository URL
+      placeholder: https://github.com/owner/project
+    validations:
+      required: true
+
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions to document
+      description: List crate versions and the Bevy versions they target. Include tags or release branches when known.
+      placeholder: |
+        - crate 0.8.0 — Bevy 0.16
+        - crate 0.9.0 — Bevy 0.17
+    validations:
+      required: true

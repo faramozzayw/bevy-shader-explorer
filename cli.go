@@ -36,6 +36,7 @@ func newGenerateCommand() *cobra.Command {
 		sourceURL string
 		sourceRef string
 		siteURL   string
+		issueURL  string
 		noDeps    bool
 		offline   bool
 	)
@@ -77,6 +78,9 @@ func newGenerateCommand() *cobra.Command {
 			if command.Flags().Changed("site-url") {
 				cfg.SiteURL = strings.TrimRight(siteURL, "/")
 			}
+			if command.Flags().Changed("issue-url") {
+				cfg.IssueURL = issueURL
+			}
 			cfg.Version = version
 			return generation.Generate(cfg)
 		},
@@ -89,6 +93,7 @@ func newGenerateCommand() *cobra.Command {
 	command.Flags().StringVar(&sourceURL, "source-url", "", "base URL for source links")
 	command.Flags().StringVar(&sourceRef, "source-ref", "", "source branch, tag, or commit for source links")
 	command.Flags().StringVar(&siteURL, "site-url", "", "public site URL used for canonical links and sitemap")
+	command.Flags().StringVar(&issueURL, "issue-url", "", "URL for requesting documentation for a crate")
 	command.Flags().BoolVar(&noDeps, "no-deps", false, "disable dependency shader discovery")
 	command.Flags().BoolVar(&offline, "offline", false, "use Cargo's offline metadata mode")
 	return command

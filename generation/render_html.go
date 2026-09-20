@@ -100,6 +100,7 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 			"versionOptions":   page.VersionOptions,
 			"canonicalURL":     canonicalURL(config.SiteURL, page.DetailPath),
 			"ogImageURL":       ogImageURL(config, page.PackageName, page.Version),
+			"issueURL":         config.IssueURL,
 			"structuredData": jsonValue(map[string]interface{}{
 				"@context": "https://schema.org", "@type": "SoftwareSourceCode",
 				"name": page.PackageName, "version": page.Version, "description": page.Description,
@@ -123,6 +124,7 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 		"urlPrefix":        joinDocURL("project", ""),
 		"canonicalURL":     canonicalURL(config.SiteURL, ""),
 		"ogImageURL":       ogImageURL(config, "site", config.ProjectVersion),
+		"issueURL":         config.IssueURL,
 		"structuredData": jsonValue(map[string]interface{}{
 			"@context": "https://schema.org", "@type": "WebSite", "name": "Shader Explorer",
 			"description": config.Description, "url": canonicalURL(config.SiteURL, ""),

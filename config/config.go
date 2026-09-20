@@ -34,6 +34,7 @@ type Config struct {
 	FileFilter           string
 	OutputDir            string
 	SiteURL              string
+	IssueURL             string
 	SourceGithubURL      string
 	SourceGithubRef      string
 	Version              string
@@ -74,6 +75,9 @@ func Load(projectPath string) (Config, error) {
 		}
 		if file.SiteURL != "" {
 			cfg.SiteURL = strings.TrimRight(file.SiteURL, "/")
+		}
+		if file.IssueURL != "" {
+			cfg.IssueURL = file.IssueURL
 		}
 		if file.FileFilter != "" {
 			cfg.FileFilter = file.FileFilter
@@ -122,6 +126,7 @@ type fileConfig struct {
 	Project      string           `toml:"project"`
 	Output       string           `toml:"output"`
 	SiteURL      string           `toml:"site_url"`
+	IssueURL     string           `toml:"issue_url"`
 	FileFilter   string           `toml:"file_filter"`
 	Exclude      []string         `toml:"exclude"`
 	Dependencies dependencyConfig `toml:"dependencies"`
