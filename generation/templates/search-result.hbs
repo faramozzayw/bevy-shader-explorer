@@ -4,7 +4,11 @@
       {{#if kind}}
         <a class="function-name" href="{{link}}">{{name}}</a>
         <span>[<b>package</b>]</span>
-        <span>{{version}}</span>
+        <select class="version-select search-version-select" data-package="{{packageName}}" onchange="window.location.href='/' + this.value">
+          {{#each versions}}
+            <option value="{{url}}">{{label}}</option>
+          {{/each}}
+        </select>
         {{#if description}}<span>{{description}}</span>{{/if}}
       {{else}}
       <a class="function-name" href="{{link}}#{{name}}">{{name}}</a>

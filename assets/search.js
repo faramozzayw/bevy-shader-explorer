@@ -55,16 +55,26 @@ const loadSearchData = async () => {
   if (searchScope === "packages") {
     const response = await fetch("/public/packages.json");
     const packages = await response.json();
-    return packages.map((pkg) => ({
-      kind: "package",
-      name: pkg.packageName,
-      packageName: pkg.packageName,
-      version: pkg.version,
-      description: pkg.description,
-      comment: pkg.description,
-      link: `/${pkg.detailPath}`,
-      filename: "",
-    }));
+    const grouped = new Map();
+    packages.forEach((pkg) => {
+      let result = grouped.get(pkg.packageName);
+      if (!result) {
+        result = {
+          kind: "package",
+          name: pkg.packageName,
+          packageName: pkg.packageName,
+          version: pkg.version,
+          description: pkg.description,
+          comment: pkg.description,
+          link: `/${pkg.detailPath}`,
+          filename: "",
+          versions: [],
+        };
+        grouped.set(pkg.packageName, result);
+      }
+      result.versions.push({ label: pkg.version, url: pkg.detailPath });
+    });
+    return [...grouped.values()];
   }
   const response = await fetch(`/public/search-info-${searchIndex}.json`);
   const items = await response.json();
