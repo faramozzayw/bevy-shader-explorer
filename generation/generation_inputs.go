@@ -126,25 +126,35 @@ func getShaderInputs(config config.Config) ([]shaderInput, discovery.CargoMetada
 	}
 	inputs = filteredInputs
 	packages := discovery.FilterCargoPackages(metadata, config.DependencyInclude, config.DependencyTransitive)
+	packageMetadata := make(map[string]discovery.CargoPackage, len(metadata.Packages))
+	for _, pkg := range metadata.Packages {
+		packageMetadata[pkg.Name+"\x00"+pkg.Version] = pkg
+	}
 	dependencies, err := discovery.DiscoverDependencyShaders(packages, config.Exclude)
 	if err != nil {
 		log.Printf("warning: dependency shader discovery skipped: %v", err)
 		return inputs, metadata, nil
 	}
+	repositoryRoots := make(map[string]string)
 	for _, dependency := range dependencies {
-		pkg := findPackageMetadata(metadata, dependency.Package, dependency.Version)
+		pkg := packageMetadata[dependency.Package+"\x00"+dependency.Version]
 		manifest := pkg.ManifestPath
 		if manifest == "" {
 			continue
 		}
 		dependencyConfig := config
 		dependencyConfig.SourcePath = filepath.Dir(manifest)
-		dependencyConfig.SourceGithubRoot = discovery.RepositoryRootForPackage(manifest)
+		repositoryRoot, ok := repositoryRoots[manifest]
+		if !ok {
+			repositoryRoot = discovery.RepositoryRootForPackage(manifest)
+			repositoryRoots[manifest] = repositoryRoot
+		}
+		dependencyConfig.SourceGithubRoot = repositoryRoot
 		// Cargo metadata records the upstream repository for each resolved
 		// package. Preserve it so dependency shader pages can link back to the
 		// exact source file just like project shaders do.
 		dependencyConfig.SourceGithubURL = pkg.Repository
-		dependencyConfig.SourceGithubSubpath = discovery.RepositorySubpathForPackage(manifest, dependencyConfig.SourceGithubURL, dependency.Package)
+		dependencyConfig.SourceGithubSubpath = discovery.RepositorySubpathForPackageFromRoot(manifest, dependencyConfig.SourceGithubURL, dependency.Package, repositoryRoot)
 		if dependencyConfig.SourceGithubURL != config.SourceGithubURL {
 			dependencyConfig.SourceGithubRef = packageSourceRef(pkg.Source)
 		}

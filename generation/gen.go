@@ -1,7 +1,6 @@
 package generation
 
 import (
-	"fmt"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -9,8 +8,6 @@ import (
 	config "main/config"
 	utils "main/utils"
 	wgsl "main/wgsl"
-
-	progressbar "github.com/schollz/progressbar/v3"
 )
 
 var copyToPublic = []string{
@@ -31,6 +28,8 @@ var copyToPublic = []string{
 }
 
 func Generate(config config.Config) error {
+	progress := newGenerationProgress(config.Name, config.Version, progressOptions{Discovery: true, Reading: true, Documentation: true, OG: !config.SkipCatalogue})
+	defer progress.finish()
 	if sourcePath, err := filepath.Abs(config.SourcePath); err == nil {
 		config.SourcePath = sourcePath
 	}
@@ -39,27 +38,20 @@ func Generate(config config.Config) error {
 			config.SourceGithubRoot = repositoryRoot
 		}
 	}
-	fmt.Println("🚀 Starting WGSL Documentation Generator")
-	fmt.Println("========================================")
-	fmt.Printf("📂 Project Directory     : %s\n", config.SourcePath)
-	fmt.Printf("🔍 File Filter Pattern   : %s\n", config.FileFilter)
-	fmt.Printf("📁 Output Directory      : %s\n", config.OutputDir)
-	fmt.Printf("🏷️ Documentation Version: %s\n", config.Version)
-	fmt.Println("========================================")
-
 	inputs, cargoMetadata, err := getShaderInputs(config)
 	if err != nil {
 		return err
 	}
+	progress.completeDiscovery()
 	totalFiles := int64(len(inputs))
+	progress.setReadingTotal(int(totalFiles))
 
 	utils.LoadWgslTypes()
 	SetupHandlebars()
 
 	searchInfo := make([]ShaderSearchableInfo, 0, 4096)
 	declaredImportPaths := make(map[string]string)
-	parsingBar := progressbar.Default(totalFiles, "📄 Reading WGSL Files")
-	wgslFiles, err := parseShaderInputs(inputs, config.ProjectVersion, config.OutputDir, parsingBar)
+	wgslFiles, err := parseShaderInputs(inputs, config.ProjectVersion, config.OutputDir, progress)
 	if err != nil {
 		return err
 	}
@@ -106,7 +98,11 @@ func Generate(config config.Config) error {
 	registrySections := packageRegistrySections(registry)
 	registryShaderCount := packageRegistryShaderCount(registry)
 	site := buildDocumentationSite(config, sections, registrySections, registryShaderCount, totalProject, totalDependency, wgslFiles, searchInfo, cargoMetadata, declaredImportPaths)
-	return renderDocumentation(config, site, registry)
+	progress.setDocumentationTotal(len(site.Shaders))
+	if !config.SkipCatalogue {
+		progress.setOGTotal(len(site.Packages))
+	}
+	return renderDocumentation(config, site, registry, progress)
 }
 
 // renderDocumentation selects the output renderer after all discovery,

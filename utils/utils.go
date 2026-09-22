@@ -7,17 +7,21 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 )
 
 //go:embed wgpu-types.json
 var WgpuTypesData []byte
 var wgpuTypes map[string]string
+var wgpuTypesOnce sync.Once
 
 func LoadWgslTypes() {
-	err := json.Unmarshal(WgpuTypesData, &wgpuTypes)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to parse wgpu-types.json: %v", err))
-	}
+	wgpuTypesOnce.Do(func() {
+		err := json.Unmarshal(WgpuTypesData, &wgpuTypes)
+		if err != nil {
+			panic(fmt.Sprintf("Failed to parse wgpu-types.json: %v", err))
+		}
+	})
 }
 
 func SplitParams(s string) []string {

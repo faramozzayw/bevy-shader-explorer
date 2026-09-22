@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	configpkg "main/config"
 )
@@ -76,13 +77,39 @@ func writeSiteOGImage(cfg configpkg.Config) error {
 	return nil
 }
 
-func writePackageOGImages(cfg configpkg.Config, site documentationSite) error {
-	for _, page := range site.Packages {
-		if err := writeOGCard(cfg.OutputDir, page.PackageName, page.Version, page.BevyVersion, page.Description, page.PackageName); err != nil {
-			return err
-		}
+func writePackageOGImages(cfg configpkg.Config, site documentationSite, progress *generationProgress) error {
+	if len(site.Packages) == 0 {
+		return nil
 	}
-	return nil
+	workerCount := 4
+	if workerCount > len(site.Packages) {
+		workerCount = len(site.Packages)
+	}
+	jobs := make(chan documentationPackagePage)
+	errs := make(chan error, len(site.Packages))
+	var workers sync.WaitGroup
+	for worker := 0; worker < workerCount; worker++ {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			for page := range jobs {
+				if err := writeOGCard(cfg.OutputDir, page.PackageName, page.Version, page.BevyVersion, page.Description, page.PackageName); err != nil {
+					errs <- fmt.Errorf("render package OG image %s %s: %w", page.PackageName, page.Version, err)
+					continue
+				}
+				if progress != nil {
+					progress.addOG()
+				}
+			}
+		}()
+	}
+	for _, page := range site.Packages {
+		jobs <- page
+	}
+	close(jobs)
+	workers.Wait()
+	close(errs)
+	return firstError(errs)
 }
 
 func writeOGCard(outputDir, title, version, bevyVersion, description, packageName string) error {

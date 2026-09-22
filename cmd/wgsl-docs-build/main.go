@@ -11,6 +11,8 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
+	"main/config"
+	"main/generation"
 )
 
 type versionRef struct {
@@ -174,44 +176,41 @@ func cloneAll(root string, sources []source) {
 
 func generateAll(root string, sources []source, siteURL, issueURL string) {
 	releases := allReleases(sources)
-	generator := filepath.Join(os.TempDir(), "wgsl-docs-generator")
-	build := exec.Command("go", "build", "-o", generator, ".")
-	build.Dir = root
-	build.Stdout, build.Stderr = os.Stdout, os.Stderr
-	if err := build.Run(); err != nil {
-		fatal(err)
-	}
 	for _, item := range releases {
-		fmt.Printf("Generating %s %s\n", item.Name, filepath.Base(item.Dir))
-		args := []string{"generate", "--project", filepath.Join(root, item.Dir), "--output", filepath.Join(root, "dist"), "--source-ref", item.Ref}
+		projectPath := filepath.Join(root, item.Dir)
+		cfg, err := config.Load(projectPath)
+		if err != nil {
+			fatal(err)
+		}
+		// Match the generate CLI's explicit --project and --output overrides.
+		cfg.SourcePath = projectPath
+		cfg.SourceGithubRoot = projectPath
+		cfg.OutputDir = filepath.Join(root, "dist")
+		cfg.SourceGithubRef = item.Ref
+		cfg.Version = item.Version
+		cfg.SkipCatalogue = true
 		if siteURL != "" {
-			args = append(args, "--site-url", siteURL)
+			cfg.SiteURL = siteURL
 		}
 		if issueURL != "" {
-			args = append(args, "--issue-url", issueURL)
+			cfg.IssueURL = issueURL
 		}
-		if item.Version != "project" {
-			args = append(args, "--version", item.Version)
-		}
-		args = append(args, "--skip-catalogue")
-		cmd := exec.Command(generator, args...)
-		cmd.Dir = root
-		cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-		if err := cmd.Run(); err != nil {
+		if err := generation.Generate(cfg); err != nil {
 			fatal(err)
 		}
 	}
-	args := []string{"finalize", "--output", filepath.Join(root, "dist")}
+	cfg, err := config.Load(root)
+	if err != nil {
+		fatal(err)
+	}
+	cfg.OutputDir = filepath.Join(root, "dist")
 	if siteURL != "" {
-		args = append(args, "--site-url", siteURL)
+		cfg.SiteURL = siteURL
 	}
 	if issueURL != "" {
-		args = append(args, "--issue-url", issueURL)
+		cfg.IssueURL = issueURL
 	}
-	cmd := exec.Command(generator, args...)
-	cmd.Dir = root
-	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-	if err := cmd.Run(); err != nil {
+	if err := generation.Finalize(cfg); err != nil {
 		fatal(err)
 	}
 }

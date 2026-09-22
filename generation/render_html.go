@@ -10,10 +10,9 @@ import (
 	config "main/config"
 
 	"github.com/aymerick/raymond"
-	progressbar "github.com/schollz/progressbar/v3"
 )
 
-func renderDocumentation(config config.Config, site documentationSite, registry []packageRegistryEntry) error {
+func renderDocumentation(config config.Config, site documentationSite, registry []packageRegistryEntry, progress *generationProgress) error {
 	if config.Format == "json" {
 		return writeDocumentationJSON(config.OutputDir, site)
 	}
@@ -37,8 +36,6 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 		return fmt.Errorf("parse shader template: %w", err)
 	}
 
-	processingBar := progressbar.Default(int64(len(site.Shaders)), "🛠️ Generating Documentation")
-
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, runtime.NumCPU())
 	pageErrors := make(chan error, len(site.Shaders))
@@ -61,14 +58,14 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 			if wgslFile.Dependency {
 				pagePath := filepath.Join(versionedOutput, wgslFile.WgslPath)
 				if _, err := os.Stat(pagePath); err == nil {
-					processingBar.Add(1)
+					progress.addDocumentation()
 					return
 				}
 			}
 			if err := wgslFile.GenerateWgslPage(compiledTemplate, versionedOutput); err != nil {
 				pageErrors <- fmt.Errorf("render %s: %w", wgslFile.SourcePath, err)
 			}
-			processingBar.Add(1)
+			progress.addDocumentation()
 		}()
 	}
 
@@ -127,8 +124,10 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 		}
 		renderedPackages = append(renderedPackages, page)
 	}
-	if err := writePackageOGImages(config, documentationSite{Packages: renderedPackages}); err != nil {
-		return err
+	if !config.SkipCatalogue {
+		if err := writePackageOGImages(config, documentationSite{Packages: renderedPackages}, progress); err != nil {
+			return err
+		}
 	}
 	if config.SkipCatalogue {
 		return nil

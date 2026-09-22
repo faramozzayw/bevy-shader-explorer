@@ -53,6 +53,12 @@ func Finalize(config config.Config) error {
 		Packages:         packages,
 		TotalShaderCount: packageRegistryShaderCount(registry),
 	}
+	progress := newGenerationProgress(config.Name, config.Version, progressOptions{Finalizing: true, OG: true})
+	defer progress.finish()
+	progress.setOGTotal(len(site.Packages))
+	if err := writePackageOGImages(config, site, progress); err != nil {
+		return err
+	}
 	if err := writeSiteOGImage(config); err != nil {
 		return err
 	}
@@ -83,5 +89,9 @@ func Finalize(config config.Config) error {
 	if err := writePackageVersionsManifest(config.OutputDir); err != nil {
 		return err
 	}
-	return writeSEOFiles(config.OutputDir, config.SiteURL)
+	if err := writeSEOFiles(config.OutputDir, config.SiteURL); err != nil {
+		return err
+	}
+	progress.completeFinalizing()
+	return nil
 }

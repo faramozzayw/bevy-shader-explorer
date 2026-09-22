@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"strings"
+	"sync"
 
 	"github.com/aymerick/raymond"
 	"github.com/gomarkdown/markdown"
@@ -48,22 +49,26 @@ var PROJECT_HEADER_TEMPLATE string
 //go:embed templates/partials/version-selector.hbs
 var VERSION_SELECTOR_TEMPLATE string
 
-func SetupHandlebars() {
-	raymond.RegisterHelper("eq", eq)
-	raymond.RegisterHelper("neq", neq)
-	raymond.RegisterHelper("parse-markdown", parseMarkdown)
-	raymond.RegisterHelper("contains", contains)
-	raymond.RegisterHelper("json", jsonValue)
+var handlebarsSetup sync.Once
 
-	raymond.RegisterPartial("shader-defs-list", SHADER_DEFS_LIST_TEMPLATE)
-	raymond.RegisterPartial("type", TYPE_TEMPLATE)
-	raymond.RegisterPartial("head", HEAD_TEMPLATE)
-	raymond.RegisterPartial("gh-link", GH_LINK_TEMPLATE)
-	raymond.RegisterPartial("annotations", ANNOTATIONS_TEMPLATE)
-	raymond.RegisterPartial("header", HEADER_TEMPLATE)
-	raymond.RegisterPartial("footer", FOOTER_TEMPLATE)
-	raymond.RegisterPartial("project-header", PROJECT_HEADER_TEMPLATE)
-	raymond.RegisterPartial("version-selector", VERSION_SELECTOR_TEMPLATE)
+func SetupHandlebars() {
+	handlebarsSetup.Do(func() {
+		raymond.RegisterHelper("eq", eq)
+		raymond.RegisterHelper("neq", neq)
+		raymond.RegisterHelper("parse-markdown", parseMarkdown)
+		raymond.RegisterHelper("contains", contains)
+		raymond.RegisterHelper("json", jsonValue)
+
+		raymond.RegisterPartial("shader-defs-list", SHADER_DEFS_LIST_TEMPLATE)
+		raymond.RegisterPartial("type", TYPE_TEMPLATE)
+		raymond.RegisterPartial("head", HEAD_TEMPLATE)
+		raymond.RegisterPartial("gh-link", GH_LINK_TEMPLATE)
+		raymond.RegisterPartial("annotations", ANNOTATIONS_TEMPLATE)
+		raymond.RegisterPartial("header", HEADER_TEMPLATE)
+		raymond.RegisterPartial("footer", FOOTER_TEMPLATE)
+		raymond.RegisterPartial("project-header", PROJECT_HEADER_TEMPLATE)
+		raymond.RegisterPartial("version-selector", VERSION_SELECTOR_TEMPLATE)
+	})
 }
 
 func jsonValue(value interface{}) string {

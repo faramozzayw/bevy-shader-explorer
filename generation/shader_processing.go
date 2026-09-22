@@ -12,14 +12,12 @@ import (
 
 	"main/utils"
 	"main/wgsl"
-
-	progressbar "github.com/schollz/progressbar/v3"
 )
 
 // parseShaderInputs parses files concurrently while storing results by input
 // index. Keeping the original order makes collision resolution and generated
 // navigation deterministic regardless of worker scheduling.
-func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, progress *progressbar.ProgressBar) ([]wgsl.WgslFile, error) {
+func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, progress *generationProgress) ([]wgsl.WgslFile, error) {
 	files := make([]wgsl.WgslFile, len(inputs))
 	workers := runtime.NumCPU()
 	if workers > 8 {
@@ -67,7 +65,7 @@ func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, p
 				file.WgslPath = strings.Replace(file.WgslPath, "src/", "", 1)
 				file.WgslPath = utils.DedupPathParts(file.WgslPath)
 				files[index] = file
-				progress.Add(1)
+				progress.addReading()
 			}
 		}()
 	}

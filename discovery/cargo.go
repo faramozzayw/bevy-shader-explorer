@@ -247,6 +247,14 @@ func RepositoryRootForPackage(manifestPath string) string {
 // registry archives of repositories whose crates live in a same-named folder.
 func RepositorySubpathForPackage(manifestPath, repository string, packageName string) string {
 	root := RepositoryRootForPackage(manifestPath)
+	return RepositorySubpathForPackageFromRoot(manifestPath, repository, packageName, root)
+}
+
+// RepositorySubpathForPackageFromRoot is the same repository-subpath lookup
+// as RepositorySubpathForPackage, but accepts a root that the caller has
+// already resolved. This avoids repeating the upward Cargo.toml walk when
+// several shader files belong to the same package.
+func RepositorySubpathForPackageFromRoot(manifestPath, repository string, packageName, root string) string {
 	packageDir := filepath.Dir(manifestPath)
 	if filepath.Clean(root) != filepath.Clean(packageDir) {
 		// The package already has a meaningful checkout-relative path.
