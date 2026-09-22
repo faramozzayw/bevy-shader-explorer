@@ -97,3 +97,30 @@ ref = "0.12.0"
 [[sources.releases]]
 version = "0.13.0"
 ref = "0.13.0"
+
+# [[sources]]
+# name = "bevy_enoki"
+# repo = "https://github.com/Lommix/bevy_enoki.git"
+# root = "sources/bevy_enoki"
+#
+# [[sources.releases]]
+# version = "project"
+# ref = "master"
+
+[[sources]]
+name = "noisy_bevy"
+repo = "https://github.com/johanhelsing/noisy_bevy.git"
+root = "sources/noisy_bevy"
+
+[[sources.releases]]
+version = "project"
+ref = "bevy-0.19"
+
+[[sources]]
+name = "bevy_feronia"
+repo = "https://github.com/NicoZweifel/bevy_feronia.git"
+root = "sources/bevy_feronia"
+
+[[sources.releases]]
+version = "project"
+ref = "main"
