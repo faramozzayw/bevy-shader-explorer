@@ -1,6 +1,8 @@
 node_modules
 dist
 bevy*
+!wgsl/bevy/
+!wgsl/bevy/*.go
 main
 .vercel
 
