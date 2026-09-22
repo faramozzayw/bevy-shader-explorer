@@ -59,6 +59,14 @@ func (n Node) Field(name string) Node {
 	return Node{raw: n.raw.ChildByFieldName(name), tree: n.tree}
 }
 
+func (n Node) PreviousNamedSibling() Node {
+	return Node{raw: n.raw.PrevNamedSibling(), tree: n.tree}
+}
+
+func (n Node) Parent() Node {
+	return Node{raw: n.raw.Parent(), tree: n.tree}
+}
+
 func (n Node) Children() []Node {
 	children := make([]Node, 0, n.raw.NamedChildCount())
 	for i := uint(0); i < n.raw.NamedChildCount(); i++ {

@@ -235,6 +235,34 @@ fn shade(value: vec3f) -> vec3f {
 	assert.Equal(t, "shade", declarations.Functions[0].Name)
 }
 
+func TestWESLExtractsDecoratedGlobalAttributes(t *testing.T) {
+	code := `struct CustomMaterial {
+    time: vec4<f32>,
+}
+
+@group(3) @binding(0) var<uniform> material: CustomMaterial;
+
+@fragment
+fn fragment() -> @location(0) vec4<f32> {
+    return material.time;
+}`
+
+	declarations, err := extract.ParseWESL(code, code, map[int]string{}, nil)
+	if !assert.NoError(t, err) {
+		return
+	}
+	if assert.Len(t, declarations.Bindings, 1) {
+		assert.Equal(t, "material", declarations.Bindings[0].Name)
+		assert.Equal(t, "uniform", declarations.Bindings[0].BindingType)
+		assert.Equal(t, []Annotation{{Name: "group", Value: "3"}, {Name: "binding", Value: "0"}}, declarations.Bindings[0].Annotations)
+	}
+	if assert.Len(t, declarations.Functions, 1) {
+		assert.Equal(t, "fragment", declarations.Functions[0].StageAttribute)
+		assert.Equal(t, "vec4<f32>", declarations.Functions[0].ReturnTypeInfo.Type)
+		assert.Equal(t, []Annotation{{Name: "location", Value: "0"}}, declarations.Functions[0].ReturnTypeInfo.Annotations)
+	}
+}
+
 func TestExtractionRegressionForAllItemKinds(t *testing.T) {
 	code := allItemsFixture
 

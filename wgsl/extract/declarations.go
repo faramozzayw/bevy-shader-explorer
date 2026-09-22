@@ -133,16 +133,39 @@ func descendantsOfKind(node syntax.Node, kind string) []syntax.Node {
 
 func annotationsFrom(node syntax.Node) []Annotation {
 	var annotations []Annotation
+	if node.Valid() && node.Kind() == "attribute" {
+		return []Annotation{annotationFromText(node.Text())}
+	}
 	for _, child := range node.Children() {
 		if child.Kind() != "attribute" && !strings.HasSuffix(child.Kind(), "_attr") {
 			continue
 		}
-		text := strings.TrimPrefix(child.Text(), "@")
-		name, value, hasValue := strings.Cut(text, "(")
-		if hasValue {
-			value = strings.TrimSuffix(value, ")")
+		annotations = append(annotations, annotationFromText(child.Text()))
+	}
+	return annotations
+}
+
+func annotationFromText(text string) Annotation {
+	text = strings.TrimPrefix(text, "@")
+	name, value, hasValue := strings.Cut(text, "(")
+	if hasValue {
+		value = strings.TrimSuffix(value, ")")
+	}
+	return Annotation{Name: strings.TrimSpace(name), Value: strings.TrimSpace(value)}
+}
+
+// annotationsForDeclaration handles both grammars. WGSL keeps attributes as
+// children of the declaration, while WESL's decorated declaration rule emits
+// them as preceding sibling nodes.
+func annotationsForDeclaration(node syntax.Node) []Annotation {
+	annotations := annotationsFrom(node)
+	for current := node; current.Valid(); current = current.Parent() {
+		for sibling := current.PreviousNamedSibling(); sibling.Valid() && sibling.Kind() == "attribute"; sibling = sibling.PreviousNamedSibling() {
+			annotation := annotationsFrom(sibling)
+			if len(annotation) > 0 {
+				annotations = append(annotation, annotations...)
+			}
 		}
-		annotations = append(annotations, Annotation{Name: strings.TrimSpace(name), Value: strings.TrimSpace(value)})
 	}
 	return annotations
 }
@@ -184,7 +207,7 @@ func (e *syntaxExtractor) consts() []Const {
 		if _, after, found := strings.Cut(value, "="); found {
 			value = strings.TrimSpace(strings.TrimSuffix(after, ";"))
 		}
-		item := e.namedType(declaration, annotationsFrom(node))
+		item := e.namedType(declaration, annotationsForDeclaration(node))
 		typ := item.TypeInfo.Type
 		if typ == "" {
 			typ = inferConstType(value)
@@ -245,7 +268,7 @@ func (e *syntaxExtractor) functions() []Function {
 	for _, node := range descendantsOfKind(e.root, "function_decl") {
 		line := e.line(node)
 		shaderDefs := getShaderDefsByLine(e.shaderDefs, line)
-		attrs := annotationsFrom(node)
+		attrs := annotationsForDeclaration(node)
 		stage, workgroup := functionAttributes(attrs)
 		header := childOfKind(node, "function_header")
 		var params []NamedType
@@ -290,7 +313,7 @@ func functionAttributes(attrs []Annotation) (string, []string) {
 func (e *syntaxExtractor) bindings() []Binding {
 	var result []Binding
 	for _, node := range descendantsOfKind(e.root, "global_variable_decl") {
-		attrs := annotationsFrom(node)
+		attrs := annotationsForDeclaration(node)
 		if !hasBindingAttributes(attrs) {
 			continue
 		}
@@ -300,7 +323,7 @@ func (e *syntaxExtractor) bindings() []Binding {
 		}
 		identifier := childOfKind(declaration, "optionally_typed_ident")
 		if !identifier.Valid() {
-			continue
+			identifier = declaration
 		}
 		line := e.line(node)
 		shaderDefs := getShaderDefsByLine(e.shaderDefs, line)
@@ -315,14 +338,13 @@ func (e *syntaxExtractor) bindings() []Binding {
 }
 
 func returnTypeNode(header syntax.Node) syntax.Node {
+	if declared := header.Field("return_type"); declared.Valid() {
+		return declared
+	}
 	children := header.Children()
-	for index, child := range children {
-		if child.Kind() == "param_list" && index+1 < len(children) {
-			for _, candidate := range children[index+1:] {
-				if candidate.Kind() == "template_elaborated_ident" {
-					return candidate
-				}
-			}
+	for _, child := range children {
+		if child.Kind() == "template_elaborated_ident" || child.Kind() == "type_specifier" {
+			return child
 		}
 	}
 	return syntax.Node{}

@@ -81,7 +81,7 @@ func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, p
 	return files, nil
 }
 
-const shaderParseCacheVersion = "shader-parse-v1"
+const shaderParseCacheVersion = "shader-parse-v3"
 
 // parseShaderInputCached reuses the parser model for identical source content
 // and link-affecting configuration. The cache is outside dist so it never
