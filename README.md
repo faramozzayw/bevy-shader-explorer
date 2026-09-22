@@ -186,6 +186,14 @@ For the bundled Bevy catalogue, `just generate-all` clones the configured source
 
 The source matrix is defined in `shader-sources.toml`. Run `go run ./cmd/wgsl-docs-build --config path/to/matrix.toml clone` or `generate` to use another release matrix.
 
+Workspace repositories can rename a Cargo package in the generated catalogue
+without changing Cargo dependency resolution or source links. Add a
+`package_aliases` map keyed by the real Cargo package name:
+
+```toml
+package_aliases = { example = "bevy_enoki_example" }
+```
+
 ## Add a library to the catalogue
 
 Add a `[[sources]]` entry to `shader-sources.toml`. The `root` is where

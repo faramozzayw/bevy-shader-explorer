@@ -113,13 +113,13 @@ func getShaderInputs(config config.Config) ([]shaderInput, discovery.CargoMetada
 			if inputs[i].Config.SourceGithubRoot == "" {
 				inputs[i].Config.SourceGithubRoot = config.SourcePath
 			}
-			inputs[i].PackageName = pkg.Name
+			inputs[i].PackageName = displayPackageName(config, pkg.Name)
 			inputs[i].PackageDescription = pkg.Description
 			if pkg.ManifestPath == manifestPath && config.Description != "" {
 				inputs[i].PackageDescription = config.Description
 			}
 			inputs[i].PackageVersion = pkg.Version
-			inputs[i].Prefix = filepath.Join(pkg.Name, pkg.Version)
+			inputs[i].Prefix = filepath.Join(inputs[i].PackageName, pkg.Version)
 		}
 		filteredInputs = append(filteredInputs, inputs[i])
 	}
@@ -166,6 +166,13 @@ func getShaderInputs(config config.Config) ([]shaderInput, discovery.CargoMetada
 		inputs = append(inputs, shaderInput{Path: dependency.Path, Config: dependencyConfig, Prefix: filepath.Join(dependency.Package, dependency.Version), Dependency: true, PackageName: dependency.Package, PackageDescription: pkg.Description, PackageVersion: dependency.Version})
 	}
 	return inputs, metadata, nil
+}
+
+func displayPackageName(config config.Config, packageName string) string {
+	if alias, ok := config.PackageAliases[packageName]; ok && alias != "" {
+		return alias
+	}
+	return packageName
 }
 
 func copyItemsToPublic(config *config.Config, searchInfo []ShaderSearchableInfo, packages []documentationPackagePage) error {

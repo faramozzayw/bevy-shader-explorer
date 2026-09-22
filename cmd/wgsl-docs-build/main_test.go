@@ -9,20 +9,24 @@ import (
 func TestAllReleasesResolvesRefPatternAndOverride(t *testing.T) {
 	sources := []source{{
 		Name: "demo", Repo: "https://example.invalid/demo", Root: "sources/demo",
-		RefPattern: "release-{version}",
-		Versions:   []string{"1.2.3", "1.2.4"},
-		Releases:   []versionRef{{Version: "1.2.4", Ref: "special"}},
+		RefPattern:     "release-{version}",
+		Versions:       []string{"1.2.3", "1.2.4"},
+		Releases:       []versionRef{{Version: "1.2.4", Ref: "special"}},
+		PackageAliases: map[string]string{"example": "demo_example"},
 	}}
 	got := allReleases(sources)
 	if len(got) != 2 || got[0].Ref != "release-1.2.3" || got[1].Ref != "special" {
 		t.Fatalf("resolved refs = %q, %q", got[0].Ref, got[1].Ref)
+	}
+	if got[0].PackageAliases["example"] != "demo_example" {
+		t.Fatalf("package aliases = %#v", got[0].PackageAliases)
 	}
 }
 
 func TestLoadSourcesReadsRefPattern(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "matrix.toml")
-	contents := "[[sources]]\nname = \"demo\"\nrepo = \"https://example.invalid/demo\"\nroot = \"sources/demo\"\nref_pattern = \"v{version}\"\n\n[[sources.releases]]\nversion = \"2.0.0\"\n"
+	contents := "[[sources]]\nname = \"demo\"\nrepo = \"https://example.invalid/demo\"\nroot = \"sources/demo\"\nref_pattern = \"v{version}\"\npackage_aliases = { example = \"demo_example\" }\n\n[[sources.releases]]\nversion = \"2.0.0\"\n"
 	if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -32,6 +36,9 @@ func TestLoadSourcesReadsRefPattern(t *testing.T) {
 	}
 	if got := allReleases(sources)[0].Ref; got != "v2.0.0" {
 		t.Fatalf("resolved ref = %q, want v2.0.0", got)
+	}
+	if got := sources[0].PackageAliases["example"]; got != "demo_example" {
+		t.Fatalf("package alias = %q, want demo_example", got)
 	}
 }
 

@@ -98,14 +98,15 @@ ref = "0.12.0"
 version = "0.13.0"
 ref = "0.13.0"
 
-# [[sources]]
-# name = "bevy_enoki"
-# repo = "https://github.com/Lommix/bevy_enoki.git"
-# root = "sources/bevy_enoki"
-#
-# [[sources.releases]]
-# version = "project"
-# ref = "master"
+[[sources]]
+name = "bevy_enoki"
+repo = "https://github.com/Lommix/bevy_enoki.git"
+root = "sources/bevy_enoki"
+package_aliases = { example = "bevy_enoki_example" }
+
+[[sources.releases]]
+version = "project"
+ref = "master"
 
 [[sources]]
 name = "noisy_bevy"

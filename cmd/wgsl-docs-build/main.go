@@ -22,20 +22,22 @@ type versionRef struct {
 }
 
 type source struct {
-	Name       string       `toml:"name"`
-	Repo       string       `toml:"repo"`
-	Root       string       `toml:"root"`
-	RefPattern string       `toml:"ref_pattern"`
-	Versions   []string     `toml:"versions"`
-	Releases   []versionRef `toml:"releases"`
+	Name           string            `toml:"name"`
+	Repo           string            `toml:"repo"`
+	Root           string            `toml:"root"`
+	RefPattern     string            `toml:"ref_pattern"`
+	Versions       []string          `toml:"versions"`
+	Releases       []versionRef      `toml:"releases"`
+	PackageAliases map[string]string `toml:"package_aliases"`
 }
 
 type release struct {
-	Name    string
-	Repo    string
-	Dir     string
-	Version string
-	Ref     string
+	Name           string
+	Repo           string
+	Dir            string
+	Version        string
+	Ref            string
+	PackageAliases map[string]string
 }
 
 type buildConfig struct {
@@ -105,7 +107,14 @@ func allReleases(sources []source) []release {
 			if ref == "" {
 				ref = strings.ReplaceAll(project.RefPattern, "{version}", version.Version)
 			}
-			result = append(result, release{Name: project.Name, Repo: project.Repo, Dir: dir, Version: version.Version, Ref: ref})
+			result = append(result, release{
+				Name:           project.Name,
+				Repo:           project.Repo,
+				Dir:            dir,
+				Version:        version.Version,
+				Ref:            ref,
+				PackageAliases: project.PackageAliases,
+			})
 		}
 	}
 	return result
@@ -200,6 +209,7 @@ func generateAll(root string, sources []source, siteURL, issueURL string, quiet 
 		cfg.SourceGithubRoot = projectPath
 		cfg.OutputDir = filepath.Join(root, "dist")
 		cfg.SourceGithubRef = item.Ref
+		cfg.PackageAliases = item.PackageAliases
 		cfg.Version = item.Version
 		cfg.SkipCatalogue = true
 		cfg.Quiet = quiet

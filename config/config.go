@@ -29,14 +29,17 @@ type Config struct {
 	SourcePath     string
 	// SourceGithubRoot is the repository root used for source links. It can
 	// differ from SourcePath when a shader belongs to a workspace member.
-	SourceGithubRoot     string
-	SourceGithubSubpath  string
-	FileFilter           string
-	OutputDir            string
-	SiteURL              string
-	IssueURL             string
-	SourceGithubURL      string
-	SourceGithubRef      string
+	SourceGithubRoot    string
+	SourceGithubSubpath string
+	FileFilter          string
+	OutputDir           string
+	SiteURL             string
+	IssueURL            string
+	SourceGithubURL     string
+	SourceGithubRef     string
+	// PackageAliases renames project/workspace package names in generated docs
+	// without changing Cargo metadata or dependency resolution.
+	PackageAliases       map[string]string
 	Version              string
 	Exclude              []string
 	NoDeps               bool
