@@ -109,9 +109,6 @@ func getShaderInputs(config config.Config) ([]shaderInput, discovery.CargoMetada
 	filteredInputs := inputs[:0]
 	for i := range inputs {
 		if pkg, ok := discovery.PackageForPath(metadata.Packages, inputs[i].Path); ok {
-			if discovery.IsWorkspaceRootPackage(metadata, pkg.ManifestPath) {
-				continue
-			}
 			inputs[i].Config.SourcePath = filepath.Dir(pkg.ManifestPath)
 			if inputs[i].Config.SourceGithubRoot == "" {
 				inputs[i].Config.SourceGithubRoot = config.SourcePath

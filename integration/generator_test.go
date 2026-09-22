@@ -231,7 +231,7 @@ fn page_main() {}
 	}
 }
 
-func TestGeneratorExcludesWorkspaceRootPackage(t *testing.T) {
+func TestGeneratorIncludesWorkspaceRootAndMemberPackages(t *testing.T) {
 	project := t.TempDir()
 	writeFixtureFile(t, filepath.Join(project, "Cargo.toml"), `[package]
 name = "workspace-root"
@@ -249,12 +249,13 @@ version = "0.1.0"
 `)
 	writeFixtureFile(t, filepath.Join(memberDir, "src", "lib.rs"), "pub fn member() {}\n")
 	writeFixtureFile(t, filepath.Join(memberDir, "member.wgsl"), "const MEMBER_VALUE: f32 = 2.0;\n")
+	writeFixtureFile(t, filepath.Join(project, "assets", "shaders", "root.wgsl"), "const ASSET_ROOT_VALUE: f32 = 1.0;\n")
 
 	output := filepath.Join(t.TempDir(), "dist")
 	runGenerator(t, repoRoot(t), project, output)
-	if _, err := os.Stat(filepath.Join(output, "workspace-root", "0.1.0")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(output, "workspace-root", "0.1.0", "index.html")); err != nil {
 		entries, _ := os.ReadDir(output)
-		t.Fatalf("workspace root package should not be generated (output=%s entries=%v err=%v)", output, entries, err)
+		t.Fatalf("workspace root package should be generated (output=%s entries=%v err=%v)", output, entries, err)
 	}
 	if _, err := os.Stat(filepath.Join(output, "member", "0.1.0", "index.html")); err != nil {
 		t.Fatalf("workspace member package was not generated: %v", err)
