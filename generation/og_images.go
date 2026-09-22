@@ -1,9 +1,11 @@
 package generation
 
 import (
+	"bytes"
+	_ "embed"
 	"encoding/base64"
 	"fmt"
-	"html"
+	"html/template"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +14,22 @@ import (
 
 	configpkg "main/config"
 )
+
+//go:embed templates/og-card.svg.tmpl
+var ogCardTemplateSource string
+
+var ogCardTemplate = template.Must(template.New("og-card").Parse(ogCardTemplateSource))
+
+type ogDescriptionLine struct {
+	DeltaY string
+	Text   string
+}
+
+type ogCardData struct {
+	Title            string
+	VersionLine      string
+	DescriptionLines []ogDescriptionLine
+}
 
 var ogSlugPattern = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
 
@@ -91,25 +109,24 @@ func writeOGCardAt(outputDir, base, title, version, bevyVersion, description str
 	if len(descriptionLines) == 0 {
 		descriptionLines = []string{"Searchable shader documentation for the Bevy ecosystem."}
 	}
-	descriptionSVG := make([]string, len(descriptionLines))
-	for i, line := range descriptionLines {
-		descriptionSVG[i] = fmt.Sprintf(`<tspan x="80" dy="%s">%s</tspan>`, func() string {
-			if i == 0 {
-				return "0"
-			}
-			return "36"
-		}(), html.EscapeString(line))
+	data := ogCardData{
+		Title:            title,
+		VersionLine:      versionLine,
+		DescriptionLines: make([]ogDescriptionLine, len(descriptionLines)),
 	}
-	svg := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-<defs><linearGradient id="shade" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#07111c" stop-opacity=".94"/><stop offset=".62" stop-color="#07111c" stop-opacity=".72"/><stop offset="1" stop-color="#07111c" stop-opacity=".08"/></linearGradient></defs>
-<image href="../mascot2.jpeg" x="0" y="0" width="1200" height="630" preserveAspectRatio="xMidYMid slice"/><rect width="1200" height="630" fill="url(#shade)"/>
-<text x="78" y="105" fill="#9edff2" font-family="monospace" font-size="27" font-weight="bold">SHADER EXPLORER</text>
-<text x="78" y="260" fill="#ffffff" font-family="monospace" font-size="58" font-weight="bold">%s</text>
-<text x="80" y="322" fill="#c4eaf5" font-family="monospace" font-size="28">%s</text>
-<text x="80" y="420" fill="#f1f7f9" font-family="sans-serif" font-size="27">%s</text>
-</svg>
-`, html.EscapeString(title), html.EscapeString(versionLine), strings.Join(descriptionSVG, ""))
-	if err := os.WriteFile(svgPath, []byte(svg), 0o644); err != nil {
+	for i, line := range descriptionLines {
+		deltaY := "36"
+		if i == 0 {
+			deltaY = "0"
+		}
+		data.DescriptionLines[i] = ogDescriptionLine{DeltaY: deltaY, Text: line}
+	}
+	var svgBuffer bytes.Buffer
+	if err := ogCardTemplate.Execute(&svgBuffer, data); err != nil {
+		return fmt.Errorf("render social card template: %w", err)
+	}
+	svg := svgBuffer.Bytes()
+	if err := os.WriteFile(svgPath, svg, 0o644); err != nil {
 		return fmt.Errorf("write social card SVG: %w", err)
 	}
 	if _, err := exec.LookPath("rsvg-convert"); err != nil {
@@ -122,7 +139,7 @@ func writeOGCardAt(outputDir, base, title, version, bevyVersion, description str
 	if mascot, err := os.ReadFile(filepath.Join(outputDir, "public", "mascot2.jpeg")); err == nil {
 		renderSVGPath = svgPath + ".render.svg"
 		data := base64.StdEncoding.EncodeToString(mascot)
-		renderSVG := strings.Replace(svg, "../mascot2.jpeg", "data:image/jpeg;base64,"+data, 1)
+		renderSVG := strings.Replace(string(svg), "../mascot2.jpeg", "data:image/jpeg;base64,"+data, 1)
 		if err := os.WriteFile(renderSVGPath, []byte(renderSVG), 0o644); err != nil {
 			return fmt.Errorf("write renderable social card SVG: %w", err)
 		}
