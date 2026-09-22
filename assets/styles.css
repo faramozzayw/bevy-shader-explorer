@@ -761,9 +761,30 @@ a.item-name:hover {
   position: absolute;
   background: #1e1e1e;
   width: 100%;
+  max-height: 20rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-radius: 10px;
   background-color: var(--header-bg);
   box-shadow: 0px 1px 5px 0px var(--shadow-color);
+  scrollbar-color: var(--code-border-color) transparent;
+  scrollbar-width: thin;
+}
+#results::-webkit-scrollbar {
+  width: 8px;
+}
+#results::-webkit-scrollbar-track {
+  background: transparent;
+}
+#results::-webkit-scrollbar-thumb {
+  background: var(--code-border-color);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+#results::-webkit-scrollbar-thumb:hover {
+  background: var(--function-name-color);
+  border-width: 1px;
 }
 
 /* Version select */

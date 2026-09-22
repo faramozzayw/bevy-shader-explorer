@@ -14,6 +14,7 @@ const searchVersion = searchHeader?.dataset.searchVersion || (legacyPackagePage 
 const packageSearchIndex = (packageName, version) =>
   `${packageName}-${version}`.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
 const searchIndex = searchHeader?.dataset.searchIndex || (legacyPackagePage ? packageSearchIndex(pathParts[0], pathParts[1]) : "project");
+const maxSearchResults = 50;
 
 async function loadTemplate() {
   const response = await fetch("/public/search-result.hbs");
@@ -110,7 +111,7 @@ loadSearchData()
       }
 
       const fuse = new Fuse(filteredData, fuseOptions);
-      return fuse.search(cleanedQuery).slice(0, 10);
+      return fuse.search(cleanedQuery).slice(0, maxSearchResults);
     }
 
     const search = currentUrl.searchParams.get("search") ?? "";
