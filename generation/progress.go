@@ -48,9 +48,13 @@ type progressOptions struct {
 	OG            bool
 }
 
-func newGenerationProgress(name, version string, options progressOptions) *generationProgress {
+func newGenerationProgress(name, version string, options progressOptions, quiet ...bool) *generationProgress {
+	interactive := true
+	if len(quiet) > 0 {
+		interactive = !quiet[0]
+	}
 	progress := &generationProgress{
-		interactive:    true,
+		interactive:    interactive,
 		name:           name,
 		version:        version,
 		showDiscovery:  options.Discovery,
@@ -78,12 +82,14 @@ func newGenerationProgress(name, version string, options progressOptions) *gener
 	if options.OG {
 		progress.rows++
 	}
-	if progressSessionActive {
+	if progress.interactive && progressSessionActive {
 		fmt.Fprintf(os.Stdout, "\033[%dA", progressSessionRows)
 	}
 	progress.render()
-	progressSessionActive = true
-	progressSessionRows = progress.rows
+	if progress.interactive {
+		progressSessionActive = true
+		progressSessionRows = progress.rows
+	}
 	return progress
 }
 

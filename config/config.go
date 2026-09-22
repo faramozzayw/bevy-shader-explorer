@@ -44,6 +44,7 @@ type Config struct {
 	DependencyInclude    []string
 	DependencyTransitive bool
 	SkipCatalogue        bool
+	Quiet                bool
 }
 
 // Load reads the optional project-local wgsl-docs.toml file. Defaults are

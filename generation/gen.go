@@ -28,7 +28,7 @@ var copyToPublic = []string{
 }
 
 func Generate(config config.Config) error {
-	progress := newGenerationProgress(config.Name, config.Version, progressOptions{Discovery: true, Reading: true, Documentation: true, OG: !config.SkipCatalogue})
+	progress := newGenerationProgress(config.Name, config.Version, progressOptions{Discovery: true, Reading: true, Documentation: true, OG: !config.SkipCatalogue}, config.Quiet)
 	defer progress.finish()
 	if sourcePath, err := filepath.Abs(config.SourcePath); err == nil {
 		config.SourcePath = sourcePath

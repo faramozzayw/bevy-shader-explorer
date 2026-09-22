@@ -53,7 +53,7 @@ func Finalize(config config.Config) error {
 		Packages:         packages,
 		TotalShaderCount: packageRegistryShaderCount(registry),
 	}
-	progress := newGenerationProgress(config.Name, config.Version, progressOptions{Finalizing: true, OG: true})
+	progress := newGenerationProgress(config.Name, config.Version, progressOptions{Finalizing: true, OG: true}, config.Quiet)
 	defer progress.finish()
 	progress.setOGTotal(len(site.Packages))
 	if err := writePackageOGImages(config, site, progress); err != nil {

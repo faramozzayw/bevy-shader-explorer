@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -113,6 +114,7 @@ func allReleases(sources []source) []release {
 func main() {
 	flags := flag.NewFlagSet("wgsl-docs-build", flag.ExitOnError)
 	configPath := flags.String("config", "shader-sources.toml", "build matrix configuration")
+	quiet := flags.Bool("quiet", false, "suppress progress and informational logs")
 	if err := flags.Parse(os.Args[1:]); err != nil || flags.NArg() != 1 || (flags.Arg(0) != "clone" && flags.Arg(0) != "generate") {
 		fmt.Fprintln(os.Stderr, "usage: wgsl-docs-build [--config path] <clone|generate>")
 		os.Exit(2)
@@ -130,13 +132,13 @@ func main() {
 		fatal(fmt.Errorf("build config contains no sources"))
 	}
 	if flags.Arg(0) == "clone" {
-		cloneAll(root, sources)
+		cloneAll(root, sources, *quiet)
 		return
 	}
-	generateAll(root, sources, strings.TrimRight(buildConfig.SiteURL, "/"), buildConfig.IssueURL)
+	generateAll(root, sources, strings.TrimRight(buildConfig.SiteURL, "/"), buildConfig.IssueURL, *quiet)
 }
 
-func cloneAll(root string, sources []source) {
+func cloneAll(root string, sources []source, quiet bool) {
 	releases := allReleases(sources)
 	jobs := runtime.NumCPU()
 	if jobs > 8 {
@@ -155,9 +157,20 @@ func cloneAll(root string, sources []source) {
 				if err := os.MkdirAll(filepath.Dir(filepath.Join(root, item.Dir)), 0o755); err != nil {
 					fatal(err)
 				}
-				fmt.Printf("Cloning %s %s (%s)\n", item.Name, filepath.Base(item.Dir), item.Ref)
-				cmd := exec.Command("git", "clone", "--branch", item.Ref, "--depth=1", item.Repo, filepath.Join(root, item.Dir))
-				cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+				if !quiet {
+					fmt.Printf("Cloning %s %s (%s)\n", item.Name, filepath.Base(item.Dir), item.Ref)
+				}
+				args := []string{"clone", "--branch", item.Ref, "--depth=1"}
+				if quiet {
+					args = append(args, "--quiet")
+				}
+				args = append(args, item.Repo, filepath.Join(root, item.Dir))
+				cmd := exec.Command("git", args...)
+				if quiet {
+					cmd.Stdout, cmd.Stderr = io.Discard, os.Stderr
+				} else {
+					cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+				}
 				if err := cmd.Run(); err != nil {
 					fatal(err)
 				}
@@ -174,7 +187,7 @@ func cloneAll(root string, sources []source) {
 	wg.Wait()
 }
 
-func generateAll(root string, sources []source, siteURL, issueURL string) {
+func generateAll(root string, sources []source, siteURL, issueURL string, quiet bool) {
 	releases := allReleases(sources)
 	for _, item := range releases {
 		projectPath := filepath.Join(root, item.Dir)
@@ -189,6 +202,7 @@ func generateAll(root string, sources []source, siteURL, issueURL string) {
 		cfg.SourceGithubRef = item.Ref
 		cfg.Version = item.Version
 		cfg.SkipCatalogue = true
+		cfg.Quiet = quiet
 		if siteURL != "" {
 			cfg.SiteURL = siteURL
 		}

@@ -29,6 +29,7 @@ func newRootCommand() *cobra.Command {
 
 func newFinalizeCommand() *cobra.Command {
 	var output, siteURL, issueURL string
+	var quiet bool
 	command := &cobra.Command{
 		Use:   "finalize",
 		Short: "Write catalogue-wide artifacts after release generation",
@@ -45,12 +46,14 @@ func newFinalizeCommand() *cobra.Command {
 			if issueURL != "" {
 				cfg.IssueURL = issueURL
 			}
+			cfg.Quiet = quiet
 			return generation.Finalize(cfg)
 		},
 	}
 	command.Flags().StringVar(&output, "output", "./shader-docs", "documentation output directory")
 	command.Flags().StringVar(&siteURL, "site-url", "", "public site URL used for canonical links and sitemap")
 	command.Flags().StringVar(&issueURL, "issue-url", "", "URL for requesting documentation for a crate")
+	command.Flags().BoolVarP(&quiet, "quiet", "q", false, "suppress progress and informational logs")
 	return command
 }
 
@@ -68,6 +71,7 @@ func newGenerateCommand() *cobra.Command {
 		noDeps        bool
 		offline       bool
 		skipCatalogue bool
+		quiet         bool
 	)
 
 	command := &cobra.Command{
@@ -113,6 +117,9 @@ func newGenerateCommand() *cobra.Command {
 			if command.Flags().Changed("issue-url") {
 				cfg.IssueURL = issueURL
 			}
+			if command.Flags().Changed("quiet") {
+				cfg.Quiet = quiet
+			}
 			cfg.Version = version
 			return generation.Generate(cfg)
 		},
@@ -129,5 +136,6 @@ func newGenerateCommand() *cobra.Command {
 	command.Flags().BoolVar(&noDeps, "no-deps", false, "disable dependency shader discovery")
 	command.Flags().BoolVar(&offline, "offline", false, "use Cargo's offline metadata mode")
 	command.Flags().BoolVar(&skipCatalogue, "skip-catalogue", false, "skip catalogue-wide finalization during release generation")
+	command.Flags().BoolVarP(&quiet, "quiet", "q", false, "suppress progress and informational logs")
 	return command
 }

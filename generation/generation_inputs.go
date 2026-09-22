@@ -101,7 +101,9 @@ func getShaderInputs(config config.Config) ([]shaderInput, discovery.CargoMetada
 		} else {
 			modeHint = "; retry with --offline if the Cargo cache and lockfile are available"
 		}
-		log.Printf("warning: dependency discovery skipped: %v%s; continuing with project shaders", err, modeHint)
+		if !config.Quiet {
+			log.Printf("warning: dependency discovery skipped: %v%s; continuing with project shaders", err, modeHint)
+		}
 		return inputs, discovery.CargoMetadata{}, nil
 	}
 	filteredInputs := inputs[:0]
@@ -132,7 +134,9 @@ func getShaderInputs(config config.Config) ([]shaderInput, discovery.CargoMetada
 	}
 	dependencies, err := discovery.DiscoverDependencyShaders(packages, config.Exclude)
 	if err != nil {
-		log.Printf("warning: dependency shader discovery skipped: %v", err)
+		if !config.Quiet {
+			log.Printf("warning: dependency shader discovery skipped: %v", err)
+		}
 		return inputs, metadata, nil
 	}
 	repositoryRoots := make(map[string]string)
