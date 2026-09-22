@@ -218,6 +218,7 @@ func generateAll(root string, sources []source, siteURL, issueURL string, quiet 
 		fatal(err)
 	}
 	cfg.OutputDir = filepath.Join(root, "dist")
+	cfg.Quiet = quiet
 	if siteURL != "" {
 		cfg.SiteURL = siteURL
 	}

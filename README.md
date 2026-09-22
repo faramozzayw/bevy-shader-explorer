@@ -25,11 +25,16 @@ wgsl-docs generate [flags]
   --project PATH       project directory (default: .)
   --output PATH        output directory (default: ./shader-docs)
   --format FORMAT      documentation format: html or json (default: html)
+  --version VERSION    documentation version label (default: project)
   --exclude PATTERN    exclude a directory or pattern (repeatable)
   --no-deps            disable Cargo dependency shader discovery
   --offline            use Cargo metadata without network access
+  --source-url URL     base URL for source links
+  --source-ref REF     source branch, tag, or commit for source links
   --site-url URL       public origin for canonical URLs and sitemap
+  --issue-url URL      URL for requesting documentation for a crate
   --skip-catalogue     render release pages without catalogue-wide finalization
+  --quiet, -q          suppress progress and informational logs
 ```
 
 The catalogue matrix uses a two-phase workflow. Release passes write package
@@ -44,6 +49,14 @@ wgsl-docs finalize --output ./dist --site-url https://shaders.example.com
 `just generate-all` runs this release/finalization workflow automatically.
 Parser models are cached outside `dist` using source-content and link-settings
 digests, so repeated matrix runs reuse unchanged shader parses safely.
+
+Use `--quiet` for CI or other non-interactive builds when progress output is
+not useful:
+
+```bash
+go run ./cmd/wgsl-docs-build --quiet clone
+go run ./cmd/wgsl-docs-build --quiet generate
+```
 
 ### Search-engine indexing
 
