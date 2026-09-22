@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"main/utils"
+	"github.com/faramozzayw/bevy-shader-explorer/utils"
 )
 
 type packageRegistryEntry struct {

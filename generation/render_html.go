@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"sync"
 
-	config "main/config"
+	config "github.com/faramozzayw/bevy-shader-explorer/config"
 
 	"github.com/aymerick/raymond"
 )

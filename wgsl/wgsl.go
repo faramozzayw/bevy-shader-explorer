@@ -9,11 +9,11 @@ import (
 	"regexp"
 	"strings"
 
-	config "main/config"
-	utils "main/utils"
-	"main/wgsl/bevy"
-	"main/wgsl/extract"
-	"main/wgsl/source"
+	config "github.com/faramozzayw/bevy-shader-explorer/config"
+	utils "github.com/faramozzayw/bevy-shader-explorer/utils"
+	"github.com/faramozzayw/bevy-shader-explorer/wgsl/bevy"
+	"github.com/faramozzayw/bevy-shader-explorer/wgsl/extract"
+	"github.com/faramozzayw/bevy-shader-explorer/wgsl/source"
 
 	"github.com/aymerick/raymond"
 	lo "github.com/samber/lo"

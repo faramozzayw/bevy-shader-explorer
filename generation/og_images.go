@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	configpkg "main/config"
+	configpkg "github.com/faramozzayw/bevy-shader-explorer/config"
 )
 
 //go:embed templates/og-card.svg.tmpl

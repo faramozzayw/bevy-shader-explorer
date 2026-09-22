@@ -8,10 +8,10 @@ import (
 	"slices"
 	"strings"
 
-	"main/config"
-	"main/discovery"
-	"main/utils"
-	"main/wgsl"
+	"github.com/faramozzayw/bevy-shader-explorer/config"
+	"github.com/faramozzayw/bevy-shader-explorer/discovery"
+	"github.com/faramozzayw/bevy-shader-explorer/utils"
+	"github.com/faramozzayw/bevy-shader-explorer/wgsl"
 )
 
 type homeSection struct {

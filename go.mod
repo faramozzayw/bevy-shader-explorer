@@ -1,4 +1,4 @@
-module main
+module github.com/faramozzayw/bevy-shader-explorer
 
 go 1.23.1
 

@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	"main/config"
+	"github.com/faramozzayw/bevy-shader-explorer/config"
 )
 
 // ShaderSource identifies a WGSL file and the package that owns it.

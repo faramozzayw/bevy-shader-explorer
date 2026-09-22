@@ -5,8 +5,8 @@ import (
 	"slices"
 	"strings"
 
-	"main/discovery"
-	"main/wgsl"
+	"github.com/faramozzayw/bevy-shader-explorer/discovery"
+	"github.com/faramozzayw/bevy-shader-explorer/wgsl"
 )
 
 func findPackageMetadata(metadata discovery.CargoMetadata, name, version string) discovery.CargoPackage {

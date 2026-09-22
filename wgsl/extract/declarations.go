@@ -3,9 +3,9 @@ package extract
 import (
 	"strings"
 
-	utils "main/utils"
-	"main/wgsl/document"
-	"main/wgsl/syntax"
+	utils "github.com/faramozzayw/bevy-shader-explorer/utils"
+	"github.com/faramozzayw/bevy-shader-explorer/wgsl/document"
+	"github.com/faramozzayw/bevy-shader-explorer/wgsl/syntax"
 )
 
 type Annotation = document.Annotation

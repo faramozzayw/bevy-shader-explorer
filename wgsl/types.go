@@ -1,6 +1,6 @@
 package wgsl
 
-import "main/wgsl/document"
+import "github.com/faramozzayw/bevy-shader-explorer/wgsl/document"
 
 type DefResult = document.DefResult
 type Annotation = document.Annotation

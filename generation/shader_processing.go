@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"main/utils"
-	"main/wgsl"
+	"github.com/faramozzayw/bevy-shader-explorer/utils"
+	"github.com/faramozzayw/bevy-shader-explorer/wgsl"
 )
 
 // parseShaderInputs parses files concurrently while storing results by input

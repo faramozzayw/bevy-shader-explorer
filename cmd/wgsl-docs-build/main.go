@@ -11,8 +11,8 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/toml"
-	"main/config"
-	"main/generation"
+	"github.com/faramozzayw/bevy-shader-explorer/config"
+	"github.com/faramozzayw/bevy-shader-explorer/generation"
 )
 
 type versionRef struct {

@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"main/config"
+	"github.com/faramozzayw/bevy-shader-explorer/config"
 )
 
 // Finalize writes catalogue-wide artifacts once, after all release workers have

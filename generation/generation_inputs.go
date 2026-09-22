@@ -11,9 +11,9 @@ import (
 	"slices"
 	"strings"
 
-	config "main/config"
-	"main/discovery"
-	"main/utils"
+	config "github.com/faramozzayw/bevy-shader-explorer/config"
+	"github.com/faramozzayw/bevy-shader-explorer/discovery"
+	"github.com/faramozzayw/bevy-shader-explorer/utils"
 
 	"github.com/aymerick/raymond"
 )

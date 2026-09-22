@@ -5,9 +5,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/faramozzayw/bevy-shader-explorer/config"
+	"github.com/faramozzayw/bevy-shader-explorer/generation"
 	"github.com/spf13/cobra"
-	"main/config"
-	"main/generation"
 )
 
 func main() {

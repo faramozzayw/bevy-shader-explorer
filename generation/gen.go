@@ -5,9 +5,9 @@ import (
 	"slices"
 	"strings"
 
-	config "main/config"
-	utils "main/utils"
-	wgsl "main/wgsl"
+	config "github.com/faramozzayw/bevy-shader-explorer/config"
+	utils "github.com/faramozzayw/bevy-shader-explorer/utils"
+	wgsl "github.com/faramozzayw/bevy-shader-explorer/wgsl"
 )
 
 var copyToPublic = []string{

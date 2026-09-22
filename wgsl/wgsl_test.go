@@ -6,11 +6,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/faramozzayw/bevy-shader-explorer/config"
+	"github.com/faramozzayw/bevy-shader-explorer/wgsl/bevy"
+	"github.com/faramozzayw/bevy-shader-explorer/wgsl/extract"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"main/config"
-	"main/wgsl/bevy"
-	"main/wgsl/extract"
 )
 
 func TestParseWGSLFileReturnsReadError(t *testing.T) {

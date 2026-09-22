@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strings"
 
-	"main/utils"
+	"github.com/faramozzayw/bevy-shader-explorer/utils"
 )
 
 // ResolveTypeLink adds a documentation link after extraction is complete.

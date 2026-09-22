@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"main/utils"
+	"github.com/faramozzayw/bevy-shader-explorer/utils"
 )
 
 func canonicalURL(siteURL, docPath string) string {
