@@ -42,7 +42,9 @@ jobs:
         run: go run ./cmd/wgsl-docs-build --quiet generate
 
       - name: Pull Vercel project settings
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        run: |
+          rm -rf .vercel
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
