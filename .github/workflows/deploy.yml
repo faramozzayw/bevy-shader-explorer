@@ -21,6 +21,12 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
+      - name: Install OG image renderer
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes librsvg2-bin
+          rsvg-convert --version
+
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
