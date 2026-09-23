@@ -196,6 +196,15 @@ body > main {
   opacity: 1;
   text-decoration: none;
 }
+.declaration-variant + .declaration-variant {
+  margin-top: 14px;
+}
+.function-attributes {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 10px;
+}
 @media (max-width: 700px) {
   .shader-def-controls {
     position: static;

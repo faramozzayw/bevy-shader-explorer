@@ -3,6 +3,7 @@ package generation
 import (
 	_ "embed"
 	"encoding/json"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -57,6 +58,7 @@ func SetupHandlebars() {
 		raymond.RegisterHelper("neq", neq)
 		raymond.RegisterHelper("parse-markdown", parseMarkdown)
 		raymond.RegisterHelper("contains", contains)
+		raymond.RegisterHelper("group-by-name", groupByName)
 		raymond.RegisterHelper("json", jsonValue)
 
 		raymond.RegisterPartial("shader-defs-list", SHADER_DEFS_LIST_TEMPLATE)
@@ -94,4 +96,54 @@ func parseMarkdown(text string) string {
 
 func contains(needle, haystack string) bool {
 	return strings.Contains(haystack, needle)
+}
+
+type namedTemplateGroup struct {
+	Name  string
+	First interface{}
+	Items interface{}
+}
+
+func groupByName(values interface{}) []namedTemplateGroup {
+	value := reflect.ValueOf(values)
+	if !value.IsValid() || (value.Kind() != reflect.Slice && value.Kind() != reflect.Array) {
+		return nil
+	}
+
+	type groupState struct {
+		name  string
+		items reflect.Value
+	}
+	groups := make([]groupState, 0, value.Len())
+	byName := make(map[string]int, value.Len())
+	for i := 0; i < value.Len(); i++ {
+		item := value.Index(i)
+		if item.Kind() == reflect.Pointer {
+			if item.IsNil() {
+				continue
+			}
+			item = item.Elem()
+		}
+		if item.Kind() != reflect.Struct {
+			continue
+		}
+		nameField := item.FieldByName("Name")
+		if !nameField.IsValid() || nameField.Kind() != reflect.String {
+			continue
+		}
+		name := nameField.String()
+		index, exists := byName[name]
+		if !exists {
+			index = len(groups)
+			byName[name] = index
+			groups = append(groups, groupState{name: name, items: reflect.MakeSlice(value.Type(), 0, 1)})
+		}
+		groups[index].items = reflect.Append(groups[index].items, value.Index(i))
+	}
+
+	result := make([]namedTemplateGroup, 0, len(groups))
+	for _, group := range groups {
+		result = append(result, namedTemplateGroup{Name: group.name, First: group.items.Index(0).Interface(), Items: group.items.Interface()})
+	}
+	return result
 }

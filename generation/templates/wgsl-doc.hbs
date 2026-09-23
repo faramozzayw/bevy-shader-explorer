@@ -55,26 +55,28 @@
       {{#if notEmptyConsts}}
         <h3 class="section-header">Constants</h3>
 
-        {{#each consts}}
-          <section id="{{name}}" data-shader-defs='{{{json shaderDefs}}}'>
+        {{#each (group-by-name consts)}}
+          <section id="{{name}}">
             <header>
               <div>
                 <h3 class="function-name">
                   {{name}}
                 </h3>
                 <a href="#{{name}}">#</a>
-                {{> gh-link }}
+                {{#with first}}{{> gh-link }}{{/with}}
               </div>
 
-              {{#if importPath}}
+              {{#if ../importPath}}
                 <div>
-                  <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
+                  <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{../importPath}}::{{name}}')">
                     Copy import statement
                   </button>
                 </div>
               {{/if}}
             </header>
 
+            {{#each items}}
+            <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
             {{#if hasShaderDefs}}
               <div class="function-shader-defs">
                 <h4>Shader defs requirments: </h4>
@@ -91,6 +93,8 @@
               <span>=</span>
               <span class="value">{{value}}</span>
             </div>
+            </div>
+            {{/each}}
           </section>
         {{/each}}
       {{/if}}
@@ -98,26 +102,28 @@
       {{#if notEmptyBindings}}
         <h3 class="section-header">Bindings</h3>
 
-        {{#each bindings}}
-          <section id="{{name}}" data-shader-defs='{{{json shaderDefs}}}'>
+        {{#each (group-by-name bindings)}}
+          <section id="{{name}}">
             <header>
               <div>
                 <h3 class="function-name">
                   {{name}}
                 </h3>
                 <a href="#{{name}}">#</a>
-                {{> gh-link }}
+                {{#with first}}{{> gh-link }}{{/with}}
               </div>
 
-              {{#if importPath}}
+              {{#if ../importPath}}
                 <div>
-                  <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
+                  <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{../importPath}}::{{name}}')">
                     Copy import statement
                   </button>
                 </div>
               {{/if}}
             </header>
 
+          {{#each items}}
+          <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
           {{#if hasShaderDefs}}
             <div class="function-shader-defs">
               <h4>Shader defs requirments: </h4>
@@ -133,6 +139,8 @@
               <span>{{name}}:</span>
               {{> type }}
             </div>
+          </div>
+          {{/each}}
           </section>
         {{/each}}
       {{/if}}
@@ -140,26 +148,28 @@
       {{#if notEmptyStructures}}
         <h3 class="section-header">Structures</h3>
 
-        {{#each structures}}
-          <section id="{{name}}" data-shader-defs='{{{json shaderDefs}}}'>
+        {{#each (group-by-name structures)}}
+          <section id="{{name}}">
             <header>
               <div>
                 <h3 class="function-name">
                   {{name}}
                 </h3>
                 <a href="#{{name}}">#</a>
-                {{> gh-link }}
+                {{#with first}}{{> gh-link }}{{/with}}
               </div>
 
-              {{#if importPath}}
+              {{#if ../importPath}}
                 <div>
-                  <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
+                  <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{../importPath}}::{{name}}')">
                     Copy import statement
                   </button>
                 </div>
               {{/if}}
             </header>
 
+            {{#each items}}
+            <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
             {{#if comment}}
               <div class="function-comment">{{{parse-markdown comment}}}</div>
             {{/if}}
@@ -176,12 +186,8 @@
                     <span>{{name}}:</span>
                     {{> type}}
                     <span>,</span>
-                    {{#if fieldsShaderDefs}}
-                      <span>
-                        {{#if hasShaderDefs}}
-                          {{> shader-defs-list }}
-                        {{/if}}
-                      </span>
+                    {{#if hasShaderDefs}}
+                      <span>{{> shader-defs-list }}</span>
                     {{/if}}
                     </div>
                 {{/each}}
@@ -189,6 +195,8 @@
 
               <span>}</span>
             </div>
+            </div>
+            {{/each}}
           </section>
         {{/each}}
       {{/if}}
@@ -196,19 +204,23 @@
       {{#if notEmptyFunctions}}
         <h3 class="section-header">Functions</h3>
       
-        {{#each functions}}
-          <section id="{{name}}" data-shader-defs='{{{json shaderDefs}}}'>
+        {{#each (group-by-name functions)}}
+          <section id="{{name}}">
             <header>
               <div>
                 <h3 class="function-name">{{name}}</h3>
                 <a href="#{{name}}">#</a>
-                {{> gh-link }} 
+                {{#with first}}{{> gh-link }}{{/with}}
               </div>
 
-              {{#if importPath}}
+            </header>
+
+            {{#each items}}
+            <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
+              {{#if ../../importPath}}
                 {{#unless stageAttribute}}
                   <div>
-                    <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{name}}')">
+                    <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{../../importPath}}::{{name}}')">
                       Copy import statement
                     </button>
                   </div>
@@ -216,31 +228,23 @@
               {{/if}}
 
               {{#if stageAttribute}}
-                <div>
+                <div class="function-attributes">
                   <div class="tooltip-container">
-                    <span
-                      class="attribute-badge {{stageAttribute}}-badge"
-                    >@{{stageAttribute}}</span>
-                      <div class="tooltip-text">
-                        {{#if (eq stageAttribute "vertex")}}Processes each 3D point in a model before it's drawn{{/if}}
-                        {{#if (eq stageAttribute "fragment")}}Calculates the final color of each pixel on the screen{{/if}}
-                        {{#if (eq stageAttribute "compute")}}Runs custom parallel code on the GPU, not limited to graphics{{/if}}
-                      </div>
+                    <span class="attribute-badge {{stageAttribute}}-badge">@{{stageAttribute}}</span>
+                    <div class="tooltip-text">
+                      {{#if (eq stageAttribute "vertex")}}Processes each 3D point in a model before it's drawn{{/if}}
+                      {{#if (eq stageAttribute "fragment")}}Calculates the final color of each pixel on the screen{{/if}}
+                      {{#if (eq stageAttribute "compute")}}Runs custom parallel code on the GPU, not limited to graphics{{/if}}
+                    </div>
                   </div>
-
                   {{#if hasWorkgroupSize}}
                     <div class="tooltip-container">
-                      <span class="attribute-badge workgroup-size-badge">
-                        @workgroup_size({{#each workgroupSize}}{{this}}{{#unless @last}},&nbsp;{{/unless}}{{/each}})
-                      </span>
-                      <div class="tooltip-text">
-                        Defines the size of a thread group. One to three numbers: width (x), height (y), and depth (z). Missing values default to 1
-                      </div>
+                      <span class="attribute-badge workgroup-size-badge">@workgroup_size({{#each workgroupSize}}{{this}}{{#unless @last}},&nbsp;{{/unless}}{{/each}})</span>
+                      <div class="tooltip-text">Defines the size of a thread group. One to three numbers: width (x), height (y), and depth (z). Missing values default to 1</div>
                     </div>
                   {{/if}}
                 </div>
               {{/if}}
-            </header>
 
             {{#if hasShaderDefs}}
               <div class="function-shader-defs">
@@ -268,6 +272,8 @@
                 {{> type typeInfo=returnTypeInfo }}
               {{/if}}
             </div>
+            </div>
+            {{/each}}
           </section>
         {{/each}}
       {{/if}}
