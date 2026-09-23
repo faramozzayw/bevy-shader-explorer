@@ -10,7 +10,25 @@
     </nav>
     <div class="breadcrumbs"><a href="/{{projectURLPrefix}}">Packages</a> <span>›</span> <a href="/{{PackageURLPrefix}}/index.html">{{projectName}}</a> {{> version-selector packageName=projectName urlPrefix=PackageURLPrefix projectVersion=projectVersion versionOptions=versionOptions}} <span>›</span> <strong>{{filename}}</strong></div>
 
-    <main>
+    <main class="shader-page{{#unless shaderDefs}} shader-page-no-controls{{/unless}}">
+      {{#if shaderDefs}}
+        <aside class="shader-def-controls">
+          <label class="shader-def-toggle">
+            <input id="interactive-shader-defs" type="checkbox" />
+            <span>Enable interactive shader defs</span>
+          </label>
+          <div id="shader-def-options" class="shader-def-options" hidden>
+            <h3>Shader definitions</h3>
+            {{#each shaderDefs}}
+              <label class="shader-def-option">
+                <input type="checkbox" value="{{this}}" checked />
+                <code>{{this}}</code>
+              </label>
+            {{/each}}
+          </div>
+        </aside>
+      {{/if}}
+      <div class="shader-page-content">
       <h1>
         <code>{{filename}}</code>
         {{#if githubLink}}<a href="{{githubLink}}" target="_blank" rel="noopener noreferrer">
@@ -38,7 +56,7 @@
         <h3 class="section-header">Constants</h3>
 
         {{#each consts}}
-          <section id="{{name}}">
+          <section id="{{name}}" data-shader-defs='{{{json shaderDefs}}}'>
             <header>
               <div>
                 <h3 class="function-name">
@@ -81,7 +99,7 @@
         <h3 class="section-header">Bindings</h3>
 
         {{#each bindings}}
-          <section id="{{name}}">
+          <section id="{{name}}" data-shader-defs='{{{json shaderDefs}}}'>
             <header>
               <div>
                 <h3 class="function-name">
@@ -123,7 +141,7 @@
         <h3 class="section-header">Structures</h3>
 
         {{#each structures}}
-          <section id="{{name}}">
+          <section id="{{name}}" data-shader-defs='{{{json shaderDefs}}}'>
             <header>
               <div>
                 <h3 class="function-name">
@@ -153,7 +171,7 @@
 
               <div class="struct-field-rows">
                 {{#each fields}}
-                    <div class="struct-field-row">
+                    <div class="struct-field-row" data-shader-defs='{{{json shaderDefs}}}'>
                     {{> annotations }}
                     <span>{{name}}:</span>
                     {{> type}}
@@ -179,7 +197,7 @@
         <h3 class="section-header">Functions</h3>
       
         {{#each functions}}
-          <section id="{{name}}">
+          <section id="{{name}}" data-shader-defs='{{{json shaderDefs}}}'>
             <header>
               <div>
                 <h3 class="function-name">{{name}}</h3>
@@ -253,6 +271,7 @@
           </section>
         {{/each}}
       {{/if}}
+      </div>
     </main>
     {{> footer}}
   </body>

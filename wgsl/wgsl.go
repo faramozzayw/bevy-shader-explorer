@@ -94,8 +94,39 @@ func ParseWGSLFile(
 		GithubLink: githubLink,
 		Link:       fmt.Sprintf("%s/%s", config.Version, wgslPath),
 	}
+	wgslFile.BuildShaderDefs()
 
 	return wgslFile, nil
+}
+
+func (wgslFile *WgslFile) BuildShaderDefs() {
+	seen := make(map[string]bool)
+	add := func(defs []DefResult) {
+		for _, def := range defs {
+			if !seen[def.DefName] {
+				seen[def.DefName] = true
+				wgslFile.ShaderDefs = append(wgslFile.ShaderDefs, def.DefName)
+			}
+		}
+	}
+	for _, item := range wgslFile.Consts {
+		add(item.ShaderDefs)
+	}
+	for _, item := range wgslFile.Bindings {
+		add(item.ShaderDefs)
+	}
+	for _, item := range wgslFile.Structures {
+		add(item.ShaderDefs)
+		for _, field := range item.Fields {
+			add(field.ShaderDefs)
+		}
+	}
+	for _, item := range wgslFile.Functions {
+		add(item.ShaderDefs)
+		for _, param := range item.Params {
+			add(param.ShaderDefs)
+		}
+	}
 }
 
 func (wgslFile *WgslFile) ResolveTypeLinks(declaredImportPaths map[string]string) {

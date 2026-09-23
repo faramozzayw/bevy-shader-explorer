@@ -20,6 +20,16 @@ func TestParseWGSLFileReturnsReadError(t *testing.T) {
 	assert.ErrorContains(t, err, "read source")
 }
 
+func TestBuildShaderDefsCollectsUniqueRequirements(t *testing.T) {
+	file := WgslFile{
+		Consts:     []Const{{ShaderDefs: []DefResult{{DefName: "FIRST"}}}},
+		Bindings:   []Binding{{ShaderDefs: []DefResult{{DefName: "FIRST"}, {DefName: "SECOND"}}}},
+		Structures: []Structure{{Fields: []NamedType{{ShaderDefs: []DefResult{{DefName: "FIELD_ONLY"}, {DefName: "SECOND"}}}}}},
+	}
+	file.BuildShaderDefs()
+	assert.Equal(t, []string{"FIRST", "SECOND", "FIELD_ONLY"}, file.ShaderDefs)
+}
+
 func TestGetGithubLinkUsesConfiguredSourceRef(t *testing.T) {
 	cfg := config.Config{SourcePath: "/project", SourceGithubURL: "https://github.com/bevyengine/bevy", SourceGithubRef: "release-0.19.1"}
 	got, err := GetGithubLink(&cfg, "/project/assets/shaders", "extended_material_bindless.wgsl")

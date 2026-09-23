@@ -15,6 +15,7 @@ var copyToPublic = []string{
 	"assets/favicon.ico",
 	"icon.png",
 	"assets/search.js",
+	"assets/shader-defs.js",
 	"assets/select.js",
 	"assets/404.js",
 	"assets/404.css",

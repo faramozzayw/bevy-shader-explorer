@@ -109,6 +109,7 @@ func parseShaderInputCached(input shaderInput) (wgsl.WgslFile, error) {
 	if cached, readErr := os.ReadFile(cachePath); readErr == nil {
 		var file wgsl.WgslFile
 		if json.Unmarshal(cached, &file) == nil {
+			file.BuildShaderDefs()
 			return file, nil
 		}
 	}
@@ -116,6 +117,7 @@ func parseShaderInputCached(input shaderInput) (wgsl.WgslFile, error) {
 	if err != nil {
 		return wgsl.WgslFile{}, err
 	}
+	file.BuildShaderDefs()
 	if data, marshalErr := json.Marshal(file); marshalErr == nil {
 		if mkdirErr := os.MkdirAll(cacheDir, 0o755); mkdirErr == nil {
 			_ = os.WriteFile(cachePath, data, 0o644)

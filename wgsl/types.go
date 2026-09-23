@@ -48,4 +48,5 @@ type WgslFile struct {
 	CanonicalURL         string              `json:"-"`
 	StructuredData       string              `json:"-"`
 	OgImageURL           string              `json:"-"`
+	ShaderDefs           []string            `json:"-"`
 }

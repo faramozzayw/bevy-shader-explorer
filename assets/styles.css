@@ -123,6 +123,86 @@ body {
 body > main {
   flex: 1 0 auto;
 }
+[hidden] {
+  display: none !important;
+}
+.shader-page {
+  display: block;
+}
+.shader-page-no-controls {
+  display: block;
+}
+.shader-page-content {
+  min-width: 0;
+}
+.shader-def-controls {
+  position: fixed;
+  top: 84px;
+  height: max-content;
+  left: 20px;
+  width: 220px;
+  box-sizing: border-box;
+  z-index: 9;
+  padding: 12px;
+  border: 1px solid var(--search-border);
+  border-radius: 7px;
+  background: var(--header-bg);
+}
+.shader-def-toggle,
+.shader-def-option {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.shader-def-toggle {
+  color: var(--function-name-color);
+  font-size: .85rem;
+  font-weight: bold;
+}
+.shader-def-options[hidden] {
+  display: none;
+}
+.shader-def-options h3 {
+  margin: 16px 0 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--search-border);
+  color: var(--search-placeholder);
+  font-size: .8rem;
+}
+.shader-def-option {
+  margin: 7px 0;
+  color: var(--text-color);
+  font-size: .8rem;
+  word-break: break-word;
+}
+.shader-def-option input,
+.shader-def-toggle input {
+  accent-color: var(--function-name-color);
+  margin-top: .35em;
+}
+.shader-def-inactive {
+  opacity: .48;
+}
+.shader-def-inactive .code-background,
+.shader-def-inactive.struct-field-row {
+  text-decoration: line-through solid currentColor;
+  text-decoration-thickness: 1px;
+  text-decoration-skip-ink: none;
+}
+.shader-def-inactive .function-shader-defs {
+  opacity: 1;
+  text-decoration: none;
+}
+@media (max-width: 700px) {
+  .shader-def-controls {
+    position: static;
+    width: auto;
+    margin-bottom: 12px;
+  }
+}
 .project-hero {
   border-radius: 10px;
   background: linear-gradient(135deg, var(--section-bg), var(--header-bg));
