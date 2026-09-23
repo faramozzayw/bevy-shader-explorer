@@ -1,5 +1,5 @@
 {{#each shaderDefs}}
-  {{#if (eq branch "if")}}🟢{{else}}🔴{{/if}}
-  {{defName}}{{#unless @last}},
-  {{/unless}}
+  <span class="shader-def-pill {{#if (eq branch "if")}}shader-def-pill-if{{else}}shader-def-pill-else{{/if}}">
+    {{#if (eq branch "if")}}{{defName}}{{else}}!{{defName}}{{/if}}
+  </span>
 {{/each}}

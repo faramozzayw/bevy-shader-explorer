@@ -53,7 +53,7 @@
       {{/if}}
 
       {{#if notEmptyConsts}}
-        <h3 class="section-header">Constants</h3>
+        <h3 id="constants" class="section-header">Constants</h3>
 
         {{#each (group-by-name consts)}}
           <section id="{{name}}">
@@ -79,10 +79,8 @@
             <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
             {{#if hasShaderDefs}}
               <div class="function-shader-defs">
-                <h4>Shader defs requirments: </h4>
-                <p>
-                  {{> shader-defs-list }}
-                </p>
+                <span class="shader-def-label">Active when</span>
+                <div class="shader-def-pills">{{> shader-defs-list }}</div>
               </div>
             {{/if}}
 
@@ -100,7 +98,7 @@
       {{/if}}
 
       {{#if notEmptyBindings}}
-        <h3 class="section-header">Bindings</h3>
+        <h3 id="bindings" class="section-header">Bindings</h3>
 
         {{#each (group-by-name bindings)}}
           <section id="{{name}}">
@@ -126,10 +124,8 @@
           <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
           {{#if hasShaderDefs}}
             <div class="function-shader-defs">
-              <h4>Shader defs requirments: </h4>
-              <p>
-                {{> shader-defs-list }}
-              </p>
+              <span class="shader-def-label">Active when</span>
+              <div class="shader-def-pills">{{> shader-defs-list }}</div>
             </div>
           {{/if}}
 
@@ -146,7 +142,7 @@
       {{/if}}
 
       {{#if notEmptyStructures}}
-        <h3 class="section-header">Structures</h3>
+        <h3 id="structures" class="section-header">Structures</h3>
 
         {{#each (group-by-name structures)}}
           <section id="{{name}}">
@@ -202,7 +198,7 @@
       {{/if}}
 
       {{#if notEmptyFunctions}}
-        <h3 class="section-header">Functions</h3>
+        <h3 id="functions" class="section-header">Functions</h3>
       
         {{#each (group-by-name functions)}}
           <section id="{{name}}">
@@ -248,10 +244,8 @@
 
             {{#if hasShaderDefs}}
               <div class="function-shader-defs">
-                <h4>Shader defs requirments: </h4>
-                <p>
-                  {{> shader-defs-list }}
-                </p>
+                <span class="shader-def-label">Active when</span>
+                <div class="shader-def-pills">{{> shader-defs-list }}</div>
               </div>
             {{/if}}
 
@@ -278,6 +272,45 @@
         {{/each}}
       {{/if}}
       </div>
+      <details class="shader-toc" open>
+        <summary>Contents</summary>
+        <nav>
+          <ul>
+            {{#if notEmptyConsts}}
+              <li>
+                <a href="#constants">Constants</a>
+                <ul>
+                  {{#each (group-by-name consts)}}<li><a href="#{{name}}">{{name}}</a></li>{{/each}}
+                </ul>
+              </li>
+            {{/if}}
+            {{#if notEmptyBindings}}
+              <li>
+                <a href="#bindings">Bindings</a>
+                <ul>
+                  {{#each (group-by-name bindings)}}<li><a href="#{{name}}">{{name}}</a></li>{{/each}}
+                </ul>
+              </li>
+            {{/if}}
+            {{#if notEmptyStructures}}
+              <li>
+                <a href="#structures">Structures</a>
+                <ul>
+                  {{#each (group-by-name structures)}}<li><a href="#{{name}}">{{name}}</a></li>{{/each}}
+                </ul>
+              </li>
+            {{/if}}
+            {{#if notEmptyFunctions}}
+              <li>
+                <a href="#functions">Functions</a>
+                <ul>
+                  {{#each (group-by-name functions)}}<li><a href="#{{name}}">{{name}}</a></li>{{/each}}
+                </ul>
+              </li>
+            {{/if}}
+          </ul>
+        </nav>
+      </details>
     </main>
     {{> footer}}
   </body>
