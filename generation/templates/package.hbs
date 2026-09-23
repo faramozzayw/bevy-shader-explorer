@@ -38,11 +38,37 @@
         </div>
         <span class="shader-count">{{count}} shaders</span>
       </header>
-      <ul class="shader-list module-chip-list">
-        {{#each files}}
-          <li><a class="shader-chip module-chip" title="{{file}}" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{file}}">{{label}}</a></li>
-        {{/each}}
-      </ul>
+      {{#if showModuleGroups}}
+        <div class="module-groups">
+          {{#each moduleGroups}}
+            {{#if isRoot}}
+              <ul class="shader-list module-chip-list">
+                {{#each files}}
+                  <li><a class="shader-chip module-chip" title="{{file}}" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{file}}">{{label}}</a></li>
+                {{/each}}
+              </ul>
+            {{else}}
+              <details class="module-group" open>
+                <summary>
+                  <span>{{name}}</span>
+                  <span class="shader-count">{{count}} shaders</span>
+                </summary>
+                <ul class="shader-list module-chip-list">
+                  {{#each files}}
+                    <li><a class="shader-chip module-chip" title="{{file}}" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{file}}">{{label}}</a></li>
+                  {{/each}}
+                </ul>
+              </details>
+            {{/if}}
+          {{/each}}
+        </div>
+      {{else}}
+        <ul class="shader-list module-chip-list">
+          {{#each files}}
+            <li><a class="shader-chip module-chip" title="{{file}}" href="/{{@root/urlPrefix}}{{#if @root/urlPrefix}}/{{/if}}{{file}}">{{label}}</a></li>
+          {{/each}}
+        </ul>
+      {{/if}}
     </section>
     {{> footer}}
   </body>

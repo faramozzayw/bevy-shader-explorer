@@ -580,6 +580,44 @@ h1 {
 .package-page .shader-list {
   gap: 8px;
 }
+.module-groups {
+  display: grid;
+  gap: 10px;
+}
+.module-group {
+  border: 1px solid var(--search-border);
+  border-radius: 6px;
+  padding: 5px 12px;
+  background: var(--header-bg);
+}
+.module-group summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  color: var(--function-name-color);
+  cursor: pointer;
+  font-weight: bold;
+  list-style: none;
+}
+.module-group summary::-webkit-details-marker {
+  display: none;
+}
+.module-group summary::before {
+  content: "▸";
+  margin-right: 6px;
+}
+.module-group[open] summary::before {
+  transform: rotate(90deg);
+}
+.module-group summary > span:first-of-type {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.module-group .module-chip-list {
+  padding: 0px;
+  padding-bottom: 8px;
+}
 .module-chip-list .module-chip {
   display: block;
   padding: 5px 9px;

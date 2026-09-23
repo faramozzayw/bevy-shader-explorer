@@ -86,9 +86,12 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 		if err := os.MkdirAll(filepath.Join(versionedOutput, filepath.Dir(page.DetailPath)), os.ModePerm); err != nil {
 			return fmt.Errorf("create package output directory: %w", err)
 		}
+		moduleGroups := groupShaderModules(page.AllFiles)
 		if err := renderTemplateToFile(PACKAGE_DOC_TEMPLATE_SOURCE, map[string]interface{}{
 			"name":                      page.PackageName,
 			"files":                     page.AllFiles,
+			"moduleGroups":              moduleGroups,
+			"showModuleGroups":          len(moduleGroups) > 1,
 			"count":                     page.Count,
 			"description":               page.Description,
 			"dependencies":              page.Dependencies,
