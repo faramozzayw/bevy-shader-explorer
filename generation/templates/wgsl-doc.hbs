@@ -229,20 +229,22 @@
                   </div>
                 {{/if}}
               {{/with}}
+
+              {{#with first}}
+                {{#unless stageAttribute}}
+                  {{#if importPath}}
+                    <div>
+                      <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{../name}}')">
+                        Copy import statement
+                      </button>
+                    </div>
+                  {{/if}}
+                {{/unless}}
+              {{/with}}
             </header>
 
             {{#each items}}
             <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
-              {{#if ../../importPath}}
-                {{#unless stageAttribute}}
-                  <div>
-                    <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{../../importPath}}::{{name}}')">
-                      Copy import statement
-                    </button>
-                  </div>
-                {{/unless}}
-              {{/if}}
-
             {{#if hasShaderDefs}}
               <div class="function-shader-defs">
                 <span class="shader-def-label">Active when</span>
