@@ -243,7 +243,7 @@ prepare and submit the PR for you.
 
 ## License
 
-Shader Explorer is dual-licensed under the [MIT License](LICENSE-MIT) or
+Bevy Shader Explorer is dual-licensed under the [MIT License](LICENSE-MIT) or
 the [Apache License 2.0](LICENSE-APACHE), at your option.
 
 Generated documentation may include WGSL files from third-party projects;

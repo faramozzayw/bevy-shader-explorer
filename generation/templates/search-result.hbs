@@ -2,8 +2,8 @@
   {{#each this}}
     <li class="search-result-item">
       {{#if kind}}
+        <img class="search-result-icon" src="/public/icons/group.svg" alt="" aria-hidden="true" />
         <a class="function-name" href="{{link}}">{{name}}</a>
-        <span>[<b>package</b>]</span>
         <select class="version-select search-version-select" data-package="{{packageName}}" onchange="window.location.href='/' + this.value">
           {{#each versions}}
             <option value="{{url}}">{{label}}</option>
@@ -11,16 +11,14 @@
         </select>
         {{#if description}}<span>{{description}}</span>{{/if}}
       {{else}}
+      {{#if (eq type "function")}}<img class="search-result-icon" src="/public/icons/function.svg" alt="" aria-hidden="true" />{{/if}}
+      {{#if (eq type "binding")}}<img class="search-result-icon" src="/public/icons/binding.svg" alt="" aria-hidden="true" />{{/if}}
+      {{#if (eq type "struct")}}<img class="search-result-icon" src="/public/icons/struct.svg" alt="" aria-hidden="true" />{{/if}}
+      {{#if (eq type "const")}}<img class="search-result-icon" src="/public/icons/constant.svg" alt="" aria-hidden="true" />{{/if}}
       <a class="function-name" href="{{link}}#{{name}}">{{name}}</a>
-      <span>[
-        {{#if stageAttribute}}
-          <b>{{type}}</b>
-          <span
-            class="attribute-badge {{stageAttribute}}-badge"
-          >@{{stageAttribute}}</span>
-        {{else}}
-          <b>{{type}}</b>
-        {{/if}}]</span>
+      {{#if stageAttribute}}
+        <span class="attribute-badge {{stageAttribute}}-badge">@{{stageAttribute}}</span>
+      {{/if}}
 
       <span>(from <i>{{filename}}</i>)</span>
       {{#if exportable}}

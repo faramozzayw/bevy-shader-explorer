@@ -77,7 +77,7 @@ func Finalize(config config.Config) error {
 		"ogImageURL":       ogImageURL(config, "site", config.ProjectVersion),
 		"issueURL":         config.IssueURL,
 		"structuredData": jsonValue(map[string]interface{}{
-			"@context": "https://schema.org", "@type": "WebSite", "name": "Shader Explorer",
+			"@context": "https://schema.org", "@type": "WebSite", "name": "Bevy Shader Explorer",
 			"description": config.Description, "url": canonicalURL(config.SiteURL, ""),
 		}),
 	}, filepath.Join(config.OutputDir, "index.html")); err != nil {

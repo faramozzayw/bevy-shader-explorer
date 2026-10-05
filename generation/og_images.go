@@ -70,7 +70,7 @@ func writeSiteOGImage(cfg configpkg.Config) error {
 		if !os.IsNotExist(err) {
 			return fmt.Errorf("check homepage social card: %w", err)
 		}
-		if err := writeOGCard(cfg.OutputDir, "Shader Explorer", "", "", siteTagline, "site"); err != nil {
+		if err := writeOGCard(cfg.OutputDir, "Bevy Shader Explorer", "", "", siteTagline, "site"); err != nil {
 			return err
 		}
 	}

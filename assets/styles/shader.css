@@ -1,0 +1,334 @@
+.function-shader-defs {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 0px;
+}
+.shader-def-label {
+	color: var(--search-placeholder);
+	white-space: nowrap;
+}
+.shader-def-pills {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 7px;
+}
+.shader-def-pill,
+.attribute-badge {
+	display: inline-block;
+	padding: 2px 7px;
+	border: 1px solid transparent;
+	border-radius: 2px;
+	color: white;
+	font-size: 0.76em;
+	font-weight: 500;
+	white-space: nowrap;
+}
+.shader-def-pill-if {
+	border-color: var(--vertex-bg);
+	background: color-mix(in srgb, var(--vertex-bg) 78%, var(--section-bg));
+}
+.shader-def-pill-else {
+	border-color: var(--fragment-bg);
+	background: color-mix(in srgb, var(--fragment-bg) 78%, var(--section-bg));
+}
+.function-shader-defs p,
+.function-shader-defs h4 {
+	margin: 0;
+}
+.function-name {
+	font-size: 1.2em;
+	font-weight: bold;
+	margin: 0;
+	color: var(--function-name-color);
+	word-break: break-word;
+
+	font-family: "Share Tech Mono", monospace;
+	font-size: 20px;
+	font-weight: 400;
+	color: rgb(214, 209, 185);
+}
+.visibility-badge {
+	font-size: 0.8em;
+	color: white;
+	padding: 3px 8px;
+	border-radius: 3px;
+	background-color: var(--badge-bg);
+}
+.attribute-badge {
+	font-size: 0.8em;
+	color: white;
+	padding: 3px 8px;
+	border-radius: 3px;
+	margin-right: 5px;
+	background-color: var(--attribute-bg);
+}
+.fragment-badge {
+	background-color: var(--fragment-bg);
+}
+.vertex-badge {
+	background-color: var(--vertex-bg);
+}
+.compute-badge {
+	background-color: var(--compute-bg);
+}
+.workgroup-size-badge {
+	background-color: var(--workgroup-size-bg);
+}
+.signature {
+	display: flex;
+	flex-wrap: wrap;
+}
+.signature > span:not(:last-child),
+.signature > div:not(:last-child) {
+	margin-right: var(--gap);
+}
+.code-background {
+	padding: 10px;
+	border-radius: 3px;
+	overflow-x: auto;
+	background-color: var(--code-bg);
+	/* border: 1px solid var(--code-border-color); /* Subtle border */ */
+}
+.function-comment {
+	word-break: break-word;
+}
+.function-comment p {
+	padding: 10px;
+	margin: 10px 0;
+	white-space: pre-line;
+	background-color: var(--comment-bg);
+	border-left: 4px solid var(--comment-border);
+}
+.function-comment a {
+	border-bottom: 1px dashed transparent;
+	color: var(--comment-link-color);
+}
+.function-comment a:hover {
+	border-bottom-color: 1px dashed var(--comment-link-color);
+}
+.keyword {
+	color: var(--keyword-color);
+}
+.value {
+	color: var(--value-color);
+}
+.item-name {
+	color: var(--item-name-color);
+	border-bottom: 1px dashed transparent;
+}
+a.item-name:hover {
+	border-bottom: 1px dashed var(--item-name-color);
+}
+.param-list {
+	display: flex;
+}
+.struct-field-rows {
+	padding-left: 40px;
+}
+.struct-field-row {
+	display: flex;
+	column-gap: 5px;
+}
+.param {
+	display: flex;
+}
+.param > span:not(:last-child),
+.param > div:not(:last-child) {
+	margin-right: var(--gap);
+}
+.no-margin {
+	margin: 0 !important;
+}
+.arrow {
+	margin: 0 var(--gap);
+}
+.img-link {
+	display: flex;
+	gap: 5px;
+	align-items: center;
+	width: max-content;
+}
+.section-header {
+	font-family: "Zan Kaku Gothic New", monospace;
+	font-weight: 300;
+	font-size: 22px;
+	letter-spacing: 7px;
+}
+
+.section-icon,
+.toc-icon,
+.declaration-icon,
+.group-icon,
+.project-mark {
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	flex: none;
+	vertical-align: -0.12em;
+	color: currentColor;
+}
+
+.section-icon {
+	margin-right: 0.55em;
+}
+
+.toc-icon {
+	width: 0.95em;
+	height: 0.95em;
+	margin-right: 0.45em;
+}
+
+.declaration-icon {
+	width: 1em;
+	height: 1em;
+	margin-right: 0.4em;
+	vertical-align: -0.15em;
+}
+
+.group-icon {
+	width: 0.9em;
+	height: 0.9em;
+	margin-right: 0.45em;
+}
+
+.project-mark {
+	width: 1.15em;
+	height: 1.15em;
+}
+
+.import-path {
+	padding: 15px;
+	border-radius: 5px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	margin-bottom: 20px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 25px;
+	max-width: max-content;
+	background-color: var(--import-bg);
+}
+.import-path h3 {
+	font-size: 1.4em;
+	color: var(--import-path-header-color);
+	margin: 0;
+}
+.import-path-button {
+	color: white;
+	padding: 10px 15px;
+	border: 1px solid color-mix(in srgb, var(--import-button-bg) 70%, black);
+	border-radius: 2px;
+	font-size: 1em;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	cursor: pointer;
+	transition:
+		background-color 0.3s ease,
+		border-color 0.3s ease,
+		box-shadow 0.2s ease;
+	background-color: var(--import-button-bg);
+}
+.page-import-button {
+	display: block;
+	width: max-content;
+	margin: 0;
+	flex: 0 0 auto;
+	white-space: nowrap;
+}
+
+.shader-page-header {
+	gap: 16px;
+	flex-wrap: nowrap;
+}
+
+.shader-page-header .breadcrumbs {
+	min-width: 0;
+	flex: 1 1 auto;
+	margin-bottom: 10px;
+}
+.import-path-button:hover {
+	background-color: var(--import-button-hover);
+	border-color: var(--import-button-hover);
+	box-shadow: 2px 2px 0 var(--section-shadow-color);
+}
+@media (max-width: 425px) {
+	.import-path-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 40px;
+		padding: 8px 10px;
+		font-size: 0.8rem;
+	}
+}
+
+.import-path-button:focus {
+	outline: none;
+	box-shadow: 0 0 5px var(--import-button-focus);
+}
+.flex-align-center {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+}
+
+@media (max-width: 700px) {
+	.shader-page-header {
+		flex-wrap: wrap;
+	}
+
+	.shader-page-header .breadcrumbs {
+		flex-basis: 100%;
+	}
+
+	.page-import-button {
+		width: 100%;
+		margin: 0 0 12px;
+	}
+
+	.function-name {
+		font-size: 1rem;
+	}
+
+	.code-background {
+		max-width: 100%;
+		box-sizing: border-box;
+		font-size: 0.9rem;
+	}
+
+	.signature {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+	}
+
+	.signature > span,
+	.signature > div {
+		flex: 0 0 auto;
+	}
+
+	.function-shader-defs {
+		align-items: flex-start;
+		flex-direction: column;
+		gap: 5px;
+	}
+
+	.import-path {
+		align-items: stretch;
+		flex-direction: column;
+		gap: 10px;
+		max-width: none;
+	}
+
+	section .import-path-button {
+		min-height: 36px;
+		padding: 6px 8px;
+		font-size: 0;
+		white-space: nowrap;
+	}
+
+	section .import-path-button::after {
+		content: "Copy";
+		font-size: 0.75rem;
+	}
+}

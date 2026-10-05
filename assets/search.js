@@ -19,6 +19,7 @@ const maxSearchResults = 50;
 async function loadTemplate() {
   const response = await fetch("/public/search-result.hbs");
   const templateSource = await response.text();
+  Handlebars.registerHelper("eq", (left, right) => left === right);
   const template = Handlebars.compile(templateSource);
   return template;
 }

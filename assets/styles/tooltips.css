@@ -1,0 +1,99 @@
+/* Version select */
+
+.version-select {
+	position: static;
+	min-height: 34px;
+	padding: 5px 10px;
+	font-family: inherit;
+	font-size: 0.85em;
+	font-weight: 500;
+	border: 1px solid var(--select-border);
+	border-radius: 0;
+	background-color: var(--select-bg);
+	color: var(--select-text);
+	transition:
+		border-color 0.3s ease,
+		background-color 0.3s ease;
+	cursor: pointer;
+	max-width: max-content;
+	box-shadow: none;
+}
+
+.version-select:focus {
+	outline: none;
+	border-color: var(--function-name-color);
+	box-shadow: 0 0 5px var(--import-button-focus);
+}
+
+.version-select option {
+	background-color: var(--select-option-bg);
+	color: var(--select-text);
+}
+
+@media (max-width: 700px) {
+	.version-select {
+		min-height: 40px;
+		padding: 6px 9px;
+	}
+}
+
+/* Tooltips */
+
+.tooltip-container {
+	position: relative;
+	display: inline-block;
+	cursor: help;
+	z-index: 1;
+}
+
+.tooltip-text {
+	visibility: hidden;
+	width: max-content;
+	max-width: 300px;
+	z-index: 1000;
+	background-color: var(--code-bg);
+	color: var(--text-color);
+	text-align: left;
+	border: 1px solid var(--code-border-color);
+	border-radius: 5px;
+	padding: 8px 12px;
+	position: absolute;
+	z-index: 10;
+	bottom: 125%;
+	left: 50%;
+	transform: translateX(-50%);
+	box-shadow: 0 2px 6px var(--shadow-color);
+	opacity: 0;
+	transition: opacity 0.3s;
+	font-size: 0.9em;
+	line-height: 1.4;
+}
+
+.tooltip-container:hover .tooltip-text,
+.tooltip-text:hover {
+	visibility: visible;
+	opacity: 1;
+}
+
+.tooltip-bottom .tooltip-text {
+	bottom: auto;
+	top: 125%;
+	right: 0;
+	left: auto;
+	transform: none;
+	width: min(300px, calc(100vw - 16px));
+}
+
+@media (max-width: 700px) {
+	.tooltip-bottom .tooltip-text {
+		position: fixed;
+		top: 108px;
+		left: 8px;
+		right: 8px;
+		width: auto;
+		max-width: none;
+		max-height: min(50vh, 18rem);
+		overflow: auto;
+		transform: none;
+	}
+}

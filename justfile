@@ -5,6 +5,13 @@ default: generate-all
 serve:
     npx http-server ./dist/ -p 3000
 
+# Copy CSS changes into an existing generated site without rebuilding it.
+reload-css:
+	test -d ./dist/public || (echo "./dist/public does not exist; run 'just generate-all' first" >&2; exit 1)
+	cp assets/styles.css ./dist/public/styles.css
+	mkdir -p ./dist/public/styles
+	cp assets/styles/*.css ./dist/public/styles/
+
 clean:
 	rm -rf ./sources ./dist
 

@@ -4,21 +4,14 @@
   <body>
     {{> header urlPrefix=projectURLPrefix version=version searchScope="package" searchPackage=projectName searchVersion=projectVersion searchIndex=searchIndex }}
 
-    <nav class="package-nav">
-      <a href="/{{projectURLPrefix}}">Packages</a>
-      <a class="active" href="/{{PackageURLPrefix}}/index.html">{{projectName}}</a>
-    </nav>
-    <div class="breadcrumbs"><a href="/{{projectURLPrefix}}">Packages</a> <span>›</span> <a href="/{{PackageURLPrefix}}/index.html">{{projectName}}</a> {{> version-selector packageName=projectName urlPrefix=PackageURLPrefix projectVersion=projectVersion versionOptions=versionOptions}} <span>›</span> <strong>{{filename}}</strong></div>
-
     <main class="shader-page{{#unless shaderDefs}} shader-page-no-controls{{/unless}}">
       {{#if shaderDefs}}
         <aside class="shader-def-controls">
           <label class="shader-def-toggle">
             <input id="interactive-shader-defs" type="checkbox" />
-            <span>Enable interactive shader defs</span>
+            <span>Toggle shader defs</span>
           </label>
           <div id="shader-def-options" class="shader-def-options" hidden>
-            <h3>Shader definitions</h3>
             {{#each shaderDefs}}
               <label class="shader-def-option">
                 <input type="checkbox" value="{{this}}" checked />
@@ -28,32 +21,38 @@
           </div>
         </aside>
       {{/if}}
-      <div class="shader-page-content">
-      <h1>
-        <code>{{filename}}</code>
-        {{#if githubLink}}<a href="{{githubLink}}" target="_blank" rel="noopener noreferrer">
-          <picture>
-            <source
-              srcset="/public/github-mark-white.png"
-              media="(prefers-color-scheme: dark)"
-            />
-            <img src="/public/github-mark.png" width="20" height="20" />
-          </picture>
-        </a>{{/if}}
-      </h1>
+      <div class="shader-main-column">
+      <header class="shader-page-header">
+        <div class="breadcrumbs">
+          <a href="/{{projectURLPrefix}}">Packages</a>
+          <span>›</span>
+          <a href="/{{PackageURLPrefix}}/index.html">{{projectName}}</a>
+          {{> version-selector packageName=projectName urlPrefix=PackageURLPrefix projectVersion=projectVersion versionOptions=versionOptions}}
+          <span>›</span>
+          <strong>{{filename}}</strong>
 
-      {{#if importPath}}
-        <div class="import-path">
-          <h3>Import path</h3>
-          <button class="import-path-button" onclick="navigator.clipboard.writeText('{{importPath}}')">
-            {{importPath}}
-            <small>(click to copy)</small>
-          </button>
+          {{#if githubLink}}<a href="{{githubLink}}" target="_blank" rel="noopener noreferrer">
+              <picture>
+                <img src="/public/github-mark.png" width="20" height="20" />
+              </picture>
+            </a>{{/if}}
         </div>
-      {{/if}}
-
+        {{#if importPath}}
+          <button class="import-path-button page-import-button" onclick="navigator.clipboard.writeText('{{importPath}}')">Copy import path</button>
+        {{/if}}
+        <button
+          type="button"
+          class="save-shader-button"
+          data-save-shader
+          data-save-name="{{filename}}"
+          data-save-package="{{projectName}}"
+          data-save-version="{{projectVersion}}"
+        >Save</button>
+      </header>
+      <div class="shader-page-content">
+      
       {{#if notEmptyConsts}}
-        <h3 id="constants" class="section-header">Constants</h3>
+        <h3 id="constants" class="section-header"><img class="section-icon" src="/public/icons/constant.svg" alt="" aria-hidden="true" />Constants</h3>
 
         {{#each (group-by-name consts)}}
           <section id="{{name}}">
@@ -98,7 +97,7 @@
       {{/if}}
 
       {{#if notEmptyBindings}}
-        <h3 id="bindings" class="section-header">Bindings</h3>
+        <h3 id="bindings" class="section-header"><img class="section-icon" src="/public/icons/binding.svg" alt="" aria-hidden="true" />Bindings</h3>
 
         {{#each (group-by-name bindings)}}
           <section id="{{name}}">
@@ -142,7 +141,7 @@
       {{/if}}
 
       {{#if notEmptyStructures}}
-        <h3 id="structures" class="section-header">Structures</h3>
+        <h3 id="structures" class="section-header"><img class="section-icon" src="/public/icons/struct.svg" alt="" aria-hidden="true" />Structures</h3>
 
         {{#each (group-by-name structures)}}
           <section id="{{name}}">
@@ -198,7 +197,7 @@
       {{/if}}
 
       {{#if notEmptyFunctions}}
-        <h3 id="functions" class="section-header">Functions</h3>
+        <h3 id="functions" class="section-header"><img class="section-icon" src="/public/icons/function.svg" alt="" aria-hidden="true" />Functions</h3>
       
         {{#each (group-by-name functions)}}
           <section id="{{name}}">
@@ -275,13 +274,14 @@
         {{/each}}
       {{/if}}
       </div>
+      </div>
       <details class="shader-toc" open>
         <summary>Contents</summary>
         <nav>
           <ul>
             {{#if notEmptyConsts}}
               <li>
-                <a href="#constants">Constants</a>
+                <a href="#constants"><img class="toc-icon" src="/public/icons/constant.svg" alt="" aria-hidden="true" />Constants</a>
                 <ul>
                   {{#each (group-by-name consts)}}<li><a href="#{{name}}">{{name}}</a></li>{{/each}}
                 </ul>
@@ -289,7 +289,7 @@
             {{/if}}
             {{#if notEmptyBindings}}
               <li>
-                <a href="#bindings">Bindings</a>
+                <a href="#bindings"><img class="toc-icon" src="/public/icons/binding.svg" alt="" aria-hidden="true" />Bindings</a>
                 <ul>
                   {{#each (group-by-name bindings)}}<li><a href="#{{name}}">{{name}}</a></li>{{/each}}
                 </ul>
@@ -297,7 +297,7 @@
             {{/if}}
             {{#if notEmptyStructures}}
               <li>
-                <a href="#structures">Structures</a>
+                <a href="#structures"><img class="toc-icon" src="/public/icons/struct.svg" alt="" aria-hidden="true" />Structures</a>
                 <ul>
                   {{#each (group-by-name structures)}}<li><a href="#{{name}}">{{name}}</a></li>{{/each}}
                 </ul>
@@ -305,7 +305,7 @@
             {{/if}}
             {{#if notEmptyFunctions}}
               <li>
-                <a href="#functions">Functions</a>
+                <a href="#functions"><img class="toc-icon" src="/public/icons/function.svg" alt="" aria-hidden="true" />Functions</a>
                 <ul>
                   {{#each (group-by-name functions)}}<li><a href="#{{name}}">{{name}}</a></li>{{/each}}
                 </ul>

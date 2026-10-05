@@ -4,13 +4,27 @@
   <body>
     {{> header urlPrefix=urlPrefix version=version searchScope="package" searchPackage=name searchVersion=packageVersion searchIndex=searchIndex }}
 
-    <nav class="package-nav">
-      <a href="/{{urlPrefix}}">Overview</a>
-      <a class="active" href="/{{packageURLPrefix}}/index.html">Shaders</a>
-    </nav>
+    <main class="package-detail-page">
     <div class="breadcrumbs"><a href="/{{urlPrefix}}">Packages</a> <span>›</span> <strong>{{name}}</strong> {{> version-selector packageName=name urlPrefix=packageURLPrefix projectVersion=packageVersion versionOptions=versionOptions}}</div>
-    {{#if repository}}<div class="package-metadata"><a href="{{repository}}">Repository</a>{{#if license}}<span>License: {{license}}</span>{{/if}}{{#if homepage}}<a href="{{homepage}}">Homepage</a>{{/if}}</div>{{/if}}
-    {{#if description}}<div class="package-description-block"><h2>Description</h2><p>{{description}}</p></div>{{/if}}
+    {{#if description}}
+      <section class="package-dependencies">
+        <header>
+          <h2>Metadata</h2>
+        </header>
+        <div>
+          <span>{{description}}</span>
+          {{#if repository}}
+            <div class="package-metadata">
+              <a href="{{repository}}">Repository</a>
+              {{#if license}}<span>License: {{license}}</span>{{/if}}
+              {{#if homepage}}
+                <a href="{{homepage}}">Homepage</a>
+              {{/if}}
+            </div>
+          {{/if}}
+        </div>
+      </section>
+    {{/if}}
     {{#if hasDirectDependencies}}
       <section class="package-dependencies">
         <header><h2>Direct dependencies</h2><span class="shader-count">{{directDependencyCount}} packages</span></header>
@@ -70,6 +84,7 @@
         </ul>
       {{/if}}
     </section>
+    </main>
     {{> footer}}
   </body>
 </html>

@@ -1,4 +1,9 @@
 (() => {
+  const toc = document.querySelector(".shader-toc");
+  if (toc && window.matchMedia("(max-width: 700px)").matches) {
+    toc.open = false;
+  }
+
   const toggle = document.getElementById("interactive-shader-defs");
   const options = document.getElementById("shader-def-options");
   if (!toggle || !options) return;

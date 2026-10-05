@@ -12,11 +12,25 @@ import (
 
 var copyToPublic = []string{
 	"assets/styles.css",
+	"assets/styles/base.css",
+	"assets/styles/pages.css",
+	"assets/styles/shader.css",
+	"assets/styles/search.css",
+	"assets/styles/tooltips.css",
+	"assets/icons/binding.svg",
+	"assets/icons/constant.svg",
+	"assets/icons/entry-point.svg",
+	"assets/icons/function.svg",
+	"assets/icons/group.svg",
+	"assets/icons/import.svg",
+	"assets/icons/pointer.svg",
+	"assets/icons/struct.svg",
 	"assets/favicon.ico",
 	"icon.png",
 	"assets/search.js",
 	"assets/shader-defs.js",
 	"assets/select.js",
+	"assets/saved.js",
 	"assets/404.js",
 	"assets/404.css",
 	"assets/wgsl.png",
@@ -72,6 +86,7 @@ func Generate(config config.Config) error {
 		})
 		appendSearchInfo(&searchInfo, &declaredImportPaths, wgslFiles[i])
 	}
+	searchInfo = combineSearchInfo(searchInfo)
 
 	sections, totalProject, totalDependency := buildHomeSections(wgslFiles)
 
@@ -216,4 +231,35 @@ type ShaderSearchableInfo struct {
 	Type           string `json:"type"`
 	StageAttribute string `json:"stageAttribute"`
 	Comment        string `json:"comment"`
+}
+
+func combineSearchInfo(items []ShaderSearchableInfo) []ShaderSearchableInfo {
+	combined := make([]ShaderSearchableInfo, 0, len(items))
+	indices := make(map[string]int, len(items))
+	for _, item := range items {
+		key := strings.Join([]string{item.PackageName, item.PackageVersion, item.Filename, item.Name, item.Type}, "\x00")
+		index, exists := indices[key]
+		if !exists {
+			indices[key] = len(combined)
+			combined = append(combined, item)
+			continue
+		}
+
+		current := &combined[index]
+		if item.Filename != "" && !strings.Contains(", "+current.Filename+", ", ", "+item.Filename+", ") {
+			if current.Filename == "" {
+				current.Filename = item.Filename
+			} else {
+				current.Filename += ", " + item.Filename
+			}
+		}
+		current.Exportable = current.Exportable || item.Exportable
+		if current.Comment == "" {
+			current.Comment = item.Comment
+		}
+		if current.StageAttribute == "" {
+			current.StageAttribute = item.StageAttribute
+		}
+	}
+	return combined
 }

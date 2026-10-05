@@ -263,7 +263,11 @@ func copyStaticAssets(publicDir string) error {
 	currentManifest := make(map[string]string, len(copyToPublic))
 	for _, file := range copyToPublic {
 		src := file
-		dst := filepath.Join(publicDir, filepath.Base(file))
+		destination := filepath.Base(file)
+		if strings.HasPrefix(filepath.ToSlash(file), "assets/") {
+			destination = strings.TrimPrefix(filepath.ToSlash(file), "assets/")
+		}
+		dst := filepath.Join(publicDir, filepath.FromSlash(destination))
 		data, readErr := os.ReadFile(src)
 		if readErr != nil {
 			return fmt.Errorf("read public asset %s: %w", src, readErr)
@@ -272,6 +276,9 @@ func copyStaticAssets(publicDir string) error {
 		currentManifest[src] = digest
 		if previousManifest[src] == digest {
 			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(dst), os.ModePerm); err != nil {
+			return fmt.Errorf("create public asset directory for %s: %w", src, err)
 		}
 		err := utils.CopyFile(src, dst)
 		if err != nil {

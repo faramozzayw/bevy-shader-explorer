@@ -1,12 +1,13 @@
 <header data-search-scope="{{searchScope}}" data-search-package="{{searchPackage}}" data-search-version="{{searchVersion}}" data-search-index="{{searchIndex}}">
   <div class="header-container">
-    <a class="site-brand" href="/{{urlPrefix}}">Shader Explorer</a>
+    <div class="header-brand">
+      <svg width="40" height="40" viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="miter" aria-hidden="true"><path d="M22 108 L14 92 L16 72 L28 58 L46 50 L64 50 L74 42 L80 32 L90 30 L100 38 L100 44 L90 50 L86 60 L82 80 L86 102 L94 106 L94 108 Z"></path><path d="M77 35 L52 34 L53 28 L82 31"></path><path d="M86 30 L90 16 L86 4 M90 16 L100 8 M82 31 L78 18 L70 10"></path><rect x="88" y="35" width="5" height="5" fill="currentColor" stroke="none"></rect></svg>
+      <a class="site-brand" href="/{{urlPrefix}}">Bevy Shader Explorer</a>
+    </div>
     <div class="search-input-wrapper">
-      <input type="text" id="search-input" class="search-input" placeholder="Type ‘S’ or ‘/’ to search 🔍" />
-      <div class="tooltip-bottom tooltip-container">
-        <div style="display: flex; align-items: center; justify-content: center; height: 40px; padding-left: 15px;">
+      <div class="tooltip-bottom tooltip-container header-info">
+        <div class="header-info-button">
           <picture>
-            <source srcset="/public/info-light.png" media="(prefers-color-scheme: dark)" />
             <img src="/public/info-dark.png" width="25" height="25" />
           </picture>
         </div>
@@ -18,7 +19,8 @@
           to exclude suffix.
         </div>
       </div>
+      <input type="text" id="search-input" class="search-input" placeholder="Type ‘S’ or ‘/’ to search 🔍" />
+      <div id="results"></div>
     </div>
   </div>
-  <div id="results"></div>
 </header>

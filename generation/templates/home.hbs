@@ -1,8 +1,15 @@
 <html lang="en">
-  {{>head title="Shader Explorer" description=description canonical=canonicalURL ogImageURL=ogImageURL structuredData=structuredData}}
-  <body class="catalogue-page">
+  {{>head title="Bevy Shader Explorer" description=description canonical=canonicalURL ogImageURL=ogImageURL structuredData=structuredData}}
+  <body>
     {{> header urlPrefix=urlPrefix version=version searchScope="packages" searchIndex=version }}
-    <main class="catalogue-main">
+    <main>
+      <section id="saved-shaders" class="saved-shaders" hidden>
+        <div class="release-heading">
+          <h2>Saved shaders</h2>
+          <button type="button" class="saved-clear-button" data-saved-clear>Clear all</button>
+        </div>
+        <div class="saved-shader-list" data-saved-list></div>
+      </section>
       
       <section class="release-list">
         <div class="release-heading">

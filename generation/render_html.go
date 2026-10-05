@@ -107,7 +107,7 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 			"repository": page.Metadata.Repository, "homepage": page.Metadata.Homepage,
 			"packageVersion":   page.Version,
 			"searchIndex":      packageSearchIndex(page.PackageName, page.Version),
-			"seoTitle":         fmt.Sprintf("%s %s — Shader Explorer", page.PackageName, page.Version),
+			"seoTitle":         fmt.Sprintf("%s %s — Bevy Shader Explorer", page.PackageName, page.Version),
 			"version":          config.Version,
 			"projectVersion":   page.Version,
 			"projectCount":     page.Count,
@@ -151,7 +151,7 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 		"ogImageURL":       ogImageURL(config, "site", config.ProjectVersion),
 		"issueURL":         config.IssueURL,
 		"structuredData": jsonValue(map[string]interface{}{
-			"@context": "https://schema.org", "@type": "WebSite", "name": "Shader Explorer",
+			"@context": "https://schema.org", "@type": "WebSite", "name": "Bevy Shader Explorer",
 			"description": config.Description, "url": canonicalURL(config.SiteURL, ""),
 		}),
 	}, filepath.Join(versionedOutput, "index.html")); err != nil {
