@@ -72,6 +72,12 @@ func Generate(config config.Config) error {
 	}
 	resolveWgslPathCollisions(wgslFiles)
 	for i := range wgslFiles {
+		wgslFiles[i].VersionOptions = shaderVersionOptions(
+			config.OutputDir,
+			wgslFiles[i].ProjectName,
+			wgslFiles[i].ProjectVersion,
+			wgslFiles[i].WgslPath,
+		)
 		wgslFiles[i].SearchIndex = packageSearchIndex(wgslFiles[i].ProjectName, wgslFiles[i].ProjectVersion)
 		wgslFiles[i].Link = joinDocURL("project", wgslFiles[i].WgslPath)
 		wgslFiles[i].CanonicalURL = canonicalURL(config.SiteURL, wgslFiles[i].Link)

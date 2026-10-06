@@ -14,19 +14,39 @@
       );
       if (versions.length === 0) return;
 
-      select.replaceChildren(...versions.map((version) => {
+      const shaderPage = select.closest(".shader-page");
+      const pathParts = location.pathname.split("/").filter(Boolean);
+      const currentVersion = pathParts[0] === packageName ? pathParts[1] : "";
+      const shaderTail = currentVersion ? pathParts.slice(2).join("/") : "";
+      const existingLinks = new Map([...select.options].map((option) => [option.textContent, option.value]));
+
+      const resolveOption = async (version) => {
         const option = document.createElement("option");
         option.value = "/" + version.url;
         option.textContent = version.label;
-        // A shader page has the package version followed by the shader path,
-        // so compare the version segment instead of the complete URL.
-        const packagePrefix = "/" + packageName + "/";
-        const currentVersion = location.pathname.startsWith(packagePrefix)
-          ? location.pathname.slice(packagePrefix.length).split("/")[0]
-          : "";
         option.selected = currentVersion === version.label;
+        if (shaderPage && shaderTail) {
+          const existing = existingLinks.get(version.label);
+          if (existing && !existing.endsWith("/index.html")) {
+            option.value = existing;
+          } else if (version.label === currentVersion) {
+            option.value = location.pathname;
+          } else {
+            const candidate = `/${packageName}/${version.label}/${shaderTail}`;
+            try {
+              const response = await fetch(candidate, { method: "HEAD", cache: "no-store" });
+              if (response.ok) option.value = candidate;
+            } catch {
+              // Keep the package-index fallback when the candidate is absent.
+            }
+          }
+        }
         return option;
-      }));
+      };
+
+      Promise.all(versions.map(resolveOption)).then((options) => {
+        select.replaceChildren(...options);
+      });
     });
   });
 })();

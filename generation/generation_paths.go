@@ -86,6 +86,30 @@ func packageVersionOptions(outputDir, packageName, packageVersion string) []map[
 	return options
 }
 
+// shaderVersionOptions returns sibling package versions, linking directly to
+// the same shader when that file was generated for the version. Versions that
+// do not contain the shader retain the package-index fallback.
+func shaderVersionOptions(outputDir, packageName, packageVersion, shaderPath string) []map[string]string {
+	options := packageVersionOptions(outputDir, packageName, packageVersion)
+	prefix := filepath.ToSlash(filepath.Join(packageName, packageVersion)) + "/"
+	relativePath := strings.TrimPrefix(filepath.ToSlash(shaderPath), prefix)
+	if relativePath == shaderPath || relativePath == "" {
+		return options
+	}
+
+	for _, option := range options {
+		version := option["label"]
+		candidate := filepath.Join(outputDir, packageName, version, filepath.FromSlash(relativePath))
+		if version == packageVersion {
+			option["selected"] = "true"
+			option["url"] = filepath.ToSlash(filepath.Join(packageName, version, relativePath))
+		} else if _, err := os.Stat(candidate); err == nil {
+			option["url"] = filepath.ToSlash(filepath.Join(packageName, version, relativePath))
+		}
+	}
+	return options
+}
+
 func writeSEOFiles(outputDir, siteURL string) error {
 	robots := "User-agent: *\nAllow: /\n"
 	if siteURL != "" {
