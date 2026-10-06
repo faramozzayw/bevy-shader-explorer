@@ -163,10 +163,10 @@ func writeOGCardAt(outputDir, base, title, version, bevyVersion, description str
 		}
 	}
 	renderSVGPath := svgPath
-	if mascot, err := os.ReadFile(filepath.Join(outputDir, "public", "mascot2.jpeg")); err == nil {
+	if mascot, err := os.ReadFile(filepath.Join(outputDir, "public", "mascot.png")); err == nil {
 		renderSVGPath = svgPath + ".render.svg"
 		data := base64.StdEncoding.EncodeToString(mascot)
-		renderSVG := strings.Replace(string(svg), "../mascot2.jpeg", "data:image/jpeg;base64,"+data, 1)
+		renderSVG := strings.Replace(string(svg), "../mascot.png", "data:image/png;base64,"+data, 1)
 		if err := os.WriteFile(renderSVGPath, []byte(renderSVG), 0o644); err != nil {
 			return fmt.Errorf("write renderable social card SVG: %w", err)
 		}

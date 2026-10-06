@@ -40,7 +40,7 @@ fn vertex_main(@location(0) position: vec3<f32>) -> @builtin(position) vec4<f32>
 	packagePage := filepath.Join(output, "fixture", "0.1.0", "index.html")
 	shaderPage := filepath.Join(output, "fixture", "0.1.0", "shaders", "simple.html")
 	homePage := filepath.Join(output, "index.html")
-	for _, path := range []string{homePage, packagePage, shaderPage, filepath.Join(output, "public", "search-info-fixture-0.1.0.json"), filepath.Join(output, "public", "package-versions.json"), filepath.Join(output, "public", "mascot2.jpeg"), filepath.Join(output, "public", "icon.png"), filepath.Join(output, "robots.txt"), filepath.Join(output, "sitemap.xml")} {
+	for _, path := range []string{homePage, packagePage, shaderPage, filepath.Join(output, "public", "search-info-fixture-0.1.0.json"), filepath.Join(output, "public", "package-versions.json"), filepath.Join(output, "public", "mascot.png"), filepath.Join(output, "public", "icon.png"), filepath.Join(output, "robots.txt"), filepath.Join(output, "sitemap.xml")} {
 		if _, err := os.Stat(path); err != nil {
 			t.Fatalf("expected generated file %s: %v", path, err)
 		}

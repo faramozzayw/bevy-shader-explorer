@@ -39,7 +39,7 @@ var copyToPublic = []string{
 	"generation/templates/search-result.hbs",
 	"assets/info-dark.png",
 	"assets/info-light.png",
-	"mascot2.jpeg",
+	"assets/mascot.png",
 }
 
 func Generate(config config.Config) error {

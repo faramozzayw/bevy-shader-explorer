@@ -299,5 +299,5 @@ func copyOGMascot(publicDir string) error {
 	if err := os.MkdirAll(publicDir, os.ModePerm); err != nil {
 		return fmt.Errorf("create public directory: %w", err)
 	}
-	return utils.CopyFile("mascot2.jpeg", filepath.Join(publicDir, "mascot2.jpeg"))
+	return utils.CopyFile(filepath.Join("assets", "mascot.png"), filepath.Join(publicDir, "mascot.png"))
 }
