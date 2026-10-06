@@ -256,7 +256,7 @@ func sourceDirectoryParts(file wgsl.WgslFile) []string {
 }
 
 func appendSearchInfo(searchInfo *[]ShaderSearchableInfo, imports *map[string]string, file wgsl.WgslFile) {
-	link := utils.NormalizeLink(file.Link)
+	link := "/" + strings.TrimPrefix(utils.NormalizeLink(file.Link), "/")
 	exportable := file.ImportPath != nil
 	if exportable {
 		(*imports)[*file.ImportPath] = link

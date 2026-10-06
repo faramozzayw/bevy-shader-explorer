@@ -1,12 +1,37 @@
 package generation
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/faramozzayw/bevy-shader-explorer/config"
 )
+
+func readFinalSearchInfo(outputDir string) ([]ShaderSearchableInfo, error) {
+	entries, err := os.ReadDir(filepath.Join(outputDir, "public"))
+	if err != nil {
+		return nil, fmt.Errorf("read final search indexes: %w", err)
+	}
+	var result []ShaderSearchableInfo
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasPrefix(entry.Name(), "search-info-") || filepath.Ext(entry.Name()) != ".json" || entry.Name() == "search-info-all.json" {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(outputDir, "public", entry.Name()))
+		if err != nil {
+			return nil, fmt.Errorf("read final search index %s: %w", entry.Name(), err)
+		}
+		var items []ShaderSearchableInfo
+		if err := json.Unmarshal(data, &items); err != nil {
+			return nil, fmt.Errorf("decode final search index %s: %w", entry.Name(), err)
+		}
+		result = append(result, items...)
+	}
+	return result, nil
+}
 
 // Finalize writes catalogue-wide artifacts once, after all release workers have
 // rendered their package and shader pages.
@@ -46,6 +71,13 @@ func Finalize(config config.Config) error {
 			Count:       entry.Count,
 			DetailPath:  entry.DetailPath,
 		})
+	}
+	searchInfo, err := readFinalSearchInfo(config.OutputDir)
+	if err != nil {
+		return err
+	}
+	if err := writeGlobalSearchIndex(filepath.Join(config.OutputDir, "public"), searchInfo, packages); err != nil {
+		return err
 	}
 	site := documentationSite{
 		Version:          config.Version,

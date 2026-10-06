@@ -182,6 +182,11 @@
 	color: var(--function-name-color);
 }
 
+.search-result-package {
+	color: var(--function-name-color);
+	font-weight: 600;
+}
+
 #results {
 	position: absolute;
 	left: 50px;

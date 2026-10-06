@@ -185,6 +185,9 @@ func copyItemsToPublic(config *config.Config, searchInfo []ShaderSearchableInfo,
 	if err := writeSearchIndexes(publicDir, searchInfo, packages); err != nil {
 		return err
 	}
+	if err := writeGlobalSearchIndex(publicDir, searchInfo, packages); err != nil {
+		return err
+	}
 	return copyStaticAssets(publicDir)
 }
 
@@ -216,6 +219,112 @@ func writePendingSearchIndexes(outputDir string, searchInfo []ShaderSearchableIn
 		return fmt.Errorf("create pending search indexes: %w", err)
 	}
 	return writeSearchIndexes(dir, searchInfo, packages)
+}
+
+type searchIndexManifest struct {
+	Hash string `json:"hash"`
+	URL  string `json:"url"`
+}
+
+func writeGlobalSearchIndex(publicDir string, searchInfo []ShaderSearchableInfo, packages []documentationPackagePage) error {
+	items := make([]interface{}, 0, len(searchInfo)+len(packages))
+	for _, page := range packages {
+		items = append(items, packageSearchRecord(packages, page.PackageName))
+	}
+	// Package records are grouped above; keep one record per package.
+	seenPackages := make(map[string]bool, len(packages))
+	grouped := items[:0]
+	for _, item := range items {
+		record := item.(map[string]interface{})
+		name := record["packageName"].(string)
+		if seenPackages[name] {
+			continue
+		}
+		seenPackages[name] = true
+		grouped = append(grouped, item)
+	}
+	items = grouped
+	for _, item := range combineGlobalSearchInfo(searchInfo) {
+		items = append(items, item)
+	}
+
+	data, err := json.MarshalIndent(items, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal global search index: %w", err)
+	}
+	if err := utils.WriteFileIfChanged(filepath.Join(publicDir, "search-info-all.json"), data, 0644); err != nil {
+		return fmt.Errorf("write global search index: %w", err)
+	}
+	hash := fmt.Sprintf("%x", sha256.Sum256(data))
+	manifest, err := json.Marshal(searchIndexManifest{Hash: hash, URL: "/public/search-info-all.json"})
+	if err != nil {
+		return fmt.Errorf("marshal search index manifest: %w", err)
+	}
+	if err := utils.WriteFileIfChanged(filepath.Join(publicDir, "search-index-manifest.json"), manifest, 0644); err != nil {
+		return fmt.Errorf("write search index manifest: %w", err)
+	}
+	return nil
+}
+
+type globalSearchDeclaration struct {
+	ShaderSearchableInfo
+	Kind         string              `json:"kind"`
+	Versions     []map[string]string `json:"versions"`
+	MultiVersion bool                `json:"multiVersion"`
+}
+
+func combineGlobalSearchInfo(items []ShaderSearchableInfo) []globalSearchDeclaration {
+	combined := make([]globalSearchDeclaration, 0, len(items))
+	indices := make(map[string]int, len(items))
+	seenVersions := make([]map[string]bool, 0, len(items))
+	for _, item := range items {
+		key := strings.Join([]string{item.PackageName, item.Filename, item.Name, item.Type}, "\x00")
+		index, exists := indices[key]
+		if !exists {
+			indices[key] = len(combined)
+			combined = append(combined, globalSearchDeclaration{
+				ShaderSearchableInfo: item,
+				Kind:                 "declaration",
+				Versions:             []map[string]string{{"label": item.PackageVersion, "url": item.Link + "#" + item.Name}},
+			})
+			seenVersions = append(seenVersions, map[string]bool{item.PackageVersion: true})
+			continue
+		}
+
+		current := &combined[index]
+		if !seenVersions[index][item.PackageVersion] {
+			seenVersions[index][item.PackageVersion] = true
+			current.Versions = append(current.Versions, map[string]string{"label": item.PackageVersion, "url": item.Link + "#" + item.Name})
+			current.MultiVersion = len(current.Versions) > 1
+		}
+		current.Exportable = current.Exportable || item.Exportable
+	}
+	return combined
+}
+
+func packageSearchRecord(packages []documentationPackagePage, packageName string) map[string]interface{} {
+	record := map[string]interface{}{
+		"kind":        "package",
+		"name":        packageName,
+		"packageName": packageName,
+		"versions":    []map[string]string{},
+	}
+	versions := record["versions"].([]map[string]string)
+	for _, page := range packages {
+		if page.PackageName != packageName {
+			continue
+		}
+		currentVersion, _ := record["version"].(string)
+		if currentVersion == "" || page.Version > currentVersion {
+			record["version"] = page.Version
+			record["description"] = page.Description
+			record["comment"] = page.Description
+			record["link"] = "/" + filepath.ToSlash(page.DetailPath)
+		}
+		versions = append(versions, map[string]string{"label": page.Version, "url": filepath.ToSlash(page.DetailPath)})
+	}
+	record["versions"] = versions
+	return record
 }
 
 func finalizeSearchIndexes(outputDir string) error {

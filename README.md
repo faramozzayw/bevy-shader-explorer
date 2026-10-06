@@ -83,6 +83,33 @@ verify the domain in Google Search Console and submit `/sitemap.xml`.
 The bundled multi-source build reads the same setting from the top level of
 `shader-sources.toml`.
 
+### Search
+
+The generated site provides one global search across packages, versions, shader
+files, declarations, and comments. The generator writes per-release search
+indexes plus a merged `public/search-info-all.json` index and a
+`public/search-index-manifest.json` containing its SHA-256 hash.
+
+At runtime, the browser stores the global index in IndexedDB. It checks the
+manifest hash before downloading the JSON again, so unchanged deployments reuse
+the local index. If IndexedDB or FlexSearch is unavailable, search falls back to
+in-memory data and linear matching.
+
+FlexSearch indexes declaration names, filenames, package metadata, types,
+comments, descriptions, and shader-stage attributes. Multiple terms use AND
+semantics by intersecting each term's matches. Results are then ranked by exact
+and prefix name matches, filename, package, type, and description. Queries can
+also include `@vertex`, `@fragment`, or `@compute` stage filters.
+
+Declarations are grouped across versions only when their package, source file,
+name, and type all match. Different packages and files remain separate. Grouped
+results include a version selector sorted newest-first, and the declaration
+name link points to the newest available version by default.
+
+Press `S` or `/` to focus search and `Escape` to leave it. The query is kept in
+the URL for bookmarking and sharing, results update as you type, and the UI
+displays at most 50 results.
+
 Use `--format json` to export the same home, package, and shader page model
 without rendering HTML. The convenience recipe is:
 
