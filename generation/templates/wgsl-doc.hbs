@@ -52,8 +52,9 @@
       <div class="shader-page-content">
       
       {{#if notEmptyConsts}}
+      <div class="shader-section-group">
         <h3 id="constants" class="section-header"><img class="section-icon" src="/public/icons/constant.svg" alt="" aria-hidden="true" />Constants</h3>
-
+        <div class="shader-section-items">
         {{#each (group-by-name consts)}}
           <section id="{{name}}">
             <header>
@@ -94,11 +95,14 @@
             {{/each}}
           </section>
         {{/each}}
+        </div>
+      </div>
       {{/if}}
 
       {{#if notEmptyBindings}}
+      <div class="shader-section-group">
         <h3 id="bindings" class="section-header"><img class="section-icon" src="/public/icons/binding.svg" alt="" aria-hidden="true" />Bindings</h3>
-
+        <div class="shader-section-items">
         {{#each (group-by-name bindings)}}
           <section id="{{name}}">
             <header>
@@ -138,11 +142,14 @@
           {{/each}}
           </section>
         {{/each}}
+        </div>
+      </div>
       {{/if}}
 
       {{#if notEmptyStructures}}
+      <div class="shader-section-group">
         <h3 id="structures" class="section-header"><img class="section-icon" src="/public/icons/struct.svg" alt="" aria-hidden="true" />Structures</h3>
-
+        <div class="shader-section-items">
         {{#each (group-by-name structures)}}
           <section id="{{name}}">
             <header>
@@ -194,11 +201,14 @@
             {{/each}}
           </section>
         {{/each}}
+        </div>
+      </div>
       {{/if}}
 
       {{#if notEmptyFunctions}}
+      <div class="shader-section-group">
         <h3 id="functions" class="section-header"><img class="section-icon" src="/public/icons/function.svg" alt="" aria-hidden="true" />Functions</h3>
-      
+        <div class="shader-section-items">
         {{#each (group-by-name functions)}}
           <section id="{{name}}">
             <header>
@@ -272,6 +282,8 @@
             {{/each}}
           </section>
         {{/each}}
+        </div>
+      </div>
       {{/if}}
       </div>
       </div>

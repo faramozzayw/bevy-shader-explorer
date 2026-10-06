@@ -165,6 +165,9 @@ body > main {
 
 .shader-page-content {
 	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 28px;
 }
 
 .shader-page-content code {
@@ -536,6 +539,7 @@ body > main.shader-page {
 	.shader-page-content {
 		order: 3;
 		width: 100%;
+		gap: 20px;
 	}
 
 	.shader-main-column {

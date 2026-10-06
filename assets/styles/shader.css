@@ -154,6 +154,25 @@ a.item-name:hover {
 	font-weight: 300;
 	font-size: 22px;
 	letter-spacing: 7px;
+	margin: 0;
+}
+
+.shader-section-group,
+.shader-section-items {
+	display: flex;
+	flex-direction: column;
+}
+
+.shader-section-group {
+	gap: 12px;
+}
+
+.shader-section-items {
+	gap: 16px;
+}
+
+.shader-page-content section {
+	margin-bottom: 0;
 }
 
 .section-icon,
