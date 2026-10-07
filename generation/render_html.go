@@ -94,6 +94,7 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 			"showModuleGroups":          len(moduleGroups) > 1,
 			"count":                     page.Count,
 			"description":               page.Description,
+			"seoDescription":            packageSEODescription(page.PackageName, page.Version, page.Description, page.Count),
 			"dependencies":              page.Dependencies,
 			"hasDependencies":           len(page.Dependencies) > 0,
 			"dependencyCount":           len(page.Dependencies),
@@ -121,6 +122,7 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 				"@context": "https://schema.org", "@type": "SoftwareSourceCode",
 				"name": page.PackageName, "version": page.Version, "description": page.Description,
 				"url": canonicalURL(config.SiteURL, page.DetailPath), "codeRepository": page.Metadata.Repository,
+				"isPartOf": map[string]interface{}{"@type": "WebSite", "name": "Bevy Shader Explorer", "url": canonicalURL(config.SiteURL, "")},
 			}),
 		}, pagePath); err != nil {
 			return fmt.Errorf("render package %s %s: %w", page.PackageName, page.Version, err)
@@ -152,7 +154,8 @@ func renderDocumentation(config config.Config, site documentationSite, registry 
 		"issueURL":         config.IssueURL,
 		"structuredData": jsonValue(map[string]interface{}{
 			"@context": "https://schema.org", "@type": "WebSite", "name": "Bevy Shader Explorer",
-			"description": config.Description, "url": canonicalURL(config.SiteURL, ""),
+			"alternateName": "Shader Explorer", "description": config.Description, "url": canonicalURL(config.SiteURL, ""),
+			"publisher": map[string]interface{}{"@type": "Organization", "name": "Bevy Shader Explorer", "url": "https://github.com/faramozzayw/bevy-shader-explorer"},
 		}),
 	}, filepath.Join(versionedOutput, "index.html")); err != nil {
 		return fmt.Errorf("render home page: %w", err)

@@ -1,6 +1,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="application-name" content="Bevy Shader Explorer" />
+  <meta name="theme-color" content="#c9c4a8" />
   <title>{{title}}</title>
   {{#if description}}<meta name="description" content="{{description}}" />{{/if}}
   {{#if canonical}}<link rel="canonical" href="{{canonical}}" />{{/if}}
@@ -8,8 +10,11 @@
   {{#if description}}<meta property="og:description" content="{{description}}" />{{/if}}
   {{#if canonical}}<meta property="og:url" content="{{canonical}}" />{{/if}}
   <meta property="og:type" content="{{#if isShader}}article{{else}}website{{/if}}" />
-  <meta property="og:site_name" content="Shader Explorer" />
+  <meta property="og:site_name" content="Bevy Shader Explorer" />
+  <meta property="og:locale" content="en_US" />
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{{title}}" />
+  {{#if description}}<meta name="twitter:description" content="{{description}}" />{{/if}}
   {{#if ogImageURL}}
     <meta property="og:image" content="{{ogImageURL}}" />
     <meta property="og:image:width" content="1200" />
@@ -24,6 +29,7 @@
     href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap"
     rel="stylesheet"
   />
+  <link rel="icon" href="/public/favicon.ico" sizes="any" />
   <link rel="icon" href="/public/icon.png" type="image/png" />
 
   <script src="https://cdn.jsdelivr.net/gh/nextapps-de/flexsearch@0.8.2/dist/flexsearch.bundle.min.js"></script>

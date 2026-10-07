@@ -110,7 +110,8 @@ func Finalize(config config.Config) error {
 		"issueURL":         config.IssueURL,
 		"structuredData": jsonValue(map[string]interface{}{
 			"@context": "https://schema.org", "@type": "WebSite", "name": "Bevy Shader Explorer",
-			"description": config.Description, "url": canonicalURL(config.SiteURL, ""),
+			"alternateName": "Shader Explorer", "description": config.Description, "url": canonicalURL(config.SiteURL, ""),
+			"publisher": map[string]interface{}{"@type": "Organization", "name": "Bevy Shader Explorer", "url": "https://github.com/faramozzayw/bevy-shader-explorer"},
 		}),
 	}, filepath.Join(config.OutputDir, "index.html")); err != nil {
 		return fmt.Errorf("render final home page: %w", err)
