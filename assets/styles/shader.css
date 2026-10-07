@@ -150,6 +150,9 @@ a.item-name:hover {
 	align-items: center;
 	width: max-content;
 }
+.github-source-icon {
+	filter: brightness(0) invert(1);
+}
 .section-header {
 	font-family: "Zan Kaku Gothic New", monospace;
 	font-weight: 300;
