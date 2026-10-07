@@ -24,7 +24,8 @@
 
 	--comment-bg: #cbc6aa;
 	--comment-border: #8b876e;
-	--comment-link-color: var(--comment-border);
+	--comment-link-color: #176b87;
+	--comment-link-hover-color: #174b5c;
 
 	--badge-bg: #4c4940;
 	--attribute-bg: #a64b36;

@@ -105,7 +105,8 @@
 	color: var(--comment-link-color);
 }
 .function-comment a:hover {
-	border-bottom-color: 1px dashed var(--comment-link-color);
+	border-bottom: 1px dashed var(--comment-link-hover-color);
+	color: var(--comment-link-hover-color);
 }
 .keyword {
 	color: var(--keyword-color);
