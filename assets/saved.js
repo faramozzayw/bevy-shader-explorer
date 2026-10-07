@@ -33,7 +33,7 @@
     };
     const updateButton = () => {
       const saved = readSaved().some((item) => item.url === entry.url);
-      saveButton.textContent = saved ? "Saved" : "Save";
+      saveButton.textContent = saved ? "Unsave" : "Save";
       saveButton.classList.toggle("is-saved", saved);
       saveButton.setAttribute("aria-pressed", String(saved));
     };
@@ -67,7 +67,7 @@
       meta.textContent = `${item.packageName} ${item.version}`.trim();
       const remove = document.createElement("button");
       remove.type = "button";
-      remove.className = "saved-remove-button";
+      remove.className = "site-button site-button-danger saved-remove-button";
       remove.textContent = "Remove";
       remove.addEventListener("click", () => {
         writeSaved(readSaved().filter((savedItem) => savedItem.url !== item.url));

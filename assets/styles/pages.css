@@ -125,21 +125,6 @@
 	color: var(--search-placeholder);
 	font-size: 0.85rem;
 }
-.saved-clear-button,
-.saved-remove-button,
-.save-shader-button {
-	border: 1px solid var(--import-button-bg);
-	border-radius: 0;
-	padding: 5px 9px;
-	background: var(--import-button-bg);
-	color: white;
-	font: inherit;
-	cursor: pointer;
-}
-.save-shader-button.is-saved {
-	background: var(--vertex-bg);
-	border-color: var(--vertex-bg);
-}
 .shader-page-header .save-shader-button {
 	flex: 0 0 auto;
 	white-space: nowrap;

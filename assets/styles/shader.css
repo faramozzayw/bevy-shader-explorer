@@ -235,19 +235,7 @@ a.item-name:hover {
 	margin: 0;
 }
 .import-path-button {
-	color: white;
-	padding: 10px 15px;
-	border: 1px solid color-mix(in srgb, var(--import-button-bg) 70%, black);
-	border-radius: 2px;
-	font-size: 1em;
-	font-weight: 700;
-	letter-spacing: 0.02em;
-	cursor: pointer;
-	transition:
-		background-color 0.3s ease,
-		border-color 0.3s ease,
-		box-shadow 0.2s ease;
-	background-color: var(--import-button-bg);
+	white-space: nowrap;
 }
 .page-import-button {
 	display: block;
@@ -267,11 +255,6 @@ a.item-name:hover {
 	flex: 1 1 auto;
 	margin-bottom: 10px;
 }
-.import-path-button:hover {
-	background-color: var(--import-button-hover);
-	border-color: var(--import-button-hover);
-	box-shadow: 2px 2px 0 var(--section-shadow-color);
-}
 @media (max-width: 425px) {
 	.import-path-button {
 		display: inline-flex;
@@ -281,11 +264,6 @@ a.item-name:hover {
 		padding: 8px 10px;
 		font-size: 0.8rem;
 	}
-}
-
-.import-path-button:focus {
-	outline: none;
-	box-shadow: 0 0 5px var(--import-button-focus);
 }
 .flex-align-center {
 	display: flex;

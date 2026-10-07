@@ -42,6 +42,13 @@
 	--import-button-bg: #a64b36;
 	--import-button-hover: #843b2c;
 	--import-button-focus: rgba(61, 58, 50, 0.35);
+	--copy-button-bg: #ad642d;
+	--copy-button-hover: #884c23;
+	--save-button-bg: var(--vertex-bg);
+	--save-button-hover: #435333;
+	--unsave-button-bg: #a13f3f;
+	--unsave-button-hover: #7f3030;
+	--button-focus: rgba(61, 58, 50, 0.35);
 	--import-path-header-color: #3d3a32;
 
 	--search-result-border: #8a856e;
@@ -65,6 +72,57 @@ body {
 a {
 	text-decoration: none;
 	color: var(--text-color);
+}
+
+.site-button {
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 40px;
+	padding: 8px 14px;
+	border: 0;
+	border-radius: 0;
+	color: white;
+	font: inherit;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	line-height: 1.5;
+	cursor: pointer;
+	transition:
+		background-color 0.2s ease,
+		box-shadow 0.2s ease;
+}
+.site-button:hover {
+	box-shadow: 2px 2px 0 var(--section-shadow-color);
+}
+.site-button:focus-visible {
+	outline: 2px solid var(--button-focus);
+	outline-offset: 3px;
+}
+.site-button-copy {
+	background-color: var(--copy-button-bg);
+}
+.site-button-copy:hover {
+	background-color: var(--copy-button-hover);
+}
+.site-button-save {
+	background-color: var(--save-button-bg);
+}
+.site-button-save:hover {
+	background-color: var(--save-button-hover);
+}
+.site-button-save.is-saved {
+	background-color: var(--unsave-button-bg);
+}
+.site-button-save.is-saved:hover {
+	background-color: var(--unsave-button-hover);
+}
+.site-button-danger {
+	background-color: var(--unsave-button-bg);
+}
+.site-button-danger:hover {
+	background-color: var(--unsave-button-hover);
 }
 
 a.with-highlight {

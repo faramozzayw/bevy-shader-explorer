@@ -38,11 +38,11 @@
             </a>{{/if}}
         </div>
         {{#if importPath}}
-          <button class="import-path-button page-import-button" onclick="navigator.clipboard.writeText('{{importPath}}')">Copy import path</button>
+          <button class="site-button site-button-copy import-path-button page-import-button" onclick="navigator.clipboard.writeText('{{importPath}}')">Copy import path</button>
         {{/if}}
         <button
           type="button"
-          class="save-shader-button"
+          class="site-button site-button-save save-shader-button"
           data-save-shader
           data-save-name="{{filename}}"
           data-save-package="{{projectName}}"
@@ -68,7 +68,7 @@
 
               {{#if ../importPath}}
                 <div>
-                  <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{../importPath}}::{{name}}')">
+                  <button class="site-button site-button-copy import-path-button" onclick="navigator.clipboard.writeText('#import {{../importPath}}::{{name}}')">
                     Copy import statement
                   </button>
                 </div>
@@ -87,7 +87,7 @@
             <div class="signature code-background">
               <span class="keyword">const</span>
               <span>{{name}}:</span>
-              {{> type }}
+              <span class="type-expression">{{> type }}</span>
               <span>=</span>
               <span class="value">{{value}}</span>
             </div>
@@ -116,7 +116,7 @@
 
               {{#if ../importPath}}
                 <div>
-                  <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{../importPath}}::{{name}}')">
+                  <button class="site-button site-button-copy import-path-button" onclick="navigator.clipboard.writeText('#import {{../importPath}}::{{name}}')">
                     Copy import statement
                   </button>
                 </div>
@@ -163,7 +163,7 @@
 
               {{#if ../importPath}}
                 <div>
-                  <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{../importPath}}::{{name}}')">
+                  <button class="site-button site-button-copy import-path-button" onclick="navigator.clipboard.writeText('#import {{../importPath}}::{{name}}')">
                     Copy import statement
                   </button>
                 </div>
@@ -243,7 +243,7 @@
                 {{#unless stageAttribute}}
                   {{#if importPath}}
                     <div>
-                      <button class="import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{../name}}')">
+                      <button class="site-button site-button-copy import-path-button" onclick="navigator.clipboard.writeText('#import {{importPath}}::{{../name}}')">
                         Copy import statement
                       </button>
                     </div>

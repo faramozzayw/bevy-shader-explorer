@@ -23,6 +23,7 @@ var copyToPublic = []string{
 	"assets/icons/function.svg",
 	"assets/icons/group.svg",
 	"assets/icons/import.svg",
+	"assets/icons/info.svg",
 	"assets/icons/pointer.svg",
 	"assets/icons/struct.svg",
 	"assets/favicon.ico",

@@ -3,7 +3,7 @@
 .version-select {
 	position: static;
 	min-height: 34px;
-	padding: 5px 10px;
+	padding: 5px 28px 5px 10px;
 	font-family: inherit;
 	font-size: 0.85em;
 	font-weight: 500;
@@ -11,6 +11,12 @@
 	border-radius: 0;
 	background-color: var(--select-bg);
 	color: var(--select-text);
+	appearance: none;
+	-webkit-appearance: none;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23e8e1c8' stroke-width='2'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 8px center;
+	background-size: 12px 8px;
 	transition:
 		border-color 0.3s ease,
 		background-color 0.3s ease;
@@ -33,7 +39,7 @@
 @media (max-width: 700px) {
 	.version-select {
 		min-height: 40px;
-		padding: 6px 9px;
+		padding: 6px 28px 6px 9px;
 	}
 }
 
@@ -54,15 +60,15 @@
 	background-color: var(--code-bg);
 	color: var(--text-color);
 	text-align: left;
-	border: 1px solid var(--code-border-color);
-	border-radius: 5px;
+	border: 0;
+	border-radius: 0;
 	padding: 8px 12px;
 	position: absolute;
 	z-index: 10;
 	bottom: 125%;
 	left: 50%;
 	transform: translateX(-50%);
-	box-shadow: 0 2px 6px var(--shadow-color);
+	box-shadow: 8px 8px 0 1px var(--section-shadow-color);
 	opacity: 0;
 	transition: opacity 0.3s;
 	font-size: 0.9em;
