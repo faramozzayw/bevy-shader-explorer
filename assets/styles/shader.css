@@ -25,11 +25,9 @@
 	white-space: nowrap;
 }
 .shader-def-pill-if {
-	border-color: var(--vertex-bg);
 	background: color-mix(in srgb, var(--vertex-bg) 78%, var(--section-bg));
 }
 .shader-def-pill-else {
-	border-color: var(--fragment-bg);
 	background: color-mix(in srgb, var(--fragment-bg) 78%, var(--section-bg));
 }
 .function-shader-defs p,
@@ -88,7 +86,7 @@
 	border-radius: 3px;
 	overflow-x: auto;
 	background-color: var(--code-bg);
-	/* border: 1px solid var(--code-border-color); /* Subtle border */ */
+	border: 1px solid #3f3c34;
 }
 .function-comment {
 	word-break: break-word;

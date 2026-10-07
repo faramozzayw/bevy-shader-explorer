@@ -368,7 +368,6 @@ body > main {
 	box-sizing: border-box;
 	margin: 5px 0;
 	padding: 3px 8px;
-	border: 1px solid var(--code-border-color);
 	border-radius: 3px;
 	background: transparent;
 	color: var(--text-color);
@@ -377,13 +376,11 @@ body > main {
 }
 
 .shader-def-option:has(input:checked) {
-	border-color: var(--vertex-bg);
 	background: color-mix(in srgb, var(--vertex-bg) 78%, var(--section-bg));
 	color: white;
 }
 
 .shader-def-option:has(input:not(:checked)) {
-	border-color: var(--fragment-bg);
 	background: color-mix(in srgb, var(--fragment-bg) 78%, var(--section-bg));
 	color: white;
 }
