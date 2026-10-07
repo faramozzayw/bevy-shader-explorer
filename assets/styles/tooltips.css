@@ -31,6 +31,11 @@
 	box-shadow: 0 0 5px var(--import-button-focus);
 }
 
+.version-select:focus-visible {
+	outline: 2px solid var(--copy-button-bg);
+	outline-offset: 3px;
+}
+
 .version-select option {
 	background-color: var(--select-option-bg);
 	color: var(--select-text);

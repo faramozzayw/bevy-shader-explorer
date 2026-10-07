@@ -169,7 +169,6 @@
 	border-bottom: 1px dashed var(--search-border);
 	color: var(--text-color);
 }
-
 .search-result-icon {
 	display: inline-block;
 	width: 1em;
