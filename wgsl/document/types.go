@@ -16,6 +16,15 @@ type TypeInfo struct {
 	FullTypePath  string       `json:"fullTypePath"`
 	TypeLink      string       `json:"typeLink"`
 	TypeLinkBlank bool         `json:"typeLinkBlank"`
+	TypeParts     []TypePart   `json:"typeParts,omitempty"`
+}
+
+// TypePart preserves a type expression while allowing each nested type name
+// to link to its documentation independently.
+type TypePart struct {
+	Text          string `json:"text"`
+	TypeLink      string `json:"typeLink,omitempty"`
+	TypeLinkBlank bool   `json:"typeLinkBlank,omitempty"`
 }
 type NamedType struct {
 	Annotations   []Annotation `json:"annotations"`
