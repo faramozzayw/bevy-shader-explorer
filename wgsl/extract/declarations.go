@@ -82,6 +82,7 @@ func getItemComments(line int, comments map[int]string) []string {
 type syntaxExtractor struct {
 	root         syntax.Node
 	tree         *syntax.Tree
+	source       string
 	lineComments map[int]string
 	shaderDefs   []ShaderDefBlock
 }
@@ -95,7 +96,7 @@ func newSyntaxExtractor(code, parserCode string, lineComments map[int]string, sh
 	if err != nil {
 		return nil, err
 	}
-	return &syntaxExtractor{root: tree.Root(), tree: tree, lineComments: lineComments, shaderDefs: shaderDefs}, nil
+	return &syntaxExtractor{root: tree.Root(), tree: tree, source: code, lineComments: lineComments, shaderDefs: shaderDefs}, nil
 }
 
 func (e *syntaxExtractor) Close() {
@@ -111,6 +112,23 @@ func (e *syntaxExtractor) text(node syntax.Node) string {
 
 func (e *syntaxExtractor) line(node syntax.Node) int {
 	return node.Line()
+}
+
+func (e *syntaxExtractor) declarationValue(node syntax.Node) string {
+	lines := strings.Split(e.source, "\n")
+	line := e.line(node) - 1
+	if line < 0 || line >= len(lines) {
+		return ""
+	}
+	text := strings.Join(lines[line:], "\n")
+	if end := strings.IndexByte(text, ';'); end >= 0 {
+		text = text[:end]
+	}
+	_, value, found := strings.Cut(text, "=")
+	if !found {
+		return ""
+	}
+	return strings.TrimSpace(value)
 }
 
 func childOfKind(node syntax.Node, kind string) syntax.Node {
@@ -203,9 +221,12 @@ func (e *syntaxExtractor) consts() []Const {
 		}
 		line := e.line(node)
 		shaderDefs := getShaderDefsByLine(e.shaderDefs, line)
-		value := e.text(node)
-		if _, after, found := strings.Cut(value, "="); found {
-			value = strings.TrimSpace(strings.TrimSuffix(after, ";"))
+		value := e.declarationValue(node)
+		if value == "" {
+			value = e.text(node)
+			if _, after, found := strings.Cut(value, "="); found {
+				value = strings.TrimSpace(strings.TrimSuffix(after, ";"))
+			}
 		}
 		item := e.namedType(declaration, annotationsForDeclaration(node))
 		typ := item.TypeInfo.Type

@@ -22,3 +22,12 @@ func TestMaskDirectivesPreservesSourcePositions(t *testing.T) {
 		}
 	}
 }
+
+func TestMaskDirectivesPreservesInlineInterpolation(t *testing.T) {
+	source := "const VALUE: u32 = #{VALUE};\n"
+	masked := MaskDirectives(source)
+
+	assert.Equal(t, len(source), len(masked))
+	assert.Contains(t, masked, "const VALUE: u32 = 0")
+	assert.NotContains(t, masked, "#{VALUE}")
+}
