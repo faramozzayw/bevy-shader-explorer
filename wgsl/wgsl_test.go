@@ -446,6 +446,24 @@ const alternate: u32 = 3u;
 	assert.Equal(t, bevy.DefinitionBlock{Name: "INNER", IfLine: 3, ElseLine: intPointer(5), EndifLine: 7}, definitions[1])
 }
 
+func TestDefinitionExtractionSupportsIfndef(t *testing.T) {
+	source := `#ifndef FFT_VERTICAL
+fn main() {}
+#endif
+`
+
+	definitions := bevy.DefinitionBlocks(source)
+	if !assert.Equal(t, []bevy.DefinitionBlock{{Name: "FFT_VERTICAL", Negated: true, IfLine: 1, EndifLine: 3}}, definitions) {
+		return
+	}
+	shaderDefs := []extract.ShaderDefBlock{{DefName: "FFT_VERTICAL", Negated: true, IfdefLine: 1, EndifLine: 3}}
+	declarations, err := extract.Parse(source, bevy.MaskDirectives(source), nil, shaderDefs)
+	if !assert.NoError(t, err) || !assert.Len(t, declarations.Functions, 1) {
+		return
+	}
+	assert.Equal(t, []DefResult{{DefName: "FFT_VERTICAL", Branch: "else", LineNumber: 1}}, declarations.Functions[0].ShaderDefs)
+}
+
 func intPointer(value int) *int { return &value }
 
 func TestExtractionIgnoresVariablesWithoutCompleteBindingAnnotations(t *testing.T) {

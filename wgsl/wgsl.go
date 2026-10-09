@@ -20,7 +20,8 @@ import (
 )
 
 func ParseWGSLFile(
-	config *config.Config, wgslFilePath string) (WgslFile, error) {
+	config *config.Config, wgslFilePath string,
+) (WgslFile, error) {
 	wgslCodeBytes, err := os.ReadFile(wgslFilePath)
 	if err != nil {
 		return WgslFile{}, fmt.Errorf("read source: %w", err)
@@ -47,7 +48,13 @@ func ParseWGSLFile(
 	definitions := bevy.DefinitionBlocks(normalizedCode)
 	extractDefs := make([]extract.ShaderDefBlock, 0, len(definitions))
 	for _, definition := range definitions {
-		extractDefs = append(extractDefs, extract.ShaderDefBlock{DefName: definition.Name, IfdefLine: definition.IfLine, ElseLine: definition.ElseLine, EndifLine: definition.EndifLine})
+		extractDefs = append(extractDefs, extract.ShaderDefBlock{
+			DefName:   definition.Name,
+			Negated:   definition.Negated,
+			IfdefLine: definition.IfLine,
+			ElseLine:  definition.ElseLine,
+			EndifLine: definition.EndifLine,
+		})
 	}
 	parserCode := bevy.MaskDirectives(normalizedCode)
 	parseDeclarations := extract.Parse
@@ -167,7 +174,6 @@ func (wgslFile *WgslFile) ResolveTypeLinks(declaredImportPaths map[string]string
 
 	for i := range wgslFile.Bindings {
 		wgslFile.Bindings[i].TypeInfo.ResolveTypeLink(importsMap, structuresList)
-
 	}
 
 	for i := range wgslFile.Functions {
@@ -192,7 +198,7 @@ func (wgslFile *WgslFile) GenerateWgslPage(compiledTemplate *raymond.Template, o
 		return fmt.Errorf("create output directory: %w", err)
 	}
 
-	err = utils.WriteFileIfChanged(fileOutputPath, []byte(html), 0644)
+	err = utils.WriteFileIfChanged(fileOutputPath, []byte(html), 0o644)
 	if err != nil {
 		return fmt.Errorf("write output: %w", err)
 	}
@@ -238,7 +244,6 @@ func extractComments(lines []string) map[int]string {
 				cleaned := strings.TrimPrefix(trimmed, "*")
 				commentBuffer = append(commentBuffer, strings.TrimSpace(cleaned))
 			}
-
 		} else if strings.HasPrefix(trimmed, "//") {
 			comment := strings.TrimSpace(strings.TrimPrefix(trimmed, "///"))
 			comment = strings.TrimSpace(strings.TrimPrefix(comment, "//"))

@@ -8,6 +8,7 @@ import (
 // DefinitionBlock describes a Bevy conditional section in source text.
 type DefinitionBlock struct {
 	Name      string
+	Negated   bool
 	IfLine    int
 	ElseLine  *int
 	EndifLine int
@@ -20,6 +21,8 @@ func DefinitionBlocks(source string) []DefinitionBlock {
 		switch {
 		case strings.HasPrefix(text, "#ifdef"):
 			stack = append(stack, DefinitionBlock{Name: strings.TrimSpace(text[6:]), IfLine: lineNumber})
+		case strings.HasPrefix(text, "#ifndef"):
+			stack = append(stack, DefinitionBlock{Name: strings.TrimSpace(text[7:]), Negated: true, IfLine: lineNumber})
 		case strings.HasPrefix(text, "#else") && len(stack) > 0:
 			current := &stack[len(stack)-1]
 			if current.ElseLine == nil {

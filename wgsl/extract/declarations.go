@@ -19,6 +19,7 @@ type DefResult = document.DefResult
 
 type ShaderDefBlock struct {
 	DefName   string
+	Negated   bool
 	IfdefLine int
 	ElseLine  *int
 	EndifLine int
@@ -59,7 +60,11 @@ func getShaderDefsByLine(defs []ShaderDefBlock, line int) []DefResult {
 			ifEnd = *def.ElseLine
 		}
 		if line > def.IfdefLine && line < ifEnd {
-			result = append(result, DefResult{DefName: def.DefName, Branch: "if", LineNumber: def.IfdefLine})
+			branch := "if"
+			if def.Negated {
+				branch = "else"
+			}
+			result = append(result, DefResult{DefName: def.DefName, Branch: branch, LineNumber: def.IfdefLine})
 		}
 		if def.ElseLine != nil && line > *def.ElseLine && line < def.EndifLine {
 			result = append(result, DefResult{DefName: def.DefName, Branch: "else", LineNumber: *def.ElseLine})
