@@ -2,7 +2,7 @@
   {{#each this}}
     <li class="search-result-item">
       {{#if (eq kind "package")}}
-        <img class="search-result-icon" src="/public/icons/group.svg" alt="" aria-hidden="true" />
+        <img class="search-result-icon" src="/public/icons/repository.svg" alt="" aria-hidden="true" />
         <a class="function-name" href="{{link}}">{{name}}</a>
         <select class="version-select search-version-select" data-package="{{packageName}}" onchange="window.location.href='/' + this.value">
           {{#each versions}}

@@ -26,6 +26,7 @@ var copyToPublic = []string{
 	"assets/icons/import.svg",
 	"assets/icons/info.svg",
 	"assets/icons/pointer.svg",
+	"assets/icons/repository.svg",
 	"assets/icons/struct.svg",
 	"assets/favicon.ico",
 	"icon.png",
