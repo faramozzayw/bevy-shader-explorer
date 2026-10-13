@@ -74,7 +74,7 @@
 	justify-content: flex-start;
 	gap: 6px;
 	align-items: center;
-  background: #d3cfb3;
+  background: var(--footer-link-bg);
   padding: 5px 10px;
   border-radius: 10px;
 }

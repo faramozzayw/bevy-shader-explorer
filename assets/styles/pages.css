@@ -272,7 +272,7 @@ body > header {
 	position: sticky;
 	top: 0;
 	z-index: 10;
-	border: 1px solid var(--search-border);
+	border: 0;
 	background-color: var(--bg-color);
 	box-shadow: none;
 	/* margin: 0 15%; */
@@ -629,9 +629,9 @@ section header {
 	align-items: center;
 
 	padding: 4px 8px 4px 18px;
-	background: rgb(63, 60, 52);
+	background: var(--section-header-bg);
   /* background: #CFC9B0; */
-	color: rgb(214, 209, 185);
+	color: var(--section-header-text);
 }
 
 section header a {
@@ -659,6 +659,42 @@ section header > div {
 	display: flex;
 	align-items: center;
 	gap: 10px;
+}
+
+.theme-toggle {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 40px;
+	width: 40px;
+	padding: 8px;
+	border: 0;
+	border-radius: 0;
+	background: var(--section-header-bg);
+	color: var(--section-header-text);
+	font: inherit;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	line-height: 1.5;
+	cursor: pointer;
+	transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-toggle:hover {
+	background: var(--chip-bg);
+	color: var(--text-color);
+	box-shadow: 2px 2px 0 var(--section-shadow-color);
+}
+
+.theme-toggle:focus-visible {
+	outline: 2px solid var(--copy-button-bg);
+	outline-offset: 3px;
+}
+
+.theme-toggle-icon {
+	font-size: 1.15rem;
+	line-height: 1;
 }
 
 .header-info {

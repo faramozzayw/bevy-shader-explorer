@@ -34,6 +34,7 @@ var copyToPublic = []string{
 	"assets/shader-defs.js",
 	"assets/select.js",
 	"assets/saved.js",
+	"assets/theme.js",
 	"assets/404.js",
 	"assets/404.css",
 	"assets/wgsl.png",

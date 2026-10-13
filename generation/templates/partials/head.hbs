@@ -3,6 +3,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="application-name" content="Bevy Shader Explorer" />
   <meta name="theme-color" content="#c9c4a8" />
+  <script>
+    (() => {
+      try {
+        const saved = localStorage.getItem("bevy-shader-theme");
+        const theme = (saved === "dark" || saved === "light")
+          ? saved
+          : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.dataset.theme = theme;
+      } catch (_) {}
+    })();
+  </script>
   <title>{{title}}</title>
   {{#if description}}<meta name="description" content="{{description}}" />{{/if}}
   {{#if canonical}}<link rel="canonical" href="{{canonical}}" />{{/if}}
@@ -39,6 +50,7 @@
   <script src="/public/search.js" type="text/javascript"></script>
   <script defer src="/public/select.js" type="text/javascript"></script>
   <script defer src="/public/saved.js" type="text/javascript"></script>
+  <script defer src="/public/theme.js" type="text/javascript"></script>
   {{#if isShader}}<script defer src="/public/shader-defs.js" type="text/javascript"></script>{{/if}}
   <script defer src="/_vercel/insights/script.js"></script>
 </head>

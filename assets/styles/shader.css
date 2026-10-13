@@ -44,7 +44,7 @@
 	font-family: "Share Tech Mono", monospace;
 	font-size: 20px;
 	font-weight: 400;
-	color: rgb(214, 209, 185);
+	color: var(--section-header-text);
 }
 .visibility-badge {
 	font-size: 0.8em;
@@ -86,7 +86,7 @@
 	border-radius: 3px;
 	overflow-x: auto;
 	background-color: var(--code-bg);
-	border: 1px solid #3f3c34;
+	border: 1px solid var(--code-border-color);
 }
 .function-comment {
 	word-break: break-word;
@@ -221,7 +221,7 @@ a.item-name:hover {
 .import-path {
 	padding: 15px;
 	border-radius: 5px;
-	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	box-shadow: 0 2px 5px var(--shadow-color);
 	margin-bottom: 20px;
 	display: flex;
 	justify-content: space-between;
