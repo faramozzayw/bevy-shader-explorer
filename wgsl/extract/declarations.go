@@ -190,7 +190,16 @@ func annotationsForDeclaration(node syntax.Node) []Annotation {
 			}
 		}
 	}
-	return annotations
+	filtered := annotations[:0]
+	for _, annotation := range annotations {
+		// WESL conditional directives are represented as attributes by the
+		// grammar, but they are rendered separately as shader-def pills.
+		if annotation.Name == "if" || annotation.Name == "else" {
+			continue
+		}
+		filtered = append(filtered, annotation)
+	}
+	return filtered
 }
 
 func (e *syntaxExtractor) namedType(node syntax.Node, annotations []Annotation) NamedType {

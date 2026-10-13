@@ -14,6 +14,7 @@ import (
 	"github.com/faramozzayw/bevy-shader-explorer/wgsl/bevy"
 	"github.com/faramozzayw/bevy-shader-explorer/wgsl/extract"
 	"github.com/faramozzayw/bevy-shader-explorer/wgsl/source"
+	"github.com/faramozzayw/bevy-shader-explorer/wgsl/syntax"
 
 	"github.com/aymerick/raymond"
 	lo "github.com/samber/lo"
@@ -46,6 +47,19 @@ func ParseWGSLFile(
 
 	lineComments := extractComments(strings.Split(normalizedCode, "\n"))
 	definitions := bevy.DefinitionBlocks(normalizedCode)
+	if extension == ".wesl" {
+		weslDefinitions, parseErr := syntax.WESLConditionalBlocks(normalizedCode)
+		if parseErr != nil {
+			return WgslFile{}, fmt.Errorf("extract WESL shader definitions: %w", parseErr)
+		}
+		definitions = make([]bevy.DefinitionBlock, 0, len(weslDefinitions))
+		for _, definition := range weslDefinitions {
+			definitions = append(definitions, bevy.DefinitionBlock{
+				Name: definition.Name, Negated: definition.Negated,
+				IfLine: definition.IfLine, ElseLine: definition.ElseLine, EndifLine: definition.EndifLine,
+			})
+		}
+	}
 	extractDefs := make([]extract.ShaderDefBlock, 0, len(definitions))
 	for _, definition := range definitions {
 		extractDefs = append(extractDefs, extract.ShaderDefBlock{
@@ -100,6 +114,7 @@ func ParseWGSLFile(
 		WgslPath:   wgslPath,
 		GithubLink: githubLink,
 		Link:       fmt.Sprintf("%s/%s", config.Version, wgslPath),
+		ShaderDefs: definitionNames(definitions),
 	}
 	wgslFile.BuildShaderDefs()
 
@@ -107,12 +122,26 @@ func ParseWGSLFile(
 }
 
 func (wgslFile *WgslFile) BuildShaderDefs() {
+	existing := append([]string(nil), wgslFile.ShaderDefs...)
+	// This method may be called during both parsing and post-processing. Rebuild
+	// the derived list so repeated calls cannot duplicate toggle options.
+	wgslFile.ShaderDefs = nil
 	seen := make(map[string]bool)
 	add := func(defs []DefResult) {
 		for _, def := range defs {
-			if !seen[def.DefName] {
-				seen[def.DefName] = true
-				wgslFile.ShaderDefs = append(wgslFile.ShaderDefs, def.DefName)
+			for _, name := range splitDefinitionExpression(def.DefName) {
+				if !seen[name] {
+					seen[name] = true
+					wgslFile.ShaderDefs = append(wgslFile.ShaderDefs, name)
+				}
+			}
+		}
+	}
+	for _, def := range existing {
+		for _, name := range splitDefinitionExpression(def) {
+			if !seen[name] {
+				seen[name] = true
+				wgslFile.ShaderDefs = append(wgslFile.ShaderDefs, name)
 			}
 		}
 	}
@@ -134,6 +163,32 @@ func (wgslFile *WgslFile) BuildShaderDefs() {
 			add(param.ShaderDefs)
 		}
 	}
+}
+
+func definitionNames(definitions []bevy.DefinitionBlock) []string {
+	result := make([]string, 0, len(definitions))
+	seen := make(map[string]bool)
+	for _, definition := range definitions {
+		for _, name := range splitDefinitionExpression(definition.Name) {
+			if !seen[name] {
+				seen[name] = true
+				result = append(result, name)
+			}
+		}
+	}
+	return result
+}
+
+func splitDefinitionExpression(value string) []string {
+	parts := strings.FieldsFunc(value, func(r rune) bool { return r == '|' || r == '&' })
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.Trim(part, " ()!")
+		if part != "" {
+			result = append(result, part)
+		}
+	}
+	return result
 }
 
 func (wgslFile *WgslFile) ResolveTypeLinks(declaredImportPaths map[string]string) {

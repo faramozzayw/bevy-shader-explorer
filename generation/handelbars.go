@@ -58,6 +58,7 @@ func SetupHandlebars() {
 		raymond.RegisterHelper("neq", neq)
 		raymond.RegisterHelper("parse-markdown", parseMarkdown)
 		raymond.RegisterHelper("contains", contains)
+		raymond.RegisterHelper("split-shader-def", splitShaderDef)
 		raymond.RegisterHelper("group-by-name", groupByName)
 		raymond.RegisterHelper("json", jsonValue)
 
@@ -71,6 +72,18 @@ func SetupHandlebars() {
 		raymond.RegisterPartial("project-header", PROJECT_HEADER_TEMPLATE)
 		raymond.RegisterPartial("version-selector", VERSION_SELECTOR_TEMPLATE)
 	})
+}
+
+func splitShaderDef(value string) []string {
+	parts := strings.FieldsFunc(value, func(r rune) bool { return r == '|' || r == '&' })
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.Trim(part, " ()!")
+		if part != "" {
+			result = append(result, part)
+		}
+	}
+	return result
 }
 
 func jsonValue(value interface{}) string {

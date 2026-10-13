@@ -30,6 +30,14 @@ func TestBuildShaderDefsCollectsUniqueRequirements(t *testing.T) {
 	assert.Equal(t, []string{"FIRST", "SECOND", "FIELD_ONLY"}, file.ShaderDefs)
 }
 
+func TestBuildShaderDefsSplitsCompoundRequirements(t *testing.T) {
+	file := WgslFile{
+		Bindings: []Binding{{ShaderDefs: []DefResult{{DefName: "COMBINE_BIND_GROUP || SPLIT_BIND_GROUP_FIRST"}}}},
+	}
+	file.BuildShaderDefs()
+	assert.Equal(t, []string{"COMBINE_BIND_GROUP", "SPLIT_BIND_GROUP_FIRST"}, file.ShaderDefs)
+}
+
 func TestGetGithubLinkUsesConfiguredSourceRef(t *testing.T) {
 	cfg := config.Config{SourcePath: "/project", SourceGithubURL: "https://github.com/bevyengine/bevy", SourceGithubRef: "release-0.19.1"}
 	got, err := GetGithubLink(&cfg, "/project/assets/shaders", "extended_material_bindless.wgsl")

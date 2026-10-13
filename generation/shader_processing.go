@@ -81,8 +81,6 @@ func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, p
 	return files, nil
 }
 
-const shaderParseCacheVersion = "shader-parse-v4"
-
 // parseShaderInputCached reuses the parser model for identical source content
 // and link-affecting configuration. The cache is outside dist so it never
 // becomes a deployable artifact, and its key includes the source bytes plus
@@ -93,8 +91,6 @@ func parseShaderInputCached(input shaderInput) (wgsl.WgslFile, error) {
 		return wgsl.WgslFile{}, fmt.Errorf("read source: %w", err)
 	}
 	hash := sha256.New()
-	hash.Write([]byte(shaderParseCacheVersion))
-	hash.Write([]byte("\x00"))
 	hash.Write(content)
 	for _, value := range []string{
 		input.Config.SourcePath, input.Config.SourceGithubRoot, input.Config.SourceGithubSubpath,

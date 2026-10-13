@@ -1,5 +1,7 @@
 {{#each shaderDefs}}
-  <span class="shader-def-pill {{#if (eq branch "if")}}shader-def-pill-if{{else}}shader-def-pill-else{{/if}}">
-    {{#if (eq branch "if")}}{{defName}}{{else}}!{{defName}}{{/if}}
-  </span>
+  {{#each (split-shader-def defName)}}
+    <span class="shader-def-pill {{#if (eq ../branch "if")}}shader-def-pill-if{{else}}shader-def-pill-else{{/if}}">
+      {{#if (eq ../branch "if")}}{{this}}{{else}}!{{this}}{{/if}}
+    </span>
+  {{/each}}
 {{/each}}
