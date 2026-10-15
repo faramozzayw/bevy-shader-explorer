@@ -1,8 +1,6 @@
 package generation
 
 import (
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,15 +8,56 @@ import (
 	"strings"
 	"sync"
 
+	config "github.com/faramozzayw/bevy-shader-explorer/config"
+	wgsl "github.com/faramozzayw/bevy-shader-explorer/shader"
 	"github.com/faramozzayw/bevy-shader-explorer/utils"
-	"github.com/faramozzayw/bevy-shader-explorer/wgsl"
 )
+
+type shaderFileParser interface {
+	Parse(*config.Config, wgsl.Source) (wgsl.ShaderFile, error)
+}
+
+type defaultShaderFileParser struct{}
+
+func (defaultShaderFileParser) Parse(cfg *config.Config, source wgsl.Source) (wgsl.ShaderFile, error) {
+	return wgsl.ParseSource(cfg, source)
+}
+
+type shaderDocumentEnricher interface {
+	Enrich(wgsl.ShaderFile, shaderInput, GenerationContext) wgsl.ShaderFile
+}
+
+type defaultShaderDocumentEnricher struct{}
+
+func (defaultShaderDocumentEnricher) Enrich(file wgsl.ShaderFile, input shaderInput, context GenerationContext) wgsl.ShaderFile {
+	if input.Prefix != "" {
+		file.WgslPath = filepath.Join(input.Prefix, file.WgslPath)
+	}
+	file.Dependency = input.Dependency
+	file.SourcePath = input.Path
+	file.SourceRoot = input.Config.SourcePath
+	file.OutputPrefix = input.Prefix
+	file.ProjectName = input.PackageName
+	file.ProjectDescription = input.PackageDescription
+	file.ProjectVersion = input.PackageVersion
+	if file.ProjectVersion == "" {
+		file.ProjectVersion = context.ProjectVersion
+	}
+	file.ProjectURLPrefix = joinDocURL("project", "")
+	file.PackageURLPrefix = joinDocURL("project", filepath.Join(input.PackageName, input.PackageVersion))
+	file.VersionOptions = packageVersionOptions(context.OutputDir, input.PackageName, input.PackageVersion)
+	file.SeoDescription = fmt.Sprintf("WGSL shader module %s from %s %s.", file.Filename, file.ProjectName, file.ProjectVersion)
+	file.SeoTitle = fmt.Sprintf("%s — %s", file.Filename, file.ProjectName)
+	file.WgslPath = strings.Replace(file.WgslPath, "src/", "", 1)
+	file.WgslPath = utils.DedupPathParts(file.WgslPath)
+	return file
+}
 
 // parseShaderInputs parses files concurrently while storing results by input
 // index. Keeping the original order makes collision resolution and generated
 // navigation deterministic regardless of worker scheduling.
-func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, progress *generationProgress) ([]wgsl.WgslFile, error) {
-	files := make([]wgsl.WgslFile, len(inputs))
+func parseShaderInputs(context GenerationContext, inputs []shaderInput, progress *generationProgress, parser shaderFileParser, cache shaderParseCache, enricher shaderDocumentEnricher) ([]wgsl.ShaderFile, error) {
+	files := make([]wgsl.ShaderFile, len(inputs))
 	workers := runtime.NumCPU()
 	if workers > 8 {
 		workers = 8
@@ -39,31 +78,12 @@ func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, p
 			defer wg.Done()
 			for index := range jobs {
 				input := inputs[index]
-				file, err := parseShaderInputCached(input)
+				file, err := parseShaderInputCached(input, parser, cache)
 				if err != nil {
 					errs <- fmt.Errorf("parse %s: %w", input.Path, err)
 					continue
 				}
-				if input.Prefix != "" {
-					file.WgslPath = filepath.Join(input.Prefix, file.WgslPath)
-				}
-				file.Dependency = input.Dependency
-				file.SourcePath = input.Path
-				file.SourceRoot = input.Config.SourcePath
-				file.OutputPrefix = input.Prefix
-				file.ProjectName = input.PackageName
-				file.ProjectDescription = input.PackageDescription
-				file.ProjectVersion = input.PackageVersion
-				if file.ProjectVersion == "" {
-					file.ProjectVersion = projectVersion
-				}
-				file.ProjectURLPrefix = joinDocURL("project", "")
-				file.PackageURLPrefix = joinDocURL("project", filepath.Join(input.PackageName, input.PackageVersion))
-				file.VersionOptions = packageVersionOptions(outputDir, input.PackageName, input.PackageVersion)
-				file.SeoDescription = fmt.Sprintf("WGSL shader module %s from %s %s.", file.Filename, file.ProjectName, file.ProjectVersion)
-				file.SeoTitle = fmt.Sprintf("%s — %s", file.Filename, file.ProjectName)
-				file.WgslPath = strings.Replace(file.WgslPath, "src/", "", 1)
-				file.WgslPath = utils.DedupPathParts(file.WgslPath)
+				file = enricher.Enrich(file, input, context)
 				files[index] = file
 				progress.addReading()
 			}
@@ -85,40 +105,20 @@ func parseShaderInputs(inputs []shaderInput, projectVersion, outputDir string, p
 // and link-affecting configuration. The cache is outside dist so it never
 // becomes a deployable artifact, and its key includes the source bytes plus
 // every setting that can change ParseWGSLFile's result.
-func parseShaderInputCached(input shaderInput) (wgsl.WgslFile, error) {
+func parseShaderInputCached(input shaderInput, parser shaderFileParser, cache shaderParseCache) (wgsl.ShaderFile, error) {
 	content, err := os.ReadFile(input.Path)
 	if err != nil {
-		return wgsl.WgslFile{}, fmt.Errorf("read source: %w", err)
+		return wgsl.ShaderFile{}, fmt.Errorf("read source: %w", err)
 	}
-	hash := sha256.New()
-	hash.Write(content)
-	for _, value := range []string{
-		input.Config.SourcePath, input.Config.SourceGithubRoot, input.Config.SourceGithubSubpath,
-		input.Config.SourceGithubURL, input.Config.SourceGithubRef, input.Config.Version,
-		input.Config.FileFilter, input.Config.ProjectVersion, input.Path,
-	} {
-		hash.Write([]byte("\x00"))
-		hash.Write([]byte(value))
+	cachePath := cache.path(input, content)
+	if file, ok := cache.load(cachePath); ok {
+		return file, nil
 	}
-	cacheDir := filepath.Join(os.TempDir(), "bevy-shader-explorer-cache")
-	cachePath := filepath.Join(cacheDir, fmt.Sprintf("%x.json", hash.Sum(nil)))
-	if cached, readErr := os.ReadFile(cachePath); readErr == nil {
-		var file wgsl.WgslFile
-		if json.Unmarshal(cached, &file) == nil {
-			file.BuildShaderDefs()
-			return file, nil
-		}
-	}
-	file, err := wgsl.ParseWGSLFile(&input.Config, input.Path)
+	file, err := parser.Parse(&input.Config, wgsl.Source{Path: input.Path, Text: string(content)})
 	if err != nil {
-		return wgsl.WgslFile{}, err
+		return wgsl.ShaderFile{}, err
 	}
-	file.BuildShaderDefs()
-	if data, marshalErr := json.Marshal(file); marshalErr == nil {
-		if mkdirErr := os.MkdirAll(cacheDir, 0o755); mkdirErr == nil {
-			_ = os.WriteFile(cachePath, data, 0o644)
-		}
-	}
+	cache.store(cachePath, file)
 	return file, nil
 }
 
@@ -131,7 +131,7 @@ func firstError(errs <-chan error) error {
 	return nil
 }
 
-func resolveWgslPathCollisions(files []wgsl.WgslFile) {
+func resolveWgslPathCollisions(files []wgsl.ShaderFile) {
 	byStem := make(map[string][]int)
 	for i, file := range files {
 		byStem[strings.TrimSuffix(file.WgslPath, ".html")] = append(byStem[strings.TrimSuffix(file.WgslPath, ".html")], i)
@@ -198,7 +198,7 @@ func resolveWgslPathCollisions(files []wgsl.WgslFile) {
 // moduleLabels returns the compact names shown in package shader lists. Most
 // files can use their basename, but repeated basenames need a path suffix so
 // users can tell them apart (for example, deferred/top and prepass/top).
-func moduleLabels(files []wgsl.WgslFile) []string {
+func moduleLabels(files []wgsl.ShaderFile) []string {
 	labels := make([]string, len(files))
 	groups := make(map[string][]int)
 	for i, file := range files {
@@ -236,7 +236,7 @@ func moduleLabels(files []wgsl.WgslFile) []string {
 	return labels
 }
 
-func sourceDirectoryParts(file wgsl.WgslFile) []string {
+func sourceDirectoryParts(file wgsl.ShaderFile) []string {
 	if file.SourcePath == "" || file.SourceRoot == "" {
 		dir := filepath.ToSlash(filepath.Dir(file.WgslPath))
 		if dir == "." || dir == "" {
@@ -251,7 +251,7 @@ func sourceDirectoryParts(file wgsl.WgslFile) []string {
 	return strings.Split(filepath.ToSlash(dir), "/")
 }
 
-func appendSearchInfo(searchInfo *[]ShaderSearchableInfo, imports *map[string]string, file wgsl.WgslFile) {
+func appendSearchInfo(searchInfo *[]ShaderSearchableInfo, imports *map[string]string, file wgsl.ShaderFile) {
 	link := "/" + strings.TrimPrefix(utils.NormalizeLink(file.Link), "/")
 	exportable := file.ImportPath != nil
 	if exportable {

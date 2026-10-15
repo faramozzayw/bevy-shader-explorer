@@ -10,8 +10,8 @@ import (
 
 	"github.com/faramozzayw/bevy-shader-explorer/config"
 	"github.com/faramozzayw/bevy-shader-explorer/discovery"
+	wgsl "github.com/faramozzayw/bevy-shader-explorer/shader"
 	"github.com/faramozzayw/bevy-shader-explorer/utils"
-	"github.com/faramozzayw/bevy-shader-explorer/wgsl"
 )
 
 type homeSection struct {
@@ -41,7 +41,7 @@ type documentationSite struct {
 	Version          string
 	HomeSections     []homeSection
 	Packages         []documentationPackagePage
-	Shaders          []wgsl.WgslFile
+	Shaders          []wgsl.ShaderFile
 	Search           []ShaderSearchableInfo
 	TotalShaderCount int
 	ProjectCount     int
@@ -198,8 +198,8 @@ func documentationSectionsJSON(sections []homeSection) []documentationSectionJSO
 	return result
 }
 
-func buildDocumentationSite(config config.Config, sections, homeSections []homeSection, totalShaderCount, projectCount, dependencyCount int, files []wgsl.WgslFile, search []ShaderSearchableInfo, metadata discovery.CargoMetadata, declaredImportPaths map[string]string) documentationSite {
-	shaders := append([]wgsl.WgslFile(nil), files...)
+func buildDocumentationSite(config config.Config, sections, homeSections []homeSection, totalShaderCount, projectCount, dependencyCount int, files []wgsl.ShaderFile, search []ShaderSearchableInfo, metadata discovery.CargoMetadata, declaredImportPaths map[string]string) documentationSite {
+	shaders := append([]wgsl.ShaderFile(nil), files...)
 	for i := range shaders {
 		shaders[i].ResolveTypeLinks(declaredImportPaths)
 	}
@@ -251,7 +251,7 @@ func buildDocumentationSite(config config.Config, sections, homeSections []homeS
 	}
 }
 
-func cargoDependenciesForPage(metadata discovery.CargoMetadata, packageName, version string, files []wgsl.WgslFile, transitive bool) []map[string]string {
+func cargoDependenciesForPage(metadata discovery.CargoMetadata, packageName, version string, files []wgsl.ShaderFile, transitive bool) []map[string]string {
 	direct, transitiveDependencies := cargoPackageDependencies(metadata, packageName, version, files)
 	if transitive {
 		return transitiveDependencies

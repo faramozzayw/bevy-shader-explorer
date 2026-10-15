@@ -1,6 +1,19 @@
 package generation
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/faramozzayw/bevy-shader-explorer/config"
+)
+
+func TestRendererForSelectsOutputFormat(t *testing.T) {
+	if _, ok := rendererFor(NewGenerationContext(config.Config{Format: "json"})).(jsonDocumentRenderer); !ok {
+		t.Fatal("json format should select JSON renderer")
+	}
+	if _, ok := rendererFor(NewGenerationContext(config.Config{Format: "html"})).(htmlDocumentRenderer); !ok {
+		t.Fatal("non-JSON format should select HTML renderer")
+	}
+}
 
 func TestCombineGlobalSearchInfoGroupsVersionsOnly(t *testing.T) {
 	items := combineGlobalSearchInfo([]ShaderSearchableInfo{

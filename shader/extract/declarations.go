@@ -3,9 +3,9 @@ package extract
 import (
 	"strings"
 
+	"github.com/faramozzayw/bevy-shader-explorer/shader/document"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/syntax"
 	utils "github.com/faramozzayw/bevy-shader-explorer/utils"
-	"github.com/faramozzayw/bevy-shader-explorer/wgsl/document"
-	"github.com/faramozzayw/bevy-shader-explorer/wgsl/syntax"
 )
 
 type Annotation = document.Annotation
@@ -18,7 +18,7 @@ type Binding = document.Binding
 type DefResult = document.DefResult
 
 type ShaderDefBlock struct {
-	DefName   string
+	Condition document.ShaderCondition
 	Negated   bool
 	IfdefLine int
 	ElseLine  *int
@@ -32,19 +32,17 @@ type Result struct {
 	Bindings   []Binding
 }
 
-func Parse(code, parserCode string, comments map[int]string, shaderDefs []ShaderDefBlock) (Result, error) {
-	return parseWithGrammar(code, parserCode, comments, shaderDefs, false)
+type syntaxParser func(sourceText, parserText string) (*syntax.Tree, error)
+
+// ParseWithParser extracts declarations using the grammar adapter supplied by
+// the language package. The shared extractor owns traversal; WGSL and WESL
+// packages own the Tree-sitter grammar selection.
+func ParseWithParser(code, parserCode string, comments map[int]string, shaderDefs []ShaderDefBlock, parser func(string, string) (*syntax.Tree, error)) (Result, error) {
+	return parseWithGrammar(code, parserCode, comments, shaderDefs, parser)
 }
 
-// ParseWESL extracts the same documented declarations from a WESL file.
-// WESL-specific syntax is handled by the WESL Tree-sitter grammar while the
-// resulting declarations use the existing documentation model.
-func ParseWESL(code, parserCode string, comments map[int]string, shaderDefs []ShaderDefBlock) (Result, error) {
-	return parseWithGrammar(code, parserCode, comments, shaderDefs, true)
-}
-
-func parseWithGrammar(code, parserCode string, comments map[int]string, shaderDefs []ShaderDefBlock, wesl bool) (Result, error) {
-	extractor, err := newSyntaxExtractor(code, parserCode, comments, shaderDefs, wesl)
+func parseWithGrammar(code, parserCode string, comments map[int]string, shaderDefs []ShaderDefBlock, parser syntaxParser) (Result, error) {
+	extractor, err := newSyntaxExtractor(code, parserCode, comments, shaderDefs, parser)
 	if err != nil {
 		return Result{}, err
 	}
@@ -64,10 +62,18 @@ func getShaderDefsByLine(defs []ShaderDefBlock, line int) []DefResult {
 			if def.Negated {
 				branch = "else"
 			}
-			result = append(result, DefResult{DefName: def.DefName, Branch: branch, LineNumber: def.IfdefLine})
+			result = append(result, DefResult{
+				Condition:  def.Condition,
+				Branch:     branch,
+				LineNumber: def.IfdefLine,
+			})
 		}
 		if def.ElseLine != nil && line > *def.ElseLine && line < def.EndifLine {
-			result = append(result, DefResult{DefName: def.DefName, Branch: "else", LineNumber: *def.ElseLine})
+			result = append(result, DefResult{
+				Condition:  def.Condition,
+				Branch:     "else",
+				LineNumber: *def.ElseLine,
+			})
 		}
 	}
 	return result
@@ -92,12 +98,8 @@ type syntaxExtractor struct {
 	shaderDefs   []ShaderDefBlock
 }
 
-func newSyntaxExtractor(code, parserCode string, lineComments map[int]string, shaderDefs []ShaderDefBlock, wesl bool) (*syntaxExtractor, error) {
-	parse := syntax.Parse
-	if wesl {
-		parse = syntax.ParseWESL
-	}
-	tree, err := parse(code, parserCode)
+func newSyntaxExtractor(code, parserCode string, lineComments map[int]string, shaderDefs []ShaderDefBlock, parser syntaxParser) (*syntaxExtractor, error) {
+	tree, err := parser(code, parserCode)
 	if err != nil {
 		return nil, err
 	}
@@ -218,11 +220,10 @@ func (e *syntaxExtractor) namedType(node syntax.Node, annotations []Annotation) 
 	}
 	fullType := e.text(typ)
 	return NamedType{
-		Annotations:   annotations,
-		Name:          e.text(name),
-		HasShaderDefs: len(shaderDefs) > 0,
-		ShaderDefs:    shaderDefs,
-		TypeInfo:      TypeInfo{Type: utils.RemovePath(fullType), FullTypePath: fullType},
+		Annotations: annotations,
+		Name:        e.text(name),
+		ShaderDefs:  shaderDefs,
+		TypeInfo:    TypeInfo{Type: utils.RemovePath(fullType), FullTypePath: fullType},
 	}
 }
 
@@ -247,7 +248,7 @@ func (e *syntaxExtractor) consts() []Const {
 		if typ == "" {
 			typ = inferConstType(value)
 		}
-		result = append(result, Const{LineNumber: line, Name: item.Name, Value: value, HasShaderDefs: len(shaderDefs) > 0, ShaderDefs: shaderDefs, TypeInfo: TypeInfo{Type: typ, FullTypePath: item.TypeInfo.FullTypePath}})
+		result = append(result, Const{LineNumber: line, Name: item.Name, Value: value, ShaderDefs: shaderDefs, TypeInfo: TypeInfo{Type: typ, FullTypePath: item.TypeInfo.FullTypePath}})
 	}
 	return result
 }
@@ -285,15 +286,11 @@ func (e *syntaxExtractor) structures() []Structure {
 				fields = append(fields, e.namedType(member, annotationsFrom(member)))
 			}
 		}
-		fieldsShaderDefs := false
-		for _, field := range fields {
-			fieldsShaderDefs = fieldsShaderDefs || field.HasShaderDefs
-		}
 		name := childOfKind(node, "ident")
 		if !name.Valid() {
 			name = node.Field("name")
 		}
-		result = append(result, Structure{Name: e.text(name), Fields: fields, LineNumber: line, Comment: strings.Join(getItemComments(line, e.lineComments), "\n"), HasShaderDefs: len(shaderDefs) > 0, ShaderDefs: shaderDefs, HasFields: len(fields) > 0, FieldsShaderDefs: fieldsShaderDefs})
+		result = append(result, Structure{Name: e.text(name), Fields: fields, LineNumber: line, Comment: strings.Join(getItemComments(line, e.lineComments), "\n"), ShaderDefs: shaderDefs})
 	}
 	return result
 }
@@ -324,7 +321,7 @@ func (e *syntaxExtractor) functions() []Function {
 		if !name.Valid() {
 			name = header.Field("name")
 		}
-		result = append(result, Function{StageAttribute: stage, WorkgroupSize: workgroup, HasWorkgroupSize: len(workgroup) > 0, Name: e.text(name), LineNumber: line, Params: params, ReturnTypeInfo: returnType, HasShaderDefs: len(shaderDefs) > 0, ShaderDefs: shaderDefs, Comment: strings.Join(getItemComments(line, e.lineComments), "\n"), HasParams: len(params) > 0})
+		result = append(result, Function{StageAttribute: stage, WorkgroupSize: workgroup, Name: e.text(name), LineNumber: line, Params: params, ReturnTypeInfo: returnType, ShaderDefs: shaderDefs, Comment: strings.Join(getItemComments(line, e.lineComments), "\n")})
 	}
 	return result
 }
@@ -367,7 +364,7 @@ func (e *syntaxExtractor) bindings() []Binding {
 			bindingType = strings.Trim(strings.TrimSpace(e.text(qualifier)), "<>")
 		}
 		item := e.namedType(identifier, nil)
-		result = append(result, Binding{LineNumber: line, Name: item.Name, BindingType: bindingType, Annotations: attrs, TypeInfo: item.TypeInfo, HasShaderDefs: len(shaderDefs) > 0, ShaderDefs: shaderDefs})
+		result = append(result, Binding{LineNumber: line, Name: item.Name, BindingType: bindingType, Annotations: attrs, TypeInfo: item.TypeInfo, ShaderDefs: shaderDefs})
 	}
 	return result
 }

@@ -1,4 +1,4 @@
-package wgsl
+package shader
 
 import (
 	_ "embed"
@@ -7,11 +7,22 @@ import (
 	"testing"
 
 	"github.com/faramozzayw/bevy-shader-explorer/config"
-	"github.com/faramozzayw/bevy-shader-explorer/wgsl/bevy"
-	"github.com/faramozzayw/bevy-shader-explorer/wgsl/extract"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/bevy"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/document"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/extract"
+	shaderparser "github.com/faramozzayw/bevy-shader-explorer/shader/parser"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/syntax"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func shaderDef(name, branch string, line int) DefResult {
+	return DefResult{Condition: document.NewShaderCondition(name), Branch: branch, LineNumber: line}
+}
+
+func parseWGSL(code, parserCode string, comments map[int]string, shaderDefs []extract.ShaderDefBlock) (extract.Result, error) {
+	return extract.ParseWithParser(code, parserCode, comments, shaderDefs, syntax.Parse)
+}
 
 func TestParseWGSLFileReturnsReadError(t *testing.T) {
 	project := t.TempDir()
@@ -20,21 +31,25 @@ func TestParseWGSLFileReturnsReadError(t *testing.T) {
 	assert.ErrorContains(t, err, "read source")
 }
 
-func TestBuildShaderDefsCollectsUniqueRequirements(t *testing.T) {
-	file := WgslFile{
-		Consts:     []Const{{ShaderDefs: []DefResult{{DefName: "FIRST"}}}},
-		Bindings:   []Binding{{ShaderDefs: []DefResult{{DefName: "FIRST"}, {DefName: "SECOND"}}}},
-		Structures: []Structure{{Fields: []NamedType{{ShaderDefs: []DefResult{{DefName: "FIELD_ONLY"}, {DefName: "SECOND"}}}}}},
+func TestCollectedShaderDefsCollectsUniqueRequirements(t *testing.T) {
+	file := ShaderFile{
+		File: document.File{
+			Consts:     []Const{{ShaderDefs: []DefResult{shaderDef("FIRST", "if", 1)}}},
+			Bindings:   []Binding{{ShaderDefs: []DefResult{shaderDef("FIRST", "if", 1), shaderDef("SECOND", "if", 1)}}},
+			Structures: []Structure{{Fields: []NamedType{{ShaderDefs: []DefResult{shaderDef("FIELD_ONLY", "if", 1), shaderDef("SECOND", "if", 1)}}}}},
+		},
 	}
-	file.BuildShaderDefs()
+	file.ShaderDefs = file.CollectedShaderDefs()
 	assert.Equal(t, []string{"FIRST", "SECOND", "FIELD_ONLY"}, file.ShaderDefs)
 }
 
-func TestBuildShaderDefsSplitsCompoundRequirements(t *testing.T) {
-	file := WgslFile{
-		Bindings: []Binding{{ShaderDefs: []DefResult{{DefName: "COMBINE_BIND_GROUP || SPLIT_BIND_GROUP_FIRST"}}}},
+func TestCollectedShaderDefsSplitsCompoundRequirements(t *testing.T) {
+	file := ShaderFile{
+		File: document.File{
+			Bindings: []Binding{{ShaderDefs: []DefResult{shaderDef("COMBINE_BIND_GROUP || SPLIT_BIND_GROUP_FIRST", "if", 1)}}},
+		},
 	}
-	file.BuildShaderDefs()
+	file.ShaderDefs = file.CollectedShaderDefs()
 	assert.Equal(t, []string{"COMBINE_BIND_GROUP", "SPLIT_BIND_GROUP_FIRST"}, file.ShaderDefs)
 }
 
@@ -100,7 +115,7 @@ var<uniform> settings: Second;
 fn main(@builtin(global_invocation_id) value: vec3<u32>) {
 }
 `
-	declarations, err := extract.Parse(code, code, extractComments(strings.Split(code, "\n")), nil)
+	declarations, err := parseWGSL(code, code, shaderparser.ExtractComments(strings.Split(code, "\n")), nil)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -137,7 +152,7 @@ const COLOR_MATERIAL_FLAGS_ALPHA_MODE_MASK: u32          = 1073741824u; // (1u32
 const COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32         = 2147483648u; // (2u32 << 30)
   `
 
-	declarations, err := extract.Parse(code, code, map[int]string{}, nil)
+	declarations, err := parseWGSL(code, code, map[int]string{}, nil)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -151,8 +166,7 @@ const COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32         = 2147483648u; // (2u32
 				Type:          "u32",
 				TypeLinkBlank: false,
 			},
-			Value:         "1u",
-			HasShaderDefs: false,
+			Value: "1u",
 		},
 		{
 			LineNumber: 3,
@@ -161,8 +175,7 @@ const COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32         = 2147483648u; // (2u32
 				Type:          "u32",
 				TypeLinkBlank: false,
 			},
-			Value:         "3221225472u",
-			HasShaderDefs: false,
+			Value: "3221225472u",
 		},
 		{
 			LineNumber: 4,
@@ -171,8 +184,7 @@ const COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32         = 2147483648u; // (2u32
 				Type:          "u32",
 				TypeLinkBlank: false,
 			},
-			Value:         "0u",
-			HasShaderDefs: false,
+			Value: "0u",
 		},
 		{
 			LineNumber: 5,
@@ -181,8 +193,7 @@ const COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32         = 2147483648u; // (2u32
 				Type:          "u32",
 				TypeLinkBlank: false,
 			},
-			Value:         "1073741824u",
-			HasShaderDefs: false,
+			Value: "1073741824u",
 		},
 		{
 			LineNumber: 6,
@@ -191,8 +202,7 @@ const COLOR_MATERIAL_FLAGS_ALPHA_MODE_BLEND: u32         = 2147483648u; // (2u32
 				Type:          "u32",
 				TypeLinkBlank: false,
 			},
-			Value:         "2147483648u",
-			HasShaderDefs: false,
+			Value: "2147483648u",
 		},
 	}
 
@@ -216,7 +226,7 @@ const VALUE: u32 = 1u;
 #endif
 `
 
-	declarations, err := extract.Parse(code, bevy.MaskDirectives(code), map[int]string{}, nil)
+	declarations, err := parseWGSL(code, bevy.MaskDirectives(code), map[int]string{}, nil)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -244,7 +254,7 @@ fn shade(value: vec3f) -> vec3f {
     return value;
 }`
 
-	declarations, err := extract.ParseWESL(code, code, map[int]string{}, nil)
+	declarations, err := extract.ParseWithParser(code, code, map[int]string{}, nil, syntax.ParseWESL)
 	if !assert.NoError(t, err) || !assert.Len(t, declarations.Consts, 1) || !assert.Len(t, declarations.Structures, 1) || !assert.Len(t, declarations.Functions, 1) {
 		return
 	}
@@ -265,7 +275,7 @@ fn fragment() -> @location(0) vec4<f32> {
     return material.time;
 }`
 
-	declarations, err := extract.ParseWESL(code, code, map[int]string{}, nil)
+	declarations, err := extract.ParseWithParser(code, code, map[int]string{}, nil, syntax.ParseWESL)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -284,7 +294,7 @@ fn fragment() -> @location(0) vec4<f32> {
 func TestExtractionRegressionForAllItemKinds(t *testing.T) {
 	code := allItemsFixture
 
-	declarations, err := extract.Parse(code, code, extractComments(strings.Split(code, "\n")), nil)
+	declarations, err := parseWGSL(code, code, shaderparser.ExtractComments(strings.Split(code, "\n")), nil)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -343,29 +353,29 @@ func TestExtractionRegressionForShaderDefinitionBranches(t *testing.T) {
 	definitions := bevy.DefinitionBlocks(code)
 	shaderDefs := make([]extract.ShaderDefBlock, 0, len(definitions))
 	for _, definition := range definitions {
-		shaderDefs = append(shaderDefs, extract.ShaderDefBlock{DefName: definition.Name, IfdefLine: definition.IfLine, ElseLine: definition.ElseLine, EndifLine: definition.EndifLine})
+		shaderDefs = append(shaderDefs, extract.ShaderDefBlock{Condition: document.NewShaderCondition(definition.Name), IfdefLine: definition.IfLine, ElseLine: definition.ElseLine, EndifLine: definition.EndifLine})
 	}
 
-	declarations, err := extract.Parse(code, bevy.MaskDirectives(code), map[int]string{}, shaderDefs)
+	declarations, err := parseWGSL(code, bevy.MaskDirectives(code), map[int]string{}, shaderDefs)
 	if !assert.NoError(t, err) {
 		return
 	}
 
 	if assert.Len(t, declarations.Consts, 1) {
-		assert.Equal(t, []DefResult{{DefName: "FEATURE", Branch: "if", LineNumber: 1}}, declarations.Consts[0].ShaderDefs)
+		assert.Equal(t, []DefResult{shaderDef("FEATURE", "if", 1)}, declarations.Consts[0].ShaderDefs)
 	}
 	if assert.Len(t, declarations.Structures, 1) {
-		assert.Equal(t, []DefResult{{DefName: "FEATURE", Branch: "if", LineNumber: 1}}, declarations.Structures[0].ShaderDefs)
-		assert.Equal(t, []DefResult{{DefName: "FEATURE", Branch: "if", LineNumber: 1}}, declarations.Structures[0].Fields[0].ShaderDefs)
+		assert.Equal(t, []DefResult{shaderDef("FEATURE", "if", 1)}, declarations.Structures[0].ShaderDefs)
+		assert.Equal(t, []DefResult{shaderDef("FEATURE", "if", 1)}, declarations.Structures[0].Fields[0].ShaderDefs)
 	}
 	if assert.Len(t, declarations.Bindings, 1) {
-		assert.Equal(t, []DefResult{{DefName: "FEATURE", Branch: "else", LineNumber: 6}}, declarations.Bindings[0].ShaderDefs)
+		assert.Equal(t, []DefResult{shaderDef("FEATURE", "else", 6)}, declarations.Bindings[0].ShaderDefs)
 	}
 }
 
 func TestExtractionRegressionForSyntaxVariants(t *testing.T) {
 	code := edgeCasesFixture
-	declarations, err := extract.Parse(code, code, extractComments(strings.Split(code, "\n")), nil)
+	declarations, err := parseWGSL(code, code, shaderparser.ExtractComments(strings.Split(code, "\n")), nil)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -464,12 +474,12 @@ fn main() {}
 	if !assert.Equal(t, []bevy.DefinitionBlock{{Name: "FFT_VERTICAL", Negated: true, IfLine: 1, EndifLine: 3}}, definitions) {
 		return
 	}
-	shaderDefs := []extract.ShaderDefBlock{{DefName: "FFT_VERTICAL", Negated: true, IfdefLine: 1, EndifLine: 3}}
-	declarations, err := extract.Parse(source, bevy.MaskDirectives(source), nil, shaderDefs)
+	shaderDefs := []extract.ShaderDefBlock{{Condition: document.NewShaderCondition("FFT_VERTICAL"), Negated: true, IfdefLine: 1, EndifLine: 3}}
+	declarations, err := parseWGSL(source, bevy.MaskDirectives(source), nil, shaderDefs)
 	if !assert.NoError(t, err) || !assert.Len(t, declarations.Functions, 1) {
 		return
 	}
-	assert.Equal(t, []DefResult{{DefName: "FFT_VERTICAL", Branch: "else", LineNumber: 1}}, declarations.Functions[0].ShaderDefs)
+	assert.Equal(t, []DefResult{shaderDef("FFT_VERTICAL", "else", 1)}, declarations.Functions[0].ShaderDefs)
 }
 
 func intPointer(value int) *int { return &value }
@@ -482,7 +492,7 @@ var<uniform> only_binding: Settings;
 var<uniform> no_annotations: Settings;
 `
 
-	declarations, err := extract.Parse(code, code, map[int]string{}, nil)
+	declarations, err := parseWGSL(code, code, map[int]string{}, nil)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -494,18 +504,18 @@ func TestNestedDefinitionsWithoutTrailingNewline(t *testing.T) {
 	definitions := bevy.DefinitionBlocks(code)
 	shaderDefs := make([]extract.ShaderDefBlock, 0, len(definitions))
 	for _, definition := range definitions {
-		shaderDefs = append(shaderDefs, extract.ShaderDefBlock{DefName: definition.Name, IfdefLine: definition.IfLine, ElseLine: definition.ElseLine, EndifLine: definition.EndifLine})
+		shaderDefs = append(shaderDefs, extract.ShaderDefBlock{Condition: document.NewShaderCondition(definition.Name), IfdefLine: definition.IfLine, ElseLine: definition.ElseLine, EndifLine: definition.EndifLine})
 	}
 
 	masked := bevy.MaskDirectives(code)
 	assert.Equal(t, len(code), len(masked))
 	assert.Equal(t, strings.Count(code, "\n"), strings.Count(masked, "\n"))
-	declarations, err := extract.Parse(code, masked, map[int]string{}, shaderDefs)
+	declarations, err := parseWGSL(code, masked, map[int]string{}, shaderDefs)
 	if !assert.NoError(t, err) || !assert.Len(t, declarations.Consts, 4) {
 		return
 	}
 	assert.Len(t, declarations.Consts[1].ShaderDefs, 2)
-	assert.Equal(t, "INNER", declarations.Consts[1].ShaderDefs[1].DefName)
+	assert.Equal(t, "INNER", declarations.Consts[1].ShaderDefs[1].Condition.Expression)
 	assert.Equal(t, "alternate", declarations.Consts[2].Name)
 	assert.Equal(t, "else", declarations.Consts[2].ShaderDefs[1].Branch)
 }

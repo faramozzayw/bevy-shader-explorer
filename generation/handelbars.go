@@ -26,6 +26,9 @@ var PACKAGE_DOC_TEMPLATE_SOURCE string
 //go:embed templates/partials/shader-defs-list.hbs
 var SHADER_DEFS_LIST_TEMPLATE string
 
+//go:embed templates/partials/shader-defs-block.hbs
+var SHADER_DEFS_BLOCK_TEMPLATE string
+
 //go:embed templates/partials/type.hbs
 var TYPE_TEMPLATE string
 
@@ -58,11 +61,12 @@ func SetupHandlebars() {
 		raymond.RegisterHelper("neq", neq)
 		raymond.RegisterHelper("parse-markdown", parseMarkdown)
 		raymond.RegisterHelper("contains", contains)
-		raymond.RegisterHelper("split-shader-def", splitShaderDef)
+		raymond.RegisterHelper("has-items", hasItems)
 		raymond.RegisterHelper("group-by-name", groupByName)
 		raymond.RegisterHelper("json", jsonValue)
 
 		raymond.RegisterPartial("shader-defs-list", SHADER_DEFS_LIST_TEMPLATE)
+		raymond.RegisterPartial("shader-defs-block", SHADER_DEFS_BLOCK_TEMPLATE)
 		raymond.RegisterPartial("type", TYPE_TEMPLATE)
 		raymond.RegisterPartial("head", HEAD_TEMPLATE)
 		raymond.RegisterPartial("gh-link", GH_LINK_TEMPLATE)
@@ -72,18 +76,6 @@ func SetupHandlebars() {
 		raymond.RegisterPartial("project-header", PROJECT_HEADER_TEMPLATE)
 		raymond.RegisterPartial("version-selector", VERSION_SELECTOR_TEMPLATE)
 	})
-}
-
-func splitShaderDef(value string) []string {
-	parts := strings.FieldsFunc(value, func(r rune) bool { return r == '|' || r == '&' })
-	result := make([]string, 0, len(parts))
-	for _, part := range parts {
-		part = strings.Trim(part, " ()!")
-		if part != "" {
-			result = append(result, part)
-		}
-	}
-	return result
 }
 
 func jsonValue(value interface{}) string {
@@ -109,6 +101,11 @@ func parseMarkdown(text string) string {
 
 func contains(needle, haystack string) bool {
 	return strings.Contains(haystack, needle)
+}
+
+func hasItems(values interface{}) bool {
+	value := reflect.ValueOf(values)
+	return value.IsValid() && (value.Kind() == reflect.Slice || value.Kind() == reflect.Array) && value.Len() > 0
 }
 
 type namedTemplateGroup struct {

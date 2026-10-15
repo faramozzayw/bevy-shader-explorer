@@ -1,5 +1,5 @@
 {{#each shaderDefs}}
-  {{#each (split-shader-def defName)}}
+  {{#each condition.atoms}}
     <span class="shader-def-pill {{#if (eq ../branch "if")}}shader-def-pill-if{{else}}shader-def-pill-else{{/if}}">
       {{#if (eq ../branch "if")}}{{this}}{{else}}!{{this}}{{/if}}
     </span>

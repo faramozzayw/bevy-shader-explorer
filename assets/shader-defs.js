@@ -18,17 +18,12 @@
     }
   };
 
-  const conditionEnabled = (expression, enabled) => {
-    const alternatives = expression.split("||");
-    return alternatives.some((alternative) =>
-      alternative.split("&&").every((term) => {
-        term = term.trim().replace(/[()]/g, "");
-        const negated = term.startsWith("!");
-        const name = negated ? term.slice(1).trim() : term;
-        return negated ? !enabled.has(name) : enabled.has(name);
-      }),
+  const conditionEnabled = (condition, enabled) =>
+    condition.clauses.some((clause) =>
+      clause.every((term) => (term.negated ? !enabled.has(term.name) : enabled.has(term.name))),
     );
-  };
+
+  const requirementCondition = (requirement) => requirement.condition || { clauses: [] };
 
   const updateVisibility = () => {
     const enabled = new Set(
@@ -37,8 +32,8 @@
     declarations.forEach((declaration) => {
       const visible = requirementsFor(declaration).every((requirement) =>
         requirement.branch === "if"
-          ? conditionEnabled(requirement.defName, enabled)
-          : !conditionEnabled(requirement.defName, enabled),
+          ? conditionEnabled(requirementCondition(requirement), enabled)
+          : !conditionEnabled(requirementCondition(requirement), enabled),
       );
       declaration.classList.toggle("shader-def-inactive", toggle.checked && !visible);
     });

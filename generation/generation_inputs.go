@@ -18,7 +18,7 @@ import (
 	"github.com/aymerick/raymond"
 )
 
-func renderTemplateToFile(templateSrc string, context map[string]interface{}, outputPath string) error {
+func renderTemplateToFile(templateSrc string, context interface{}, outputPath string) error {
 	tmpl, err := raymond.Parse(templateSrc)
 	if err != nil {
 		return err
@@ -34,7 +34,7 @@ func renderTemplateToFile(templateSrc string, context map[string]interface{}, ou
 	return nil
 }
 
-func getWgslFilesList(cfg config.Config) ([]string, error) {
+func getShaderFilesList(cfg config.Config) ([]string, error) {
 	var filePaths []string
 	err := filepath.WalkDir(cfg.SourcePath, func(filePath string, entry os.DirEntry, err error) error {
 		if err != nil {
@@ -72,7 +72,7 @@ type shaderInput struct {
 // for that discovery. Keeping metadata with the inputs prevents the caller from
 // resolving the same Cargo graph a second time while building page models.
 func getShaderInputs(config config.Config) ([]shaderInput, discovery.CargoMetadata, error) {
-	projectFiles, err := getWgslFilesList(config)
+	projectFiles, err := getShaderFilesList(config)
 	if err != nil {
 		return nil, discovery.CargoMetadata{}, err
 	}
@@ -175,8 +175,8 @@ func displayPackageName(config config.Config, packageName string) string {
 	return packageName
 }
 
-func copyItemsToPublic(config *config.Config, searchInfo []ShaderSearchableInfo, packages []documentationPackagePage) error {
-	publicDir := filepath.Join(config.OutputDir, "public")
+func copyItemsToPublic(outputDir string, searchInfo []ShaderSearchableInfo, packages []documentationPackagePage) error {
+	publicDir := filepath.Join(outputDir, "public")
 	err := os.MkdirAll(publicDir, os.ModePerm)
 	if err != nil {
 		return fmt.Errorf("create public directory: %w", err)
@@ -188,7 +188,7 @@ func copyItemsToPublic(config *config.Config, searchInfo []ShaderSearchableInfo,
 	if err := writeGlobalSearchIndex(publicDir, searchInfo, packages); err != nil {
 		return err
 	}
-	return copyStaticAssets(publicDir)
+	return nil
 }
 
 func writeSearchIndexes(publicDir string, searchInfo []ShaderSearchableInfo, packages []documentationPackagePage) error {

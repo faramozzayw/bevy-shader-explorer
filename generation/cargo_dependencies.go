@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/faramozzayw/bevy-shader-explorer/discovery"
-	"github.com/faramozzayw/bevy-shader-explorer/wgsl"
+	wgsl "github.com/faramozzayw/bevy-shader-explorer/shader"
 )
 
 func findPackageMetadata(metadata discovery.CargoMetadata, name, version string) discovery.CargoPackage {
@@ -39,7 +39,7 @@ func sortDependencyLinks(dependencies []map[string]string) {
 	})
 }
 
-func packageDependencies(files []wgsl.WgslFile, packageName, version string) []map[string]string {
+func packageDependencies(files []wgsl.ShaderFile, packageName, version string) []map[string]string {
 	seen := make(map[string]bool)
 	dependencies := make([]map[string]string, 0)
 	for _, file := range files {
@@ -57,7 +57,7 @@ func packageDependencies(files []wgsl.WgslFile, packageName, version string) []m
 	return dependencies
 }
 
-func cargoPackageDependencies(metadata discovery.CargoMetadata, name, version string, files []wgsl.WgslFile) ([]map[string]string, []map[string]string) {
+func cargoPackageDependencies(metadata discovery.CargoMetadata, name, version string, files []wgsl.ShaderFile) ([]map[string]string, []map[string]string) {
 	if metadata.Resolve == nil {
 		return nil, nil
 	}

@@ -76,7 +76,7 @@ func Finalize(config config.Config) error {
 	if err != nil {
 		return err
 	}
-	if err := writeGlobalSearchIndex(filepath.Join(config.OutputDir, "public"), searchInfo, packages); err != nil {
+	if err := (filesystemSearchIndexRenderer{}).WriteGlobal(config.OutputDir, searchInfo, packages); err != nil {
 		return err
 	}
 	site := documentationSite{
@@ -94,29 +94,10 @@ func Finalize(config config.Config) error {
 	if err := writeSiteOGImage(config); err != nil {
 		return err
 	}
-	if err := renderTemplateToFile(HOME_DOC_TEMPLATE_SOURCE, map[string]interface{}{
-		"sections":         site.HomeSections,
-		"packageCount":     len(registry),
-		"totalShaderCount": site.TotalShaderCount,
-		"projectCount":     0,
-		"dependencyCount":  0,
-		"name":             config.Name,
-		"description":      config.Description,
-		"version":          config.Version,
-		"projectVersion":   config.ProjectVersion,
-		"urlPrefix":        joinDocURL("project", ""),
-		"canonicalURL":     canonicalURL(config.SiteURL, ""),
-		"ogImageURL":       ogImageURL(config, "site", config.ProjectVersion),
-		"issueURL":         config.IssueURL,
-		"structuredData": jsonValue(map[string]interface{}{
-			"@context": "https://schema.org", "@type": "WebSite", "name": "Bevy Shader Explorer",
-			"alternateName": "Shader Explorer", "description": config.Description, "url": canonicalURL(config.SiteURL, ""),
-			"publisher": map[string]interface{}{"@type": "Organization", "name": "Bevy Shader Explorer", "url": "https://github.com/faramozzayw/bevy-shader-explorer"},
-		}),
-	}, filepath.Join(config.OutputDir, "index.html")); err != nil {
+	if err := renderTemplateToFile(HOME_DOC_TEMPLATE_SOURCE, newHomeTemplateModel(config, site.HomeSections, len(registry), site.TotalShaderCount, 0, 0, config.ProjectVersion), filepath.Join(config.OutputDir, "index.html")); err != nil {
 		return fmt.Errorf("render final home page: %w", err)
 	}
-	if err := renderTemplateToFile(NOT_FOUND_TEMPLATE_SOURCE, map[string]interface{}{}, filepath.Join(config.OutputDir, "404.html")); err != nil {
+	if err := renderTemplateToFile(NOT_FOUND_TEMPLATE_SOURCE, notFoundTemplateModel{}, filepath.Join(config.OutputDir, "404.html")); err != nil {
 		return fmt.Errorf("render final not-found page: %w", err)
 	}
 	if err := writePackageVersionsManifest(config.OutputDir); err != nil {

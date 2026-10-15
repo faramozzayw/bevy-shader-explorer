@@ -51,7 +51,7 @@
       </header>
       <div class="shader-page-content">
       
-      {{#if notEmptyConsts}}
+      {{#if (has-items consts)}}
       <div class="shader-section-group">
         <h3 id="constants" class="section-header"><img class="section-icon" src="/public/icons/constant.svg" alt="" aria-hidden="true" />Constants</h3>
         <div class="shader-section-items">
@@ -77,12 +77,7 @@
 
             {{#each items}}
             <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
-            {{#if hasShaderDefs}}
-              <div class="function-shader-defs">
-                <span class="shader-def-label">Active when</span>
-                <div class="shader-def-pills">{{> shader-defs-list }}</div>
-              </div>
-            {{/if}}
+            {{> shader-defs-block }}
 
             <div class="signature code-background">
               <span class="keyword">const</span>
@@ -99,7 +94,7 @@
       </div>
       {{/if}}
 
-      {{#if notEmptyBindings}}
+      {{#if (has-items bindings)}}
       <div class="shader-section-group">
         <h3 id="bindings" class="section-header"><img class="section-icon" src="/public/icons/binding.svg" alt="" aria-hidden="true" />Bindings</h3>
         <div class="shader-section-items">
@@ -125,12 +120,7 @@
 
           {{#each items}}
           <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
-          {{#if hasShaderDefs}}
-            <div class="function-shader-defs">
-              <span class="shader-def-label">Active when</span>
-              <div class="shader-def-pills">{{> shader-defs-list }}</div>
-            </div>
-          {{/if}}
+          {{> shader-defs-block }}
 
             <div class="signature code-background">
               {{> annotations }}
@@ -146,7 +136,7 @@
       </div>
       {{/if}}
 
-      {{#if notEmptyStructures}}
+      {{#if (has-items structures)}}
       <div class="shader-section-group">
         <h3 id="structures" class="section-header"><img class="section-icon" src="/public/icons/struct.svg" alt="" aria-hidden="true" />Structures</h3>
         <div class="shader-section-items">
@@ -188,7 +178,7 @@
                     <span>{{name}}:</span>
                     {{> type}}
                     <span>,</span>
-                    {{#if hasShaderDefs}}
+                    {{#if (has-items shaderDefs)}}
                       <span>{{> shader-defs-list }}</span>
                     {{/if}}
                     </div>
@@ -205,7 +195,7 @@
       </div>
       {{/if}}
 
-      {{#if notEmptyFunctions}}
+      {{#if (has-items functions)}}
       <div class="shader-section-group">
         <h3 id="functions" class="section-header"><img class="section-icon" src="/public/icons/function.svg" alt="" aria-hidden="true" />Functions</h3>
         <div class="shader-section-items">
@@ -229,7 +219,7 @@
                         {{#if (eq stageAttribute "compute")}}Runs custom parallel code on the GPU, not limited to graphics{{/if}}
                       </div>
                     </div>
-                    {{#if hasWorkgroupSize}}
+                    {{#if (has-items workgroupSize)}}
                       <div class="tooltip-container">
                         <span class="attribute-badge workgroup-size-badge">@workgroup_size({{#each workgroupSize}}{{this}}{{#unless @last}},&nbsp;{{/unless}}{{/each}})</span>
                         <div class="tooltip-text">Defines the size of a thread group. One to three numbers: width (x), height (y), and depth (z). Missing values default to 1</div>
@@ -254,12 +244,7 @@
 
             {{#each items}}
             <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
-            {{#if hasShaderDefs}}
-              <div class="function-shader-defs">
-                <span class="shader-def-label">Active when</span>
-                <div class="shader-def-pills">{{> shader-defs-list }}</div>
-              </div>
-            {{/if}}
+            {{> shader-defs-block }}
 
             {{#if comment}}
               <div class="function-comment">{{{parse-markdown comment}}}</div>
@@ -291,7 +276,7 @@
         <summary>Contents</summary>
         <nav>
           <ul>
-            {{#if notEmptyConsts}}
+            {{#if (has-items consts)}}
               <li>
                 <a href="#constants"><img class="toc-icon" src="/public/icons/constant.svg" alt="" aria-hidden="true" />Constants</a>
                 <ul>
@@ -299,7 +284,7 @@
                 </ul>
               </li>
             {{/if}}
-            {{#if notEmptyBindings}}
+            {{#if (has-items bindings)}}
               <li>
                 <a href="#bindings"><img class="toc-icon" src="/public/icons/binding.svg" alt="" aria-hidden="true" />Bindings</a>
                 <ul>
@@ -307,7 +292,7 @@
                 </ul>
               </li>
             {{/if}}
-            {{#if notEmptyStructures}}
+            {{#if (has-items structures)}}
               <li>
                 <a href="#structures"><img class="toc-icon" src="/public/icons/struct.svg" alt="" aria-hidden="true" />Structures</a>
                 <ul>
@@ -315,7 +300,7 @@
                 </ul>
               </li>
             {{/if}}
-            {{#if notEmptyFunctions}}
+            {{#if (has-items functions)}}
               <li>
                 <a href="#functions"><img class="toc-icon" src="/public/icons/function.svg" alt="" aria-hidden="true" />Functions</a>
                 <ul>

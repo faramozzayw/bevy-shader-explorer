@@ -67,104 +67,120 @@ func WESLConditionalBlocks(source string) ([]ConditionalBlock, error) {
 	}
 	defer tree.Close()
 
-	var blocks []ConditionalBlock
-	parseConditional := func(text string, line int) ConditionalBlock {
-		name := text[strings.IndexByte(text, '(')+1:]
-		if end := strings.IndexByte(name, ')'); end >= 0 {
-			name = strings.TrimSpace(name[:end])
+	scanner := weslConditionalScanner{endLine: len(strings.Split(source, "\n")) + 1}
+	scanner.scan(tree.Root().Children())
+	return scanner.blocks, nil
+}
+
+type weslConditionalScanner struct {
+	blocks  []ConditionalBlock
+	endLine int
+}
+
+func (scanner *weslConditionalScanner) scan(children []Node) {
+	var current *ConditionalBlock
+	branchHasContent := false
+	braced := false
+	close := func(endLine int) {
+		if current == nil {
+			return
 		}
-		negated := strings.HasPrefix(name, "!")
-		if negated {
-			name = strings.TrimSpace(strings.TrimPrefix(name, "!"))
-		}
-		return ConditionalBlock{Name: name, Negated: negated, IfLine: line}
+		current.EndifLine = endLine
+		scanner.blocks = append(scanner.blocks, *current)
+		current = nil
+		branchHasContent = false
+		braced = false
 	}
-	var scan func([]Node)
-	scan = func(children []Node) {
-		var current *ConditionalBlock
-		branchHasContent := false
-		braced := false
-		close := func(endLine int) {
-			if current == nil {
-				return
-			}
-			current.EndifLine = endLine
-			blocks = append(blocks, *current)
-			current = nil
-			branchHasContent = false
-			braced = false
+
+	for index := 0; index < len(children); index++ {
+		child := children[index]
+		text := strings.TrimSpace(child.Text())
+		if block, nextIndex, ok := bracedWESLConditional(children, index); ok {
+			scanner.blocks = append(scanner.blocks, block)
+			scanner.scan(child.Children()[1:])
+			index = nextIndex
+			continue
 		}
-		for index := 0; index < len(children); index++ {
-			child := children[index]
-			text := strings.TrimSpace(child.Text())
-			// Braced WESL conditionals inside a function are represented as a
-			// compound_statement whose first child is the @if attribute. The
-			// sibling sequence contains the optional @else branch.
-			if child.Kind() == "compound_statement" {
-				inner := child.Children()
-				if len(inner) > 0 && inner[0].Kind() == "attribute" && strings.HasPrefix(strings.TrimSpace(inner[0].Text()), "@if") {
-					block := parseConditional(strings.TrimSpace(inner[0].Text()), inner[0].Line())
-					block.EndifLine = child.EndLine() + 1
-					elseNode := Node{}
-					elseIndex := index + 1
-					if elseIndex < len(children) && children[elseIndex].Kind() == "attribute" && strings.HasPrefix(strings.TrimSpace(children[elseIndex].Text()), "@else") {
-						elseNode = children[elseIndex]
-					} else if elseIndex < len(children) && children[elseIndex].Kind() == "compound_statement" {
-						elseChildren := children[elseIndex].Children()
-						if len(elseChildren) > 0 && elseChildren[0].Kind() == "attribute" && strings.HasPrefix(strings.TrimSpace(elseChildren[0].Text()), "@else") {
-							elseNode = elseChildren[0]
-						}
-					}
-					if elseNode.Valid() {
-						line := elseNode.Line()
-						block.ElseLine = &line
-						if children[elseIndex].Kind() == "compound_statement" {
-							block.EndifLine = children[elseIndex].EndLine() + 1
-							index = elseIndex
-						} else if elseIndex+1 < len(children) && children[elseIndex+1].Kind() == "compound_statement" {
-							block.EndifLine = children[elseIndex+1].EndLine() + 1
-							index = elseIndex + 1
-						}
-					}
-					blocks = append(blocks, block)
-					scan(inner[1:])
-					continue
-				}
+		if child.Kind() == "attribute" {
+			switch {
+			case strings.HasPrefix(text, "@if"):
+				close(child.Line())
+				block := parseWESLConditional(text, child.Line())
+				current = &block
+			case strings.HasPrefix(text, "@else") && current != nil:
+				line := child.Line()
+				current.ElseLine = &line
+				branchHasContent = false
+				braced = false
+			case current != nil && branchHasContent && !braced:
+				close(child.Line())
 			}
-			if child.Kind() == "attribute" {
-				if strings.HasPrefix(text, "@if") {
-					if current != nil {
-						close(child.Line())
-					}
-					currentBlock := parseConditional(text, child.Line())
-					current = &currentBlock
-					branchHasContent = false
-					braced = false
-				} else if strings.HasPrefix(text, "@else") && current != nil {
-					line := child.Line()
-					current.ElseLine = &line
-					branchHasContent = false
-					braced = false
-				} else if current != nil && branchHasContent && !braced {
-					close(child.Line())
-				}
-			} else if current != nil {
-				if strings.HasPrefix(text, "{") && !branchHasContent {
-					braced = true
-				} else if braced && strings.HasPrefix(text, "}") {
-					close(child.Line())
-				} else {
-					branchHasContent = true
-				}
+		} else if current != nil {
+			switch {
+			case strings.HasPrefix(text, "{") && !branchHasContent:
+				braced = true
+			case braced && strings.HasPrefix(text, "}"):
+				close(child.Line())
+			default:
+				branchHasContent = true
 			}
-			scan(child.Children())
 		}
-		if current != nil {
-			close(len(strings.Split(source, "\n")) + 1)
+		scanner.scan(child.Children())
+	}
+	close(scanner.endLine)
+}
+
+func parseWESLConditional(text string, line int) ConditionalBlock {
+	name := text[strings.IndexByte(text, '(')+1:]
+	if end := strings.IndexByte(name, ')'); end >= 0 {
+		name = strings.TrimSpace(name[:end])
+	}
+	negated := strings.HasPrefix(name, "!")
+	if negated {
+		name = strings.TrimSpace(strings.TrimPrefix(name, "!"))
+	}
+	return ConditionalBlock{Name: name, Negated: negated, IfLine: line}
+}
+
+func bracedWESLConditional(children []Node, index int) (ConditionalBlock, int, bool) {
+	child := children[index]
+	if child.Kind() != "compound_statement" {
+		return ConditionalBlock{}, index, false
+	}
+	inner := child.Children()
+	if len(inner) == 0 || inner[0].Kind() != "attribute" || !strings.HasPrefix(strings.TrimSpace(inner[0].Text()), "@if") {
+		return ConditionalBlock{}, index, false
+	}
+
+	block := parseWESLConditional(strings.TrimSpace(inner[0].Text()), inner[0].Line())
+	block.EndifLine = child.EndLine() + 1
+	nextIndex := index
+	elseIndex := index + 1
+	var elseNode Node
+	if elseIndex < len(children) && isWESLAttribute(children[elseIndex], "@else") {
+		elseNode = children[elseIndex]
+	} else if elseIndex < len(children) && children[elseIndex].Kind() == "compound_statement" {
+		elseChildren := children[elseIndex].Children()
+		if len(elseChildren) > 0 && isWESLAttribute(elseChildren[0], "@else") {
+			elseNode = elseChildren[0]
 		}
 	}
-	scan(tree.Root().Children())
-	return blocks, nil
+	if elseNode.Valid() {
+		line := elseNode.Line()
+		block.ElseLine = &line
+		if children[elseIndex].Kind() == "compound_statement" {
+			block.EndifLine = children[elseIndex].EndLine() + 1
+			nextIndex = elseIndex
+		} else if elseIndex+1 < len(children) && children[elseIndex+1].Kind() == "compound_statement" {
+			block.EndifLine = children[elseIndex+1].EndLine() + 1
+			nextIndex = elseIndex + 1
+		}
+	}
+	return block, nextIndex, true
+}
+
+func isWESLAttribute(node Node, prefix string) bool {
+	return node.Kind() == "attribute" && strings.HasPrefix(strings.TrimSpace(node.Text()), prefix)
 }
 
 type Node struct {

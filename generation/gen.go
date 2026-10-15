@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	config "github.com/faramozzayw/bevy-shader-explorer/config"
+	wgsl "github.com/faramozzayw/bevy-shader-explorer/shader"
 	utils "github.com/faramozzayw/bevy-shader-explorer/utils"
-	wgsl "github.com/faramozzayw/bevy-shader-explorer/wgsl"
 )
 
 var copyToPublic = []string{
@@ -45,16 +45,21 @@ var copyToPublic = []string{
 }
 
 func Generate(config config.Config) error {
+	context := NewGenerationContext(config)
+	return generate(context, defaultShaderFileParser{}, newShaderParseCache(), defaultShaderDocumentEnricher{}, rendererFor(context))
+}
+
+func rendererFor(context GenerationContext) documentRenderer {
+	if context.Config.Format == "json" {
+		return jsonDocumentRenderer{}
+	}
+	return htmlDocumentRenderer{search: filesystemSearchIndexRenderer{}}
+}
+
+func generate(context GenerationContext, parser shaderFileParser, cache shaderParseCache, enricher shaderDocumentEnricher, renderer documentRenderer) error {
+	config := context.Config
 	progress := newGenerationProgress(config.Name, config.Version, progressOptions{Discovery: true, Reading: true, Documentation: true, OG: !config.SkipCatalogue}, config.Quiet)
 	defer progress.finish()
-	if sourcePath, err := filepath.Abs(config.SourcePath); err == nil {
-		config.SourcePath = sourcePath
-	}
-	if config.SourceGithubRoot != "" {
-		if repositoryRoot, err := filepath.Abs(config.SourceGithubRoot); err == nil {
-			config.SourceGithubRoot = repositoryRoot
-		}
-	}
 	inputs, cargoMetadata, err := getShaderInputs(config)
 	if err != nil {
 		return err
@@ -68,35 +73,35 @@ func Generate(config config.Config) error {
 
 	searchInfo := make([]ShaderSearchableInfo, 0, 4096)
 	declaredImportPaths := make(map[string]string)
-	wgslFiles, err := parseShaderInputs(inputs, config.ProjectVersion, config.OutputDir, progress)
+	shaderFiles, err := parseShaderInputs(context, inputs, progress, parser, cache, enricher)
 	if err != nil {
 		return err
 	}
-	resolveWgslPathCollisions(wgslFiles)
-	for i := range wgslFiles {
-		wgslFiles[i].VersionOptions = shaderVersionOptions(
+	resolveWgslPathCollisions(shaderFiles)
+	for i := range shaderFiles {
+		shaderFiles[i].VersionOptions = shaderVersionOptions(
 			config.OutputDir,
-			wgslFiles[i].ProjectName,
-			wgslFiles[i].ProjectVersion,
-			wgslFiles[i].WgslPath,
+			shaderFiles[i].ProjectName,
+			shaderFiles[i].ProjectVersion,
+			shaderFiles[i].WgslPath,
 		)
-		wgslFiles[i].SearchIndex = packageSearchIndex(wgslFiles[i].ProjectName, wgslFiles[i].ProjectVersion)
-		wgslFiles[i].Link = joinDocURL("project", wgslFiles[i].WgslPath)
-		wgslFiles[i].CanonicalURL = canonicalURL(config.SiteURL, wgslFiles[i].Link)
-		wgslFiles[i].OgImageURL = ogShaderImageURL(config, wgslFiles[i].ProjectName, wgslFiles[i].ProjectVersion)
-		wgslFiles[i].StructuredData = jsonValue(map[string]interface{}{
+		shaderFiles[i].SearchIndex = packageSearchIndex(shaderFiles[i].ProjectName, shaderFiles[i].ProjectVersion)
+		shaderFiles[i].Link = joinDocURL("project", shaderFiles[i].WgslPath)
+		shaderFiles[i].CanonicalURL = canonicalURL(config.SiteURL, shaderFiles[i].Link)
+		shaderFiles[i].OgImageURL = ogShaderImageURL(config, shaderFiles[i].ProjectName, shaderFiles[i].ProjectVersion)
+		shaderFiles[i].StructuredData = jsonValue(map[string]interface{}{
 			"@context":    "https://schema.org",
 			"@type":       "TechArticle",
-			"name":        wgslFiles[i].Filename,
-			"headline":    wgslFiles[i].Filename,
-			"description": wgslFiles[i].SeoDescription,
-			"url":         wgslFiles[i].CanonicalURL,
+			"name":        shaderFiles[i].Filename,
+			"headline":    shaderFiles[i].Filename,
+			"description": shaderFiles[i].SeoDescription,
+			"url":         shaderFiles[i].CanonicalURL,
 		})
-		appendSearchInfo(&searchInfo, &declaredImportPaths, wgslFiles[i])
+		appendSearchInfo(&searchInfo, &declaredImportPaths, shaderFiles[i])
 	}
 	searchInfo = combineSearchInfo(searchInfo)
 
-	sections, totalProject, totalDependency := buildHomeSections(wgslFiles)
+	sections, totalProject, totalDependency := buildHomeSections(shaderFiles)
 
 	// Keep a durable registry of every package/version generated into this
 	// output directory. A build may contain only one package, but the homepage
@@ -121,17 +126,17 @@ func Generate(config config.Config) error {
 	}
 	registrySections := packageRegistrySections(registry)
 	registryShaderCount := packageRegistryShaderCount(registry)
-	site := buildDocumentationSite(config, sections, registrySections, registryShaderCount, totalProject, totalDependency, wgslFiles, searchInfo, cargoMetadata, declaredImportPaths)
+	site := buildDocumentationSite(config, sections, registrySections, registryShaderCount, totalProject, totalDependency, shaderFiles, searchInfo, cargoMetadata, declaredImportPaths)
 	progress.setDocumentationTotal(len(site.Shaders))
 	if !config.SkipCatalogue {
 		progress.setOGTotal(len(site.Packages))
 	}
-	return renderDocumentation(config, site, registry, progress)
+	return renderer.Render(context, site, registry, progress)
 }
 
 // renderDocumentation selects the output renderer after all discovery,
 // parsing, linking, and page-model construction has completed.
-func buildHomeSections(files []wgsl.WgslFile) ([]homeSection, int, int) {
+func buildHomeSections(files []wgsl.ShaderFile) ([]homeSection, int, int) {
 	projectGroups := map[string][]map[string]string{}
 	dependencyGroups := map[string][]map[string]string{}
 	groupDescriptions := map[string]string{}

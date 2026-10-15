@@ -3,12 +3,13 @@ package extract
 import (
 	"testing"
 
-	"github.com/faramozzayw/bevy-shader-explorer/wgsl/bevy"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/bevy"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/syntax"
 )
 
 func TestParsePreservesInlineInterpolationValue(t *testing.T) {
 	code := "const SORTED_FRAGMENT_MAX_COUNT: u32 = #{SORTED_FRAGMENT_MAX_COUNT};\n"
-	result, err := Parse(code, bevy.MaskDirectives(code), nil, nil)
+	result, err := ParseWithParser(code, bevy.MaskDirectives(code), nil, nil, syntax.Parse)
 	if err != nil {
 		t.Fatal(err)
 	}
