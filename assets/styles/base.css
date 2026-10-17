@@ -386,6 +386,14 @@ body > main {
 	font-weight: bold;
 }
 
+.shader-toc a.shader-def-highlight {
+	display: inline-block;
+	padding: 0 4px;
+	color: var(--item-name-color);
+	background: var(--chip-bg);
+	box-shadow: 2px 2px 0 var(--section-shadow-color);
+}
+
 .shader-def-controls {
 	position: fixed;
 	top: 84px;
