@@ -255,7 +255,15 @@ a.item-name:hover {
 	min-width: 0;
 	flex: 1 1 auto;
 	margin-bottom: 10px;
+	overflow-x: auto;
+	flex-wrap: nowrap;
+	scrollbar-width: none;
 }
+
+.shader-page-header .breadcrumbs::-webkit-scrollbar {
+	display: none;
+}
+
 @media (max-width: 425px) {
 	.import-path-button {
 		display: inline-flex;

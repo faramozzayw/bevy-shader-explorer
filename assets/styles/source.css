@@ -1,0 +1,103 @@
+.source-view {
+	background-color: var(--code-bg);
+	border: 1px solid var(--code-border-color);
+	border-radius: 3px;
+}
+
+.source-back-anchor {
+	position: sticky;
+	top: 84px;
+	height: 0;
+	z-index: 2;
+}
+
+.source-back-anchor .source-back-button {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	white-space: nowrap;
+}
+
+.source-code {
+	margin: 0;
+	padding: 0;
+	overflow-x: auto;
+	font-family: "Fira Code", monospace;
+	font-size: 0.9rem;
+	line-height: 1.55;
+	tab-size: 4;
+}
+
+.source-line {
+	display: flex;
+	min-width: max-content;
+	border-bottom: 1px solid var(--source-line-border-color);
+}
+
+.source-line:last-child {
+	border-bottom: none;
+}
+
+.source-line:target {
+	background-color: var(--source-target-bg);
+}
+
+.source-line-number {
+	flex: 0 0 auto;
+	width: 4ch;
+	padding: 0 12px;
+	text-align: right;
+	color: var(--source-line-number-color);
+	user-select: none;
+	text-decoration: none;
+}
+
+.source-line-number:hover {
+	color: var(--header-link-hover-color);
+}
+
+.source-line-text {
+	flex: 1 1 auto;
+	padding-right: 16px;
+	white-space: pre;
+}
+
+.tok-kw {
+	color: var(--keyword-color);
+}
+
+.tok-type {
+	color: var(--source-type-color);
+}
+
+.tok-attr {
+	color: var(--source-attr-color);
+}
+
+.tok-directive {
+	color: var(--source-directive-color);
+}
+
+.tok-comment {
+	color: var(--source-comment-color);
+	font-style: italic;
+}
+
+.tok-number {
+	color: var(--source-number-color);
+}
+
+@media (max-width: 700px) {
+	.source-code {
+		font-size: 0.8rem;
+	}
+
+	.source-line-number {
+		width: 3ch;
+		padding: 0 8px;
+	}
+
+	.source-back-anchor {
+		top: 64px;
+	}
+}

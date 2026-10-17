@@ -17,6 +17,7 @@ var copyToPublic = []string{
 	"assets/styles/shader.css",
 	"assets/styles/search.css",
 	"assets/styles/tooltips.css",
+	"assets/styles/source.css",
 	"assets/icons/binding.svg",
 	"assets/icons/constant.svg",
 	"assets/icons/entry-point.svg",
@@ -28,6 +29,7 @@ var copyToPublic = []string{
 	"assets/icons/pointer.svg",
 	"assets/icons/repository.svg",
 	"assets/icons/struct.svg",
+	"assets/icons/source.svg",
 	"assets/favicon.ico",
 	"icon.png",
 	"assets/search.js",
@@ -88,6 +90,8 @@ func generate(context GenerationContext, parser shaderFileParser, cache shaderPa
 		shaderFiles[i].SearchIndex = packageSearchIndex(shaderFiles[i].ProjectName, shaderFiles[i].ProjectVersion)
 		shaderFiles[i].Link = joinDocURL("project", shaderFiles[i].WgslPath)
 		shaderFiles[i].CanonicalURL = canonicalURL(config.SiteURL, shaderFiles[i].Link)
+		shaderFiles[i].SourceLink = strings.TrimSuffix(shaderFiles[i].WgslPath, ".html") + ".src.html"
+		shaderFiles[i].SourceCanonicalURL = canonicalURL(config.SiteURL, shaderFiles[i].SourceLink)
 		shaderFiles[i].OgImageURL = ogShaderImageURL(config, shaderFiles[i].ProjectName, shaderFiles[i].ProjectVersion)
 		shaderFiles[i].StructuredData = jsonValue(map[string]interface{}{
 			"@context":    "https://schema.org",

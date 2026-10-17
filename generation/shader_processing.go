@@ -112,6 +112,7 @@ func parseShaderInputCached(input shaderInput, parser shaderFileParser, cache sh
 	}
 	cachePath := cache.path(input, content)
 	if file, ok := cache.load(cachePath); ok {
+		file.SourceText = string(content)
 		return file, nil
 	}
 	file, err := parser.Parse(&input.Config, wgsl.Source{Path: input.Path, Text: string(content)})

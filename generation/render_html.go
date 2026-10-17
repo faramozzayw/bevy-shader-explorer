@@ -56,6 +56,10 @@ func renderHTMLDocumentation(config config.Config, site documentationSite, regis
 	if err != nil {
 		return fmt.Errorf("parse shader template: %w", err)
 	}
+	sourceCompiledTemplate, err := raymond.Parse(SOURCE_TEMPLATE_SOURCE)
+	if err != nil {
+		return fmt.Errorf("parse source template: %w", err)
+	}
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, runtime.NumCPU())
@@ -85,6 +89,11 @@ func renderHTMLDocumentation(config config.Config, site documentationSite, regis
 			}
 			if err := renderShaderPage(compiledTemplate, shaderFile, versionedOutput); err != nil {
 				pageErrors <- fmt.Errorf("render %s: %w", shaderFile.SourcePath, err)
+				progress.addDocumentation()
+				return
+			}
+			if err := renderSourcePage(sourceCompiledTemplate, shaderFile, versionedOutput); err != nil {
+				pageErrors <- fmt.Errorf("render source %s: %w", shaderFile.SourcePath, err)
 			}
 			progress.addDocumentation()
 		}()
@@ -171,6 +180,24 @@ func renderShaderPage(compiledTemplate *raymond.Template, shaderFile shader.Shad
 	}
 	if err := utils.WriteFileIfChanged(fileOutputPath, []byte(html), 0o644); err != nil {
 		return fmt.Errorf("write output: %w", err)
+	}
+	return nil
+}
+
+func renderSourcePage(compiledTemplate *raymond.Template, shaderFile shader.ShaderFile, outputDir string) error {
+	if shaderFile.SourceLink == "" || shaderFile.SourceText == "" {
+		return nil
+	}
+	fileOutputPath := strings.ReplaceAll(filepath.Join(outputDir, shaderFile.SourceLink), "src/", "")
+	html, err := compiledTemplate.Exec(newSourceTemplateModel(shaderFile))
+	if err != nil {
+		return fmt.Errorf("execute source template: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(fileOutputPath), os.ModePerm); err != nil {
+		return fmt.Errorf("create source output directory: %w", err)
+	}
+	if err := utils.WriteFileIfChanged(fileOutputPath, []byte(html), 0o644); err != nil {
+		return fmt.Errorf("write source output: %w", err)
 	}
 	return nil
 }

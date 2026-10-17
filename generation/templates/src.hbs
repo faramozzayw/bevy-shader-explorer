@@ -1,0 +1,39 @@
+<html lang="en">
+  {{>head title=seoTitle description=seoDescription canonical=canonicalURL ogImageURL=ogImageURL isShader=false structuredData=structuredData}}
+
+  <body>
+    {{> header urlPrefix=projectURLPrefix version=version searchScope="package" searchPackage=projectName searchVersion=projectVersion searchIndex=searchIndex }}
+
+    <main class="shader-page shader-page-no-controls source-page">
+      <div class="shader-main-column">
+      <header class="shader-page-header">
+        <div class="breadcrumbs">
+          <a href="/{{projectURLPrefix}}">Packages</a>
+          <span>›</span>
+          <a href="/{{PackageURLPrefix}}/index.html">{{projectName}}</a>
+          {{> version-selector packageName=projectName urlPrefix=PackageURLPrefix projectVersion=projectVersion versionOptions=versionOptions}}
+          <span>›</span>
+          <a href="{{backLink}}">{{filename}}</a>
+          <span>›</span>
+          <strong>source</strong>
+
+          {{#if githubLink}}<a href="{{githubLink}}" target="_blank" rel="noopener noreferrer">
+              <picture>
+                <img src="/public/icons/github.svg" width="20" height="20" alt="" />
+              </picture>
+            </a>{{/if}}
+        </div>
+      </header>
+      <div class="shader-page-content">
+        <div class="source-view" data-line-count="{{lineCount}}">
+          <div class="source-back-anchor">
+            <a class="site-button site-button-secondary source-back-button" href="{{backLink}}">← Back to declarations</a>
+          </div>
+          <pre class="source-code"><code>{{#each lines}}<div class="source-line" id="L{{number}}"><a class="source-line-number" href="#L{{number}}" tabindex="-1" aria-label="Line {{number}}">{{number}}</a><span class="source-line-text">{{{html}}}</span></div>{{/each}}</code></pre>
+        </div>
+      </div>
+      </div>
+    </main>
+    {{> footer}}
+  </body>
+</html>

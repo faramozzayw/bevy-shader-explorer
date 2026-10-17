@@ -25,7 +25,12 @@ func ParseSource(config *config.Config, source Source) (ShaderFile, error) {
 	if err != nil {
 		return ShaderFile{}, err
 	}
-	return (ShaderFileEnricher{}).Enrich(parsed, FileMetadata{Config: config, Path: source.Path})
+	shaderFile, err := (ShaderFileEnricher{}).Enrich(parsed, FileMetadata{Config: config, Path: source.Path})
+	if err != nil {
+		return ShaderFile{}, err
+	}
+	shaderFile.SourceText = source.Text
+	return shaderFile, nil
 }
 
 func (shaderFile ShaderFile) CollectedShaderDefs() []string {

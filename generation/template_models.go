@@ -1,6 +1,12 @@
 package generation
 
-import "github.com/faramozzayw/bevy-shader-explorer/config"
+import (
+	"fmt"
+
+	"github.com/faramozzayw/bevy-shader-explorer/config"
+	"github.com/faramozzayw/bevy-shader-explorer/shader"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/highlight"
+)
 
 type packageTemplateModel struct {
 	Name                      string
@@ -56,6 +62,56 @@ type homeTemplateModel struct {
 }
 
 type notFoundTemplateModel struct{}
+
+type sourceLineModel struct {
+	Number int
+	Html   string
+}
+
+type sourceTemplateModel struct {
+	Filename         string
+	Lines            []sourceLineModel
+	LineCount        int
+	GithubLink       string
+	BackLink         string
+	ProjectName      string
+	ProjectVersion   string
+	ProjectURLPrefix string
+	PackageURLPrefix string
+	Version          string
+	VersionOptions   []map[string]string
+	SearchIndex      string
+	SeoTitle         string
+	SeoDescription   string
+	CanonicalURL     string
+	OgImageURL       string
+	StructuredData   string
+}
+
+func newSourceTemplateModel(file shader.ShaderFile) sourceTemplateModel {
+	lines := highlight.Lines(file.SourceText, file.Filename)
+	modelLines := make([]sourceLineModel, len(lines))
+	for i, line := range lines {
+		modelLines[i] = sourceLineModel{Number: line.Number, Html: line.HTML}
+	}
+	return sourceTemplateModel{
+		Filename: file.Filename, Lines: modelLines, LineCount: len(modelLines),
+		GithubLink: file.GithubLink, BackLink: "/" + file.Link,
+		ProjectName: file.ProjectName, ProjectVersion: file.ProjectVersion,
+		ProjectURLPrefix: file.ProjectURLPrefix, PackageURLPrefix: file.PackageURLPrefix,
+		Version: file.Version, VersionOptions: file.VersionOptions, SearchIndex: file.SearchIndex,
+		SeoTitle:       fmt.Sprintf("%s source — %s", file.Filename, file.ProjectName),
+		SeoDescription: fmt.Sprintf("Source for the WGSL shader module %s from %s %s.", file.Filename, file.ProjectName, file.ProjectVersion),
+		CanonicalURL:   file.SourceCanonicalURL, OgImageURL: file.OgImageURL,
+		StructuredData: jsonValue(map[string]interface{}{
+			"@context": "https://schema.org", "@type": "TechArticle",
+			"name":        file.Filename + " source",
+			"headline":    file.Filename + " source",
+			"description": fmt.Sprintf("Source for the WGSL shader module %s from %s %s.", file.Filename, file.ProjectName, file.ProjectVersion),
+			"url":         file.SourceCanonicalURL,
+		}),
+	}
+}
 
 func newHomeTemplateModel(cfg config.Config, sections []homeSection, packageCount, shaderCount, projectCount, dependencyCount int, projectVersion string) homeTemplateModel {
 	return homeTemplateModel{

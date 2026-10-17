@@ -255,6 +255,18 @@ func (n Node) Children() []Node {
 	return children
 }
 
+func (n Node) IsNamed() bool { return n.raw.IsNamed() }
+
+func (n Node) StartByte() int { return int(n.raw.StartByte()) }
+
+func (n Node) EndByte() int { return int(n.raw.EndByte()) }
+
+func (n Node) ChildCount() uint { return n.raw.ChildCount() }
+
+func (n Node) Child(i uint) Node {
+	return Node{raw: n.raw.Child(i), tree: n.tree}
+}
+
 func (n Node) FirstChild(kind string) Node {
 	for _, child := range n.Children() {
 		if child.Kind() == kind {

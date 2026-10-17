@@ -30,6 +30,9 @@ type ShaderFile struct {
 	SourcePath         string              `json:"-"`
 	SourceRoot         string              `json:"-"`
 	OutputPrefix       string              `json:"-"`
+	SourceText         string              `json:"-"`
+	SourceLink         string              `json:"sourceLink,omitempty"`
+	SourceCanonicalURL string              `json:"-"`
 	SeoDescription     string              `json:"-"`
 	SeoTitle           string              `json:"-"`
 	CanonicalURL       string              `json:"-"`
