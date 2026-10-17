@@ -72,4 +72,7 @@ func TestResolveTypeLinksWebGPUBuiltins(t *testing.T) {
 			t.Errorf("missing WebGPU/WGSL built-in type link for %q", name)
 		}
 	}
+	if link := utils.GetTypeLink("rgba32float"); link != "https://www.w3.org/TR/WGSL/#texel-formats" {
+		t.Fatalf("unexpected texture format link: %q", link)
+	}
 }
