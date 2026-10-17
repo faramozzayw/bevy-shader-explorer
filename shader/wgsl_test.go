@@ -7,11 +7,13 @@ import (
 	"testing"
 
 	"github.com/faramozzayw/bevy-shader-explorer/config"
-	"github.com/faramozzayw/bevy-shader-explorer/shader/bevy"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/conditions"
 	"github.com/faramozzayw/bevy-shader-explorer/shader/document"
 	"github.com/faramozzayw/bevy-shader-explorer/shader/extract"
+	shaderimports "github.com/faramozzayw/bevy-shader-explorer/shader/imports"
 	shaderparser "github.com/faramozzayw/bevy-shader-explorer/shader/parser"
 	"github.com/faramozzayw/bevy-shader-explorer/shader/syntax"
+	shaderwgsl "github.com/faramozzayw/bevy-shader-explorer/shader/wgsl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -226,7 +228,7 @@ const VALUE: u32 = 1u;
 #endif
 `
 
-	declarations, err := parseWGSL(code, bevy.MaskDirectives(code), map[int]string{}, nil)
+	declarations, err := parseWGSL(code, shaderwgsl.MaskDirectives(code), map[int]string{}, nil)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -350,13 +352,13 @@ func TestExtractionRegressionForAllItemKinds(t *testing.T) {
 func TestExtractionRegressionForShaderDefinitionBranches(t *testing.T) {
 	code := shaderDefinitionsFixture
 
-	definitions := bevy.DefinitionBlocks(code)
+	definitions := conditions.Blocks(code)
 	shaderDefs := make([]extract.ShaderDefBlock, 0, len(definitions))
 	for _, definition := range definitions {
 		shaderDefs = append(shaderDefs, extract.ShaderDefBlock{Condition: document.NewShaderCondition(definition.Name), IfdefLine: definition.IfLine, ElseLine: definition.ElseLine, EndifLine: definition.EndifLine})
 	}
 
-	declarations, err := parseWGSL(code, bevy.MaskDirectives(code), map[int]string{}, shaderDefs)
+	declarations, err := parseWGSL(code, shaderwgsl.MaskDirectives(code), map[int]string{}, shaderDefs)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -433,7 +435,7 @@ func TestImportExtractionRegression(t *testing.T) {
 #import bevy_render::RenderDevice as Device;
 `
 
-	imports, err := bevy.ExtractAllImports(source)
+	imports, err := shaderimports.ExtractAll(source)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -441,7 +443,7 @@ func TestImportExtractionRegression(t *testing.T) {
 	assert.Equal(t, []string{"bevy_pbr::view::View"}, imports["View"])
 	assert.Equal(t, []string{"bevy_render::RenderDevice"}, imports["Device"])
 
-	_, err = bevy.ExtractAllImports("#import bevy_pbr::{mesh_functions\n")
+	_, err = shaderimports.ExtractAll("#import bevy_pbr::{mesh_functions\n")
 	assert.Error(t, err)
 }
 
@@ -456,12 +458,12 @@ const alternate: u32 = 3u;
 #endif
 `
 
-	definitions := bevy.DefinitionBlocks(source)
+	definitions := conditions.Blocks(source)
 	if !assert.Len(t, definitions, 2) {
 		return
 	}
-	assert.Equal(t, bevy.DefinitionBlock{Name: "OUTER", IfLine: 1, EndifLine: 8}, definitions[0])
-	assert.Equal(t, bevy.DefinitionBlock{Name: "INNER", IfLine: 3, ElseLine: intPointer(5), EndifLine: 7}, definitions[1])
+	assert.Equal(t, conditions.DefinitionBlock{Name: "OUTER", IfLine: 1, EndifLine: 8}, definitions[0])
+	assert.Equal(t, conditions.DefinitionBlock{Name: "INNER", IfLine: 3, ElseLine: intPointer(5), EndifLine: 7}, definitions[1])
 }
 
 func TestDefinitionExtractionSupportsIfndef(t *testing.T) {
@@ -470,12 +472,12 @@ fn main() {}
 #endif
 `
 
-	definitions := bevy.DefinitionBlocks(source)
-	if !assert.Equal(t, []bevy.DefinitionBlock{{Name: "FFT_VERTICAL", Negated: true, IfLine: 1, EndifLine: 3}}, definitions) {
+	definitions := conditions.Blocks(source)
+	if !assert.Equal(t, []conditions.DefinitionBlock{{Name: "FFT_VERTICAL", Negated: true, IfLine: 1, EndifLine: 3}}, definitions) {
 		return
 	}
 	shaderDefs := []extract.ShaderDefBlock{{Condition: document.NewShaderCondition("FFT_VERTICAL"), Negated: true, IfdefLine: 1, EndifLine: 3}}
-	declarations, err := parseWGSL(source, bevy.MaskDirectives(source), nil, shaderDefs)
+	declarations, err := parseWGSL(source, shaderwgsl.MaskDirectives(source), nil, shaderDefs)
 	if !assert.NoError(t, err) || !assert.Len(t, declarations.Functions, 1) {
 		return
 	}
@@ -501,13 +503,13 @@ var<uniform> no_annotations: Settings;
 
 func TestNestedDefinitionsWithoutTrailingNewline(t *testing.T) {
 	code := "#ifdef OUTER\nconst outer: u32 = 1u;\n#ifdef INNER\nconst inner: u32 = 2u;\n#else\nconst alternate: u32 = 3u;\n#endif\n#else\nconst fallback: u32 = 4u;\n#endif"
-	definitions := bevy.DefinitionBlocks(code)
+	definitions := conditions.Blocks(code)
 	shaderDefs := make([]extract.ShaderDefBlock, 0, len(definitions))
 	for _, definition := range definitions {
 		shaderDefs = append(shaderDefs, extract.ShaderDefBlock{Condition: document.NewShaderCondition(definition.Name), IfdefLine: definition.IfLine, ElseLine: definition.ElseLine, EndifLine: definition.EndifLine})
 	}
 
-	masked := bevy.MaskDirectives(code)
+	masked := shaderwgsl.MaskDirectives(code)
 	assert.Equal(t, len(code), len(masked))
 	assert.Equal(t, strings.Count(code, "\n"), strings.Count(masked, "\n"))
 	declarations, err := parseWGSL(code, masked, map[int]string{}, shaderDefs)

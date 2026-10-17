@@ -1,3 +1,4 @@
+// Package parser coordinates language-specific shader parsing.
 package parser
 
 import (
@@ -5,16 +6,17 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/faramozzayw/bevy-shader-explorer/shader/bevy"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/conditions"
 	"github.com/faramozzayw/bevy-shader-explorer/shader/document"
 	"github.com/faramozzayw/bevy-shader-explorer/shader/extract"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/imports"
 	"github.com/faramozzayw/bevy-shader-explorer/shader/source"
 )
 
-type Language interface {
-	Definitions(string) ([]bevy.DefinitionBlock, error)
-	ParserSource(string) string
-	ParseDeclarations(string, string, map[int]string, []extract.ShaderDefBlock) (extract.Result, error)
+type Language struct {
+	Definitions       func(string) ([]conditions.DefinitionBlock, error)
+	ParserSource      func(string) string
+	ParseDeclarations func(string, string, map[int]string, []extract.ShaderDefBlock) (extract.Result, error)
 }
 
 func Parse(sourceText string, language Language) (document.File, error) {
@@ -35,14 +37,14 @@ func Parse(sourceText string, language Language) (document.File, error) {
 	if err != nil {
 		return document.File{}, fmt.Errorf("parse declarations: %w", err)
 	}
-	imports, err := bevy.ExtractAllImports(normalized)
+	declaredImports, err := imports.ExtractAll(normalized)
 	if err != nil {
 		return document.File{}, fmt.Errorf("extract imports: %w", err)
 	}
 	return document.File{
 		ImportPath: ExtractImportPath(normalized), Consts: declarations.Consts,
 		Bindings: declarations.Bindings, Functions: declarations.Functions,
-		Structures: declarations.Structures, DeclaredImports: imports,
+		Structures: declarations.Structures, DeclaredImports: declaredImports,
 		ShaderDefs: definitionNames(definitions),
 	}, nil
 }
@@ -96,7 +98,7 @@ func ExtractImportPath(code string) *string {
 	return nil
 }
 
-func definitionNames(definitions []bevy.DefinitionBlock) []string {
+func definitionNames(definitions []conditions.DefinitionBlock) []string {
 	result := make([]string, 0, len(definitions))
 	seen := make(map[string]bool)
 	for _, definition := range definitions {
