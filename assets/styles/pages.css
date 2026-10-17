@@ -314,13 +314,22 @@ h1 {
 
 	.header-container {
 		display: grid;
-		grid-template-columns: 1fr;
+		grid-template-columns: minmax(0, 1fr) auto;
 		gap: 8px;
 		padding: 8px 12px;
 	}
 
 	.header-brand {
+		grid-column: 1 / -1;
 		gap: 10px;
+	}
+
+	.header-container .search-input-wrapper {
+		grid-column: 1 / -1;
+		grid-row: 2;
+		order: initial;
+		min-width: 0;
+		width: 100%;
 	}
 
 	.site-brand {
