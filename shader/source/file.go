@@ -9,7 +9,7 @@ type File struct {
 }
 
 func New(text string) File {
-	return File{Text: strings.ReplaceAll(text, "\n\r", "\n")}
+	return File{Text: strings.ReplaceAll(text, "\r\n", "\n")}
 }
 
 func (f File) LineAt(byteOffset int) int {

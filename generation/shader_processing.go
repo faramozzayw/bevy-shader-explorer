@@ -10,6 +10,7 @@ import (
 
 	config "github.com/faramozzayw/bevy-shader-explorer/config"
 	wgsl "github.com/faramozzayw/bevy-shader-explorer/shader"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/document"
 	"github.com/faramozzayw/bevy-shader-explorer/utils"
 )
 
@@ -110,12 +111,13 @@ func parseShaderInputCached(input shaderInput, parser shaderFileParser, cache sh
 	if err != nil {
 		return wgsl.ShaderFile{}, fmt.Errorf("read source: %w", err)
 	}
+	source := document.NewSource(input.Path, string(content))
 	cachePath := cache.path(input, content)
 	if file, ok := cache.load(cachePath); ok {
-		file.SourceText = string(content)
+		file.SourceText = source.Text
 		return file, nil
 	}
-	file, err := parser.Parse(&input.Config, wgsl.Source{Path: input.Path, Text: string(content)})
+	file, err := parser.Parse(&input.Config, source)
 	if err != nil {
 		return wgsl.ShaderFile{}, err
 	}
@@ -269,5 +271,24 @@ func appendSearchInfo(searchInfo *[]ShaderSearchableInfo, imports *map[string]st
 	}
 	for _, item := range file.Bindings {
 		*searchInfo = append(*searchInfo, ShaderSearchableInfo{Link: link, PackageName: file.ProjectName, PackageVersion: file.ProjectVersion, Filename: file.Filename, Exportable: exportable, Name: item.Name, Type: "binding"})
+	}
+}
+
+func appendUsageEdges(usedBy map[string][]document.UsageRef, file wgsl.ShaderFile) {
+	if len(file.DeclaredImports) == 0 {
+		return
+	}
+	link := "/" + strings.TrimPrefix(utils.NormalizeLink(file.Link), "/")
+	seen := make(map[string]bool, len(file.DeclaredImports))
+	for _, paths := range file.DeclaredImports {
+		for _, fullPath := range paths {
+			if seen[fullPath] {
+				continue
+			}
+			seen[fullPath] = true
+			usedBy[fullPath] = append(usedBy[fullPath], document.UsageRef{
+				Link: link, PackageName: file.ProjectName, PackageVersion: file.ProjectVersion, Filename: file.Filename,
+			})
+		}
 	}
 }

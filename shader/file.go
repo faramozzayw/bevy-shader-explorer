@@ -3,7 +3,7 @@ package shader
 import (
 	"fmt"
 	"os"
-	"strings"
+	"sort"
 
 	config "github.com/faramozzayw/bevy-shader-explorer/config"
 	"github.com/faramozzayw/bevy-shader-explorer/shader/document"
@@ -17,7 +17,7 @@ func ParseWGSLFile(
 	if err != nil {
 		return ShaderFile{}, fmt.Errorf("read source: %w", err)
 	}
-	return ParseSource(config, Source{Path: shaderFilePath, Text: string(wgslCodeBytes)})
+	return ParseSource(config, document.NewSource(shaderFilePath, string(wgslCodeBytes)))
 }
 
 func ParseSource(config *config.Config, source Source) (ShaderFile, error) {
@@ -82,23 +82,24 @@ func (shaderFile *ShaderFile) ResolveTypeLinks(declaredImportPaths map[string]st
 		return v.Name
 	})
 
-	for key, paths := range shaderFile.DeclaredImports {
-		if len(paths) == 0 {
-			continue
-		}
-		fullPath := paths[0]
+	names := make([]string, 0, len(shaderFile.DeclaredImports))
+	for key := range shaderFile.DeclaredImports {
+		names = append(names, key)
+	}
+	sort.Strings(names)
 
-		var longestMatch string
-		for module := range declaredImportPaths {
-			if strings.HasPrefix(fullPath, module) {
-				if len(module) > len(longestMatch) {
-					longestMatch = module
+	for _, key := range names {
+		paths := shaderFile.DeclaredImports[key]
+		for index, fullPath := range paths {
+			link, ok := document.ResolveModuleLink(fullPath, declaredImportPaths)
+			ref := document.ImportRef{Name: key, Path: fullPath}
+			if ok {
+				ref.Link = link + "#" + key
+				if index == 0 {
+					importsMap[key] = link
 				}
 			}
-		}
-
-		if longestMatch != "" {
-			importsMap[key] = declaredImportPaths[longestMatch]
+			shaderFile.ResolvedImports = append(shaderFile.ResolvedImports, ref)
 		}
 	}
 
@@ -122,5 +123,26 @@ func (shaderFile *ShaderFile) ResolveTypeLinks(declaredImportPaths map[string]st
 		}
 
 		shaderFile.Functions[i].ReturnTypeInfo.ResolveTypeLink(importsMap, structuresList)
+	}
+}
+
+func (shaderFile *ShaderFile) AttachUsage(usedBy map[string][]document.UsageRef) {
+	if shaderFile.ImportPath == nil {
+		return
+	}
+	modulePath := *shaderFile.ImportPath
+	prefix := modulePath + "::"
+
+	for i := range shaderFile.Consts {
+		shaderFile.Consts[i].UsedBy, shaderFile.Consts[i].UsedBySummary = document.ResolveUsage(usedBy, prefix+shaderFile.Consts[i].Name, modulePath)
+	}
+	for i := range shaderFile.Bindings {
+		shaderFile.Bindings[i].UsedBy, shaderFile.Bindings[i].UsedBySummary = document.ResolveUsage(usedBy, prefix+shaderFile.Bindings[i].Name, modulePath)
+	}
+	for i := range shaderFile.Structures {
+		shaderFile.Structures[i].UsedBy, shaderFile.Structures[i].UsedBySummary = document.ResolveUsage(usedBy, prefix+shaderFile.Structures[i].Name, modulePath)
+	}
+	for i := range shaderFile.Functions {
+		shaderFile.Functions[i].UsedBy, shaderFile.Functions[i].UsedBySummary = document.ResolveUsage(usedBy, prefix+shaderFile.Functions[i].Name, modulePath)
 	}
 }

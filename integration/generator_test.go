@@ -102,6 +102,54 @@ fn vertex_main(@location(0) position: vec3<f32>) -> @builtin(position) vec4<f32>
 	}
 }
 
+func TestGeneratorLinksImportsAndTracksUsage(t *testing.T) {
+	project := t.TempDir()
+	shaderDir := filepath.Join(project, "shaders")
+	if err := os.MkdirAll(shaderDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFixtureFile(t, filepath.Join(project, "Cargo.toml"), `[package]
+name = "usage-fixture"
+version = "0.1.0"
+description = "Usage graph fixture"
+`)
+	writeFixtureFile(t, filepath.Join(shaderDir, "exporter.wgsl"), `#define_import_path usage_fixture::exporter
+
+@group(0) @binding(0)
+var<uniform> view: mat4x4<f32>;
+`)
+	writeFixtureFile(t, filepath.Join(shaderDir, "importer.wgsl"), `#import usage_fixture::exporter::view
+
+@fragment
+fn fragment() -> @location(0) vec4<f32> {
+    return view * vec4<f32>(1.0, 1.0, 1.0, 1.0);
+}
+`)
+
+	output := filepath.Join(t.TempDir(), "dist")
+	root := repoRoot(t)
+	runGenerator(t, root, project, output, "--no-deps", "--site-url", "https://docs.example")
+
+	exporterPage, err := os.ReadFile(filepath.Join(output, "usage-fixture", "0.1.0", "shaders", "exporter.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(exporterPage), "Used by 1 shader in usage-fixture 0.1.0") {
+		t.Fatalf("exporter page is missing a used-by summary: %s", exporterPage)
+	}
+	if !strings.Contains(string(exporterPage), "/usage-fixture/0.1.0/shaders/importer.html") {
+		t.Fatalf("exporter page is missing a link back to the importing shader")
+	}
+
+	importerPage, err := os.ReadFile(filepath.Join(output, "usage-fixture", "0.1.0", "shaders", "importer.html"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(importerPage), "importer.wgsl") {
+		t.Fatalf("generated importer page is missing: %s", importerPage)
+	}
+}
+
 func TestReleaseGenerationCanBeFinalizedSeparately(t *testing.T) {
 	project := t.TempDir()
 	writeFixtureFile(t, filepath.Join(project, "Cargo.toml"), `[package]

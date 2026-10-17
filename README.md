@@ -1,6 +1,8 @@
 # Shader Explorer
 
-Shader Explorer generates docs.rs-style, searchable HTML documentation for WGSL and WESL shaders. It parses shader declarations, links source locations, and can include shader-bearing Bevy dependencies discovered through Cargo. The default file filter includes both `.wgsl` and `.wesl` files; custom filters remain opt-in.
+Shader Explorer generates docs.rs-style, searchable HTML documentation for
+WGSL and WESL shaders. It parses declarations, links source locations, and can
+include shader-bearing Bevy dependencies discovered through Cargo.
 
 ## Quick start
 
@@ -16,257 +18,19 @@ Serve the generated site locally:
 just serve
 ```
 
-The optional `wgsl-docs.toml` file can override the project name, description, output path, exclusions, and dependency discovery settings. Without it, name and description are read from `Cargo.toml` when available.
+The optional `wgsl-docs.toml` file configures project metadata, output paths,
+exclusions, and dependency discovery. Without it, name and description are
+read from `Cargo.toml` when available.
 
-## CLI
+## Documentation
 
-```text
-wgsl-docs generate [flags]
-  --project PATH       project directory (default: .)
-  --output PATH        output directory (default: ./shader-docs)
-  --format FORMAT      documentation format: html or json (default: html)
-  --version VERSION    documentation version label (default: project)
-  --exclude PATTERN    exclude a directory or pattern (repeatable)
-  --no-deps            disable Cargo dependency shader discovery
-  --offline            use Cargo metadata without network access
-  --source-url URL     base URL for source links
-  --source-ref REF     source branch, tag, or commit for source links
-  --site-url URL       public origin for canonical URLs and sitemap
-  --issue-url URL      URL for requesting documentation for a crate
-  --skip-catalogue     render release pages without catalogue-wide finalization
-  --quiet, -q          suppress progress and informational logs
-```
+See the [user and generation guide](docs/guide.md) for:
 
-The catalogue matrix uses a two-phase workflow. Release passes write package
-and shader pages plus per-release registry fragments; one finalization pass
-merges the catalogue, copies shared assets, and writes the homepage, OG card,
-manifests, `robots.txt`, and the sitemap:
-
-```bash
-wgsl-docs finalize --output ./dist --site-url https://shaders.example.com
-```
-
-`just generate-all` runs this release/finalization workflow automatically.
-Parser models are cached outside `dist` using source-content and link-settings
-digests, so repeated matrix runs reuse unchanged shader parses safely.
-
-Use `--quiet` for CI or other non-interactive builds when progress output is
-not useful:
-
-```bash
-go run ./cmd/wgsl-docs-build --quiet clone
-go run ./cmd/wgsl-docs-build --quiet generate
-```
-
-### Search-engine indexing
-
-HTML generation adds unique titles and descriptions, canonical URLs, Open Graph
-and Twitter metadata, and JSON-LD structured data to the homepage, package
-pages, and shader pages. It also writes `robots.txt` and, when a public origin
-is configured, an absolute `sitemap.xml` containing every generated HTML page.
-Social preview cards are generated under `public/og/`: one site card and one
-package/version card, reused by that package's shader pages. PNG cards are
-rendered with `resvg` when available; otherwise the generator keeps an SVG
-fallback. The homepage uses the repository mascot artwork (`mascot2.jpeg`) as
-its social preview image.
-
-For normal project generation, set the public origin in `wgsl-docs.toml`:
-
-```toml
-site_url = "https://shaders.example.com"
-```
-
-For CI or Vercel builds, set the `SITE_URL` environment variable instead. The
-same value is used for canonical links and the sitemap URL. After deployment,
-verify the domain in Google Search Console and submit `/sitemap.xml`.
-
-The bundled multi-source build reads the same setting from the top level of
-`shader-sources.toml`.
-
-### Search
-
-The generated site provides one global search across packages, versions, shader
-files, declarations, and comments. The generator writes per-release search
-indexes plus a merged `public/search-info-all.json` index and a
-`public/search-index-manifest.json` containing its SHA-256 hash.
-
-At runtime, the browser stores the global index in IndexedDB. It checks the
-manifest hash before downloading the JSON again, so unchanged deployments reuse
-the local index. If IndexedDB or FlexSearch is unavailable, search falls back to
-in-memory data and linear matching.
-
-FlexSearch indexes declaration names, filenames, package metadata, types,
-comments, descriptions, and shader-stage attributes. Multiple terms use AND
-semantics by intersecting each term's matches. Results are then ranked by exact
-and prefix name matches, filename, package, type, and description. Queries can
-also include `@vertex`, `@fragment`, or `@compute` stage filters.
-
-Declarations are grouped across versions only when their package, source file,
-name, and type all match. Different packages and files remain separate. Grouped
-results include a version selector sorted newest-first, and the declaration
-name link points to the newest available version by default.
-
-Press `S` or `/` to focus search and `Escape` to leave it. The query is kept in
-the URL for bookmarking and sharing, results update as you type, and the UI
-displays at most 50 results.
-
-Use `--format json` to export the same home, package, and shader page model
-without rendering HTML. The convenience recipe is:
-
-```bash
-just generate-json ./path/to/project ./dist
-```
-
-It writes `dist/documentation.json`.
-
-## Generation pipeline
-
-Each generation run processes one explicit project directory:
-
-1. The generator discovers `.wgsl` and `.wesl` files and optional Cargo
-   dependency shader sources.
-2. Files are parsed concurrently, source paths and GitHub links are resolved,
-   and filename collisions are disambiguated.
-3. Parsed declarations, package metadata, dependencies, links, and search
-   entries are assembled into one renderer-neutral documentation model.
-4. The selected renderer writes either the HTML site or
-   `documentation.json` from that same model.
-
-The HTML renderer writes package and shader pages plus search and version
-manifests. JSON mode is optional: `documentation.json` is written only when
-`--format json` is selected, and that mode does not render HTML pages.
-
-### Processing flow
-
-```mermaid
-flowchart TD
-    A[Project directory] --> B[Discover shader files]
-    B --> C[Read Cargo metadata]
-    C --> D[Discover dependency shaders]
-    B --> E[Parse WGSL/WESL concurrently]
-    D --> E
-    E --> F[Resolve source links and filename collisions]
-    F --> G[Build documentation site model]
-    G --> H[Release renderer]
-    G --> I[JSON renderer]
-    H --> J[Package and shader pages]
-    J --> K[Finalization]
-    K --> L[Homepage, assets, OG cards, manifests, sitemap]
-    I --> M[documentation.json]
-```
-
-### Documentation model
-
-The renderers consume the same model. JSON mirrors this structure; it is not a
-direct dump of parser internals.
-
-```mermaid
-classDiagram
-    DocumentationSite --> HomePage
-    DocumentationSite --> PackagePage
-    DocumentationSite --> ShaderPage
-    DocumentationSite --> SearchEntry
-    PackagePage --> PackageMetadata
-    PackagePage --> Dependency
-    PackagePage --> ShaderSummary
-    ShaderPage --> ShaderItems
-    ShaderItems --> Constant
-    ShaderItems --> Structure
-    ShaderItems --> Function
-    ShaderItems --> Binding
-
-    class DocumentationSite {
-      version
-      home
-      packages[]
-      shaderPages[]
-      search[]
-    }
-    class HomePage {
-      sections[]
-      packageCount
-      shaderCount
-    }
-    class PackagePage {
-      name
-      version
-      description
-      metadata
-      files[]
-      dependencies[]
-    }
-    class ShaderPage {
-      path
-      sourceLink
-      githubLink
-      items
-    }
-```
-
-`just generate-json` requires a project path deliberately. The repository
-root is not a package; use a concrete source checkout such as
-`./sources/bevy/0.19.1`. The catalogue workflow is separate: `just clone-all`
-fetches the configured sources and `just generate-all` processes the matrix
-into `dist/`.
-
-For the bundled Bevy catalogue, `just generate-all` clones the configured source revisions into `sources/` and writes the site to `dist/`. `just deploy-prod` deploys the existing `dist/` output without regenerating it.
-
-The source matrix is defined in `shader-sources.toml`. Run `go run ./cmd/wgsl-docs-build --config path/to/matrix.toml clone` or `generate` to use another release matrix.
-
-Workspace repositories can rename a Cargo package in the generated catalogue
-without changing Cargo dependency resolution or source links. Add a
-`package_aliases` map keyed by the real Cargo package name:
-
-```toml
-package_aliases = { example = "bevy_enoki_example" }
-```
-
-## Add a library to the catalogue
-
-Add a `[[sources]]` entry to `shader-sources.toml`. The `root` is where
-sources are cloned, and `repo` is used for source links in the generated
-pages. Use `versions` with `ref_pattern` when releases follow a predictable
-tag convention:
-
-```toml
-[[sources]]
-name = "bevy_hanabi"
-repo = "https://github.com/djeedai/bevy_hanabi.git"
-root = "sources/hanabi"
-ref_pattern = "v{version}"
-versions = ["0.15.0", "0.16.0", "0.17.0", "0.18.0", "0.19.0"]
-```
-
-For a project with unusual tags, keep the common pattern and override only
-the releases that differ:
-
-```toml
-[[sources]]
-name = "my-shader-library"
-repo = "https://github.com/example/my-shader-library.git"
-root = "sources/my-shader-library"
-ref_pattern = "v{version}"
-versions = ["1.2.0", "1.3.0"]
-
-[[sources.releases]]
-version = "1.3.0"
-ref = "release-1.3"
-```
-
-Then fetch and generate the catalogue:
-
-```bash
-just clone-all
-just generate-all
-```
-
-This is the same pattern used for adding third-party Bevy shader projects;
-the generated pages include package versions, shader modules, metadata, and
-links back to the original repository.
-
-If you would like a library added but do not want to edit the configuration,
-open an issue with its repository and release information. I will most likely
-prepare and submit the PR for you.
+- CLI flags and catalogue workflows
+- search and SEO behavior
+- used-by relationships
+- the generation pipeline and documentation model
+- adding libraries to the catalogue
 
 ## License
 

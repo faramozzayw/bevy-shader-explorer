@@ -8,6 +8,10 @@ type Source struct {
 	Text string
 }
 
+func NewSource(path, text string) Source {
+	return Source{Path: path, Text: strings.ReplaceAll(text, "\r\n", "\n")}
+}
+
 // ShaderCondition is the normalized form of a shader-definition expression.
 // Expression is retained for display/debugging; Clauses are the canonical
 // boolean representation used for evaluation, and Atoms drive controls/pills.
@@ -31,11 +35,25 @@ type File struct {
 	Functions       []Function      `json:"functions"`
 	Structures      []Structure     `json:"structures"`
 	DeclaredImports DeclaredImports `json:"declaredImports"`
+	ResolvedImports []ImportRef     `json:"resolvedImports,omitempty"`
 	Filename        string          `json:"filename"`
 	ShaderDefs      []string        `json:"shaderDefs"`
 }
 
 type DeclaredImports = map[string][]string
+
+type ImportRef struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+	Link string `json:"link,omitempty"`
+}
+
+type UsageRef struct {
+	Link           string `json:"link"`
+	PackageName    string `json:"packageName"`
+	PackageVersion string `json:"packageVersion"`
+	Filename       string `json:"filename"`
+}
 
 func NewShaderCondition(expression string) ShaderCondition {
 	condition := ShaderCondition{Expression: strings.TrimSpace(expression)}
@@ -97,18 +115,22 @@ type NamedType struct {
 	ShaderDefs  []DefResult  `json:"shaderDefs"`
 }
 type Const struct {
-	LineNumber int         `json:"lineNumber"`
-	Name       string      `json:"name"`
-	TypeInfo   TypeInfo    `json:"typeInfo"`
-	Value      string      `json:"value"`
-	ShaderDefs []DefResult `json:"shaderDefs"`
+	LineNumber    int         `json:"lineNumber"`
+	Name          string      `json:"name"`
+	TypeInfo      TypeInfo    `json:"typeInfo"`
+	Value         string      `json:"value"`
+	ShaderDefs    []DefResult `json:"shaderDefs"`
+	UsedBy        []UsageRef  `json:"usedBy,omitempty"`
+	UsedBySummary string      `json:"usedBySummary,omitempty"`
 }
 type Structure struct {
-	Name       string      `json:"name"`
-	Fields     []NamedType `json:"fields"`
-	LineNumber int         `json:"lineNumber"`
-	Comment    string      `json:"comment"`
-	ShaderDefs []DefResult `json:"shaderDefs"`
+	Name          string      `json:"name"`
+	Fields        []NamedType `json:"fields"`
+	LineNumber    int         `json:"lineNumber"`
+	Comment       string      `json:"comment"`
+	ShaderDefs    []DefResult `json:"shaderDefs"`
+	UsedBy        []UsageRef  `json:"usedBy,omitempty"`
+	UsedBySummary string      `json:"usedBySummary,omitempty"`
 }
 type Function struct {
 	StageAttribute string      `json:"stageAttribute"`
@@ -119,12 +141,16 @@ type Function struct {
 	ReturnTypeInfo TypeInfo    `json:"returnTypeInfo"`
 	ShaderDefs     []DefResult `json:"shaderDefs"`
 	Comment        string      `json:"comment"`
+	UsedBy         []UsageRef  `json:"usedBy,omitempty"`
+	UsedBySummary  string      `json:"usedBySummary,omitempty"`
 }
 type Binding struct {
-	LineNumber  int          `json:"lineNumber"`
-	Name        string       `json:"name"`
-	BindingType string       `json:"bindingType"`
-	Annotations []Annotation `json:"annotations"`
-	TypeInfo    TypeInfo     `json:"typeInfo"`
-	ShaderDefs  []DefResult  `json:"shaderDefs"`
+	LineNumber    int          `json:"lineNumber"`
+	Name          string       `json:"name"`
+	BindingType   string       `json:"bindingType"`
+	Annotations   []Annotation `json:"annotations"`
+	TypeInfo      TypeInfo     `json:"typeInfo"`
+	ShaderDefs    []DefResult  `json:"shaderDefs"`
+	UsedBy        []UsageRef   `json:"usedBy,omitempty"`
+	UsedBySummary string       `json:"usedBySummary,omitempty"`
 }

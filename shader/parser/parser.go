@@ -92,7 +92,7 @@ func ExtractComments(lines []string) map[int]string {
 func ExtractImportPath(code string) *string {
 	match := regexp.MustCompile(`#define_import_path\s+(.*)`).FindStringSubmatch(code)
 	if len(match) > 1 {
-		value := match[1]
+		value := strings.TrimSpace(match[1])
 		return &value
 	}
 	return nil

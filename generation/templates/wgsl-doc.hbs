@@ -50,7 +50,7 @@
         >Save</button>
       </header>
       <div class="shader-page-content">
-      
+
       {{#if (has-items consts)}}
       <div class="shader-section-group">
         <h3 id="constants" class="section-header"><img class="section-icon" src="/public/icons/constant.svg" alt="" aria-hidden="true" />Constants</h3>
@@ -74,9 +74,9 @@
                 </div>
               {{/if}}
             </header>
-
             {{#each items}}
             <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
+            {{> used-by}}
             {{> shader-defs-block }}
 
             <div class="signature code-background">
@@ -117,9 +117,9 @@
                 </div>
               {{/if}}
             </header>
-
           {{#each items}}
           <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
+          {{> used-by}}
           {{> shader-defs-block }}
 
             <div class="signature code-background">
@@ -159,9 +159,9 @@
                 </div>
               {{/if}}
             </header>
-
             {{#each items}}
             <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
+            {{> used-by}}
             {{#if comment}}
               <div class="function-comment">{{{parse-markdown comment}}}</div>
             {{/if}}
@@ -241,9 +241,9 @@
                 {{/unless}}
               {{/with}}
             </header>
-
             {{#each items}}
             <div class="declaration-variant" data-shader-defs='{{{json shaderDefs}}}'>
+            {{> used-by}}
             {{> shader-defs-block }}
 
             {{#if comment}}

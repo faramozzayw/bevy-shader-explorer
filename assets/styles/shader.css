@@ -93,7 +93,7 @@
 }
 .function-comment p {
 	padding: 10px;
-	margin: 10px 0;
+	margin: 0;
 	white-space: pre-line;
 	background-color: var(--comment-bg);
 	border-left: 4px solid var(--comment-border);
@@ -244,6 +244,47 @@ a.item-name:hover {
 	margin: 0;
 	flex: 0 0 auto;
 	white-space: nowrap;
+}
+
+.used-by summary {
+	cursor: pointer;
+	width: max-content;
+	color: var(--search-placeholder);
+	font-size: 0.85rem;
+}
+
+.used-by summary:hover {
+	color: var(--function-name-color);
+}
+
+.used-by[open] summary {
+	margin-bottom: 10px;
+}
+
+.used-by-list {
+	list-style: none;
+	margin: 0;
+	padding: 10px 14px;
+	max-height: 220px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	border-radius: 3px;
+	background-color: var(--code-bg);
+	border: 1px solid var(--code-border-color);
+}
+
+.used-by-list li {
+	font-size: 0.85rem;
+}
+
+.used-by-list a {
+	color: var(--comment-link-color);
+}
+
+.used-by-list a:hover {
+	color: var(--comment-link-hover-color);
 }
 
 .shader-page-header {

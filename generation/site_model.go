@@ -11,6 +11,7 @@ import (
 	"github.com/faramozzayw/bevy-shader-explorer/config"
 	"github.com/faramozzayw/bevy-shader-explorer/discovery"
 	wgsl "github.com/faramozzayw/bevy-shader-explorer/shader"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/document"
 	"github.com/faramozzayw/bevy-shader-explorer/utils"
 )
 
@@ -198,10 +199,11 @@ func documentationSectionsJSON(sections []homeSection) []documentationSectionJSO
 	return result
 }
 
-func buildDocumentationSite(config config.Config, sections, homeSections []homeSection, totalShaderCount, projectCount, dependencyCount int, files []wgsl.ShaderFile, search []ShaderSearchableInfo, metadata discovery.CargoMetadata, declaredImportPaths map[string]string) documentationSite {
+func buildDocumentationSite(config config.Config, sections, homeSections []homeSection, totalShaderCount, projectCount, dependencyCount int, files []wgsl.ShaderFile, search []ShaderSearchableInfo, metadata discovery.CargoMetadata, declaredImportPaths map[string]string, usedBy map[string][]document.UsageRef) documentationSite {
 	shaders := append([]wgsl.ShaderFile(nil), files...)
 	for i := range shaders {
 		shaders[i].ResolveTypeLinks(declaredImportPaths)
+		shaders[i].AttachUsage(usedBy)
 	}
 
 	packagesByKey := make(map[string]documentationPackagePage)

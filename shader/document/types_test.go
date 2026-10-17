@@ -26,3 +26,16 @@ func TestNewShaderConditionPreservesBooleanTerms(t *testing.T) {
 		{{Name: "BAZ"}},
 	}, condition.Clauses)
 }
+
+func TestNewSourceNormalizesCRLF(t *testing.T) {
+	source := NewSource("shader.wgsl", "#define_import_path a::b\r\nstruct Foo {}\r\n")
+
+	assert.Equal(t, "shader.wgsl", source.Path)
+	assert.Equal(t, "#define_import_path a::b\nstruct Foo {}\n", source.Text)
+}
+
+func TestNewSourceLeavesUnixLineEndingsUnchanged(t *testing.T) {
+	source := NewSource("shader.wgsl", "struct Foo {}\n")
+
+	assert.Equal(t, "struct Foo {}\n", source.Text)
+}

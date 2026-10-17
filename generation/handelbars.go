@@ -41,6 +41,9 @@ var GH_LINK_TEMPLATE string
 //go:embed templates/partials/src-link.hbs
 var SRC_LINK_TEMPLATE string
 
+//go:embed templates/partials/used-by.hbs
+var USED_BY_TEMPLATE string
+
 //go:embed templates/src.hbs
 var SOURCE_TEMPLATE_SOURCE string
 
@@ -77,6 +80,7 @@ func SetupHandlebars() {
 		raymond.RegisterPartial("head", HEAD_TEMPLATE)
 		raymond.RegisterPartial("gh-link", GH_LINK_TEMPLATE)
 		raymond.RegisterPartial("src-link", SRC_LINK_TEMPLATE)
+		raymond.RegisterPartial("used-by", USED_BY_TEMPLATE)
 		raymond.RegisterPartial("annotations", ANNOTATIONS_TEMPLATE)
 		raymond.RegisterPartial("header", HEADER_TEMPLATE)
 		raymond.RegisterPartial("footer", FOOTER_TEMPLATE)

@@ -1,6 +1,7 @@
 package document
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 
@@ -68,4 +69,67 @@ func isTypeIdentifierStart(char byte) bool {
 
 func isTypeIdentifierPart(char byte) bool {
 	return isTypeIdentifierStart(char) || char >= '0' && char <= '9'
+}
+
+func ResolveUsage(usedBy map[string][]UsageRef, keys ...string) ([]UsageRef, string) {
+	var refs []UsageRef
+	for _, key := range keys {
+		refs = append(refs, usedBy[key]...)
+	}
+	if len(refs) == 0 {
+		return nil, ""
+	}
+
+	seen := make(map[string]bool, len(refs))
+	deduped := refs[:0]
+	for _, ref := range refs {
+		identity := ref.PackageName + "\x00" + ref.PackageVersion + "\x00" + ref.Filename
+		if seen[identity] {
+			continue
+		}
+		seen[identity] = true
+		deduped = append(deduped, ref)
+	}
+
+	sorted := append([]UsageRef(nil), deduped...)
+	slices.SortFunc(sorted, func(a, b UsageRef) int {
+		if c := strings.Compare(a.PackageName, b.PackageName); c != 0 {
+			return c
+		}
+		if c := strings.Compare(a.PackageVersion, b.PackageVersion); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Filename, b.Filename)
+	})
+
+	samePackage := true
+	for _, ref := range sorted {
+		if ref.PackageName != sorted[0].PackageName || ref.PackageVersion != sorted[0].PackageVersion {
+			samePackage = false
+			break
+		}
+	}
+
+	noun := "shaders"
+	if len(sorted) == 1 {
+		noun = "shader"
+	}
+	summary := fmt.Sprintf("Used by %d %s", len(sorted), noun)
+	if samePackage {
+		summary = fmt.Sprintf("%s in %s %s", summary, sorted[0].PackageName, sorted[0].PackageVersion)
+	}
+	return sorted, summary
+}
+
+func ResolveModuleLink(fullPath string, declaredImportPaths map[string]string) (string, bool) {
+	var longestMatch string
+	for module := range declaredImportPaths {
+		if strings.HasPrefix(fullPath, module) && len(module) > len(longestMatch) {
+			longestMatch = module
+		}
+	}
+	if longestMatch == "" {
+		return "", false
+	}
+	return declaredImportPaths[longestMatch], true
 }

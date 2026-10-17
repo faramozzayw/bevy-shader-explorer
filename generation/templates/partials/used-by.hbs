@@ -1,0 +1,10 @@
+{{#if usedBySummary}}
+<details class="used-by">
+  <summary>{{usedBySummary}}</summary>
+  <ul class="used-by-list">
+    {{#each usedBy}}
+      <li><a href="{{link}}">{{packageName}} {{packageVersion}} — {{filename}}</a></li>
+    {{/each}}
+  </ul>
+</details>
+{{/if}}

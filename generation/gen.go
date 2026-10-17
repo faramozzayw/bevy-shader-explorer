@@ -7,6 +7,7 @@ import (
 
 	config "github.com/faramozzayw/bevy-shader-explorer/config"
 	wgsl "github.com/faramozzayw/bevy-shader-explorer/shader"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/document"
 	utils "github.com/faramozzayw/bevy-shader-explorer/utils"
 )
 
@@ -75,6 +76,7 @@ func generate(context GenerationContext, parser shaderFileParser, cache shaderPa
 
 	searchInfo := make([]ShaderSearchableInfo, 0, 4096)
 	declaredImportPaths := make(map[string]string)
+	usedBy := make(map[string][]document.UsageRef)
 	shaderFiles, err := parseShaderInputs(context, inputs, progress, parser, cache, enricher)
 	if err != nil {
 		return err
@@ -102,6 +104,7 @@ func generate(context GenerationContext, parser shaderFileParser, cache shaderPa
 			"url":         shaderFiles[i].CanonicalURL,
 		})
 		appendSearchInfo(&searchInfo, &declaredImportPaths, shaderFiles[i])
+		appendUsageEdges(usedBy, shaderFiles[i])
 	}
 	searchInfo = combineSearchInfo(searchInfo)
 
@@ -130,7 +133,7 @@ func generate(context GenerationContext, parser shaderFileParser, cache shaderPa
 	}
 	registrySections := packageRegistrySections(registry)
 	registryShaderCount := packageRegistryShaderCount(registry)
-	site := buildDocumentationSite(config, sections, registrySections, registryShaderCount, totalProject, totalDependency, shaderFiles, searchInfo, cargoMetadata, declaredImportPaths)
+	site := buildDocumentationSite(config, sections, registrySections, registryShaderCount, totalProject, totalDependency, shaderFiles, searchInfo, cargoMetadata, declaredImportPaths, usedBy)
 	progress.setDocumentationTotal(len(site.Shaders))
 	if !config.SkipCatalogue {
 		progress.setOGTotal(len(site.Packages))

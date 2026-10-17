@@ -27,8 +27,8 @@ func TestLineAtClampsNegativeAndLargeOffsets(t *testing.T) {
 	}
 }
 
-func TestNewNormalizesReversedLineEnding(t *testing.T) {
-	file := New("first\n\rsecond")
+func TestNewNormalizesCRLF(t *testing.T) {
+	file := New("first\r\nsecond")
 	if file.Text != "first\nsecond" {
 		t.Fatalf("normalized text = %q, want %q", file.Text, "first\nsecond")
 	}

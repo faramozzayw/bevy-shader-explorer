@@ -76,3 +76,66 @@ func TestResolveTypeLinksWebGPUBuiltins(t *testing.T) {
 		t.Fatalf("unexpected texture format link: %q", link)
 	}
 }
+
+func TestResolveModuleLinkPicksLongestPrefix(t *testing.T) {
+	declaredImportPaths := map[string]string{
+		"bevy_pbr":                     "/bevy_pbr/0.20.0/index.html",
+		"bevy_pbr::mesh_view_bindings": "/bevy_pbr/0.20.0/mesh_view_bindings.html",
+	}
+	link, ok := ResolveModuleLink("bevy_pbr::mesh_view_bindings::view", declaredImportPaths)
+	if !ok || link != "/bevy_pbr/0.20.0/mesh_view_bindings.html" {
+		t.Fatalf("link = %q, ok = %v", link, ok)
+	}
+}
+
+func TestResolveModuleLinkMisses(t *testing.T) {
+	if link, ok := ResolveModuleLink("other::module::symbol", map[string]string{"bevy_pbr": "/x.html"}); ok {
+		t.Fatalf("expected no match, got %q", link)
+	}
+}
+
+func TestResolveUsageGroupsSinglePackage(t *testing.T) {
+	refs, summary := ResolveUsage(map[string][]UsageRef{
+		"bevy_pbr::mesh_view_bindings::view": {
+			{Link: "/b.html", PackageName: "bevy_pbr", PackageVersion: "0.20.0", Filename: "b.wgsl"},
+			{Link: "/a.html", PackageName: "bevy_pbr", PackageVersion: "0.20.0", Filename: "a.wgsl"},
+		},
+	}, "bevy_pbr::mesh_view_bindings::view")
+
+	if summary != "Used by 2 shaders in bevy_pbr 0.20.0" {
+		t.Fatalf("unexpected summary: %q", summary)
+	}
+	if len(refs) != 2 || refs[0].Filename != "a.wgsl" || refs[1].Filename != "b.wgsl" {
+		t.Fatalf("expected refs sorted by filename, got %#v", refs)
+	}
+}
+
+func TestResolveUsageMixedPackagesOmitsPackageFromSummary(t *testing.T) {
+	_, summary := ResolveUsage(map[string][]UsageRef{
+		"bevy_pbr::mesh_view_bindings::view": {
+			{PackageName: "bevy_pbr", PackageVersion: "0.20.0", Filename: "a.wgsl"},
+			{PackageName: "bevy_hanabi", PackageVersion: "0.19.0", Filename: "b.wgsl"},
+		},
+	}, "bevy_pbr::mesh_view_bindings::view")
+
+	if summary != "Used by 2 shaders" {
+		t.Fatalf("unexpected summary: %q", summary)
+	}
+}
+
+func TestResolveUsageSingularNoun(t *testing.T) {
+	_, summary := ResolveUsage(map[string][]UsageRef{
+		"k": {{PackageName: "bevy_pbr", PackageVersion: "0.20.0", Filename: "a.wgsl"}},
+	}, "k")
+
+	if summary != "Used by 1 shader in bevy_pbr 0.20.0" {
+		t.Fatalf("unexpected summary: %q", summary)
+	}
+}
+
+func TestResolveUsageMissingKey(t *testing.T) {
+	refs, summary := ResolveUsage(map[string][]UsageRef{}, "missing")
+	if refs != nil || summary != "" {
+		t.Fatalf("expected empty result, got refs=%#v summary=%q", refs, summary)
+	}
+}
