@@ -254,7 +254,7 @@
               <span class="keyword">fn</span>
               <span class="item-name no-margin">{{name}}</span>
               ({{#each params}}
-                  <div class="param {{#if @last}}no-margin{{/if}}">{{> annotations }}<span>{{name}}: </span>{{> type}}</div>{{#unless @last}},&nbsp;{{/unless}}
+                  <div class="param {{#if @last}}no-margin{{/if}}">{{> annotations }}<span>{{name}}: </span>{{> type}}{{#unless @last}},{{/unless}}</div>
                 {{/each}})
 
               {{#if (neq returnTypeInfo.type "void")}}
