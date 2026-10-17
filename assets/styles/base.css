@@ -725,11 +725,27 @@ body > main.shader-page {
 
 	section header {
 		padding: 8px 10px;
+		flex-wrap: wrap;
+		gap: 6px;
 	}
 
 	section header > div {
 		min-width: 0;
 		gap: 7px;
+	}
+
+	section header > div:first-child {
+		flex: 1 1 100%;
+	}
+
+	section header > div:last-child {
+		flex: 1 1 100%;
+		flex-wrap: wrap;
+	}
+
+	.workgroup-size-badge {
+		white-space: normal;
+		overflow-wrap: anywhere;
 	}
 
 	.declaration-variant {
