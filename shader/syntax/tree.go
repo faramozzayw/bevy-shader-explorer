@@ -21,6 +21,12 @@ type ConditionalBlock struct {
 	EndifLine int
 }
 
+// LineRange identifies the source lines occupied by a syntax node.
+type LineRange struct {
+	Start int
+	End   int
+}
+
 type Tree struct {
 	source []byte
 	parser *tree_sitter.Parser
@@ -36,6 +42,37 @@ func Parse(sourceText, parserText string) (*Tree, error) {
 // its own grammar for imports, conditional attributes, and other extensions.
 func ParseWESL(sourceText, parserText string) (*Tree, error) {
 	return parse(sourceText, parserText, wesl.Language(), "WESL")
+}
+
+// FunctionRanges returns the source ranges of WGSL function declarations.
+// The ranges are used to distinguish conditional directives in function
+// bodies from directives controlling top-level declarations.
+func FunctionRanges(sourceText, parserText string) ([]LineRange, error) {
+	tree, err := Parse(sourceText, parserText)
+	if err != nil {
+		return nil, err
+	}
+	defer tree.Close()
+	return functionRanges(tree), nil
+}
+
+// WESLFunctionRanges returns the source ranges of WESL function declarations.
+func WESLFunctionRanges(sourceText, parserText string) ([]LineRange, error) {
+	tree, err := ParseWESL(sourceText, parserText)
+	if err != nil {
+		return nil, err
+	}
+	defer tree.Close()
+	return functionRanges(tree), nil
+}
+
+func functionRanges(tree *Tree) []LineRange {
+	functions := tree.Root().Descendants("function_decl")
+	ranges := make([]LineRange, 0, len(functions))
+	for _, function := range functions {
+		ranges = append(ranges, LineRange{Start: function.Line(), End: function.EndLine()})
+	}
+	return ranges
 }
 
 func parse(sourceText, parserText string, languagePtr unsafe.Pointer, languageName string) (*Tree, error) {

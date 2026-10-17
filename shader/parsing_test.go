@@ -26,3 +26,41 @@ func TestWESLLanguageConvertsConditionalBlocks(t *testing.T) {
 		t.Fatalf("unexpected definitions: %#v", parsed.ShaderDefs)
 	}
 }
+
+func TestWGSLParserIgnoresDefinitionsInsideFunctionBodies(t *testing.T) {
+	source := `#ifdef TOP_LEVEL
+fn main() {
+#ifdef INSIDE_FUNCTION
+    let value: u32 = 1u;
+#endif
+}
+#endif
+`
+
+	parsed, err := parserFor("shader.wgsl").Parse(document.Source{Path: "shader.wgsl", Text: source})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(parsed.ShaderDefs) != 1 || parsed.ShaderDefs[0] != "TOP_LEVEL" {
+		t.Fatalf("unexpected definitions: %#v", parsed.ShaderDefs)
+	}
+}
+
+func TestWESLParserIgnoresDefinitionsInsideFunctionBodies(t *testing.T) {
+	source := `@if(TOP_LEVEL)
+const value: u32 = 1u;
+
+fn main() {
+@if(INSIDE_FUNCTION) {
+    let nested = 1u;
+}
+}`
+
+	parsed, err := parserFor("shader.wesl").Parse(document.Source{Path: "shader.wesl", Text: source})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(parsed.ShaderDefs) != 1 || parsed.ShaderDefs[0] != "TOP_LEVEL" {
+		t.Fatalf("unexpected definitions: %#v", parsed.ShaderDefs)
+	}
+}

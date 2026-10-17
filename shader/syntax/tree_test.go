@@ -26,7 +26,6 @@ func TestWESLConditionalBlocksExtractsBracedBranches(t *testing.T) {
     let enabled = 1u;
 } @else {
     let disabled = 0u;
-}
 }`
 
 	blocks, err := WESLConditionalBlocks(source)
@@ -36,6 +35,20 @@ func TestWESLConditionalBlocksExtractsBracedBranches(t *testing.T) {
 	assert.Equal(t, 2, blocks[0].IfLine)
 	assert.NotNil(t, blocks[0].ElseLine)
 	assert.Equal(t, 4, *blocks[0].ElseLine)
+}
+
+func TestFunctionRangesExcludeOnlyFunctionDeclarations(t *testing.T) {
+	source := `struct Settings {
+    value: u32,
+}
+fn main() {
+    let value = 1u;
+}`
+
+	ranges, err := FunctionRanges(source, source)
+	require.NoError(t, err)
+	require.Len(t, ranges, 1)
+	assert.Equal(t, LineRange{Start: 4, End: 6}, ranges[0])
 }
 
 func intPointer(value int) *int { return &value }
