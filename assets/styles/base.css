@@ -59,7 +59,6 @@
 	--select-border: #3f3c34;
 	--select-text: #e8e1c8;
 	--select-option-bg: #3f3c34;
-	--pattern-vignette: rgb(77 74 65 / 14%);
 	--pattern-diagonal: rgb(77 74 65 / 10%);
 	--pattern-diagonal-soft: rgb(77 74 65 / 8%);
 	--pattern-grid: rgb(77 74 65 / 4%);
@@ -117,7 +116,6 @@ html[data-theme="dark"] {
 	--select-border: #756d58;
 	--select-text: #f0ead8;
 	--select-option-bg: #403d33;
-	--pattern-vignette: rgb(0 0 0 / 28%);
 	--pattern-diagonal: rgb(231 225 206 / 4%);
 	--pattern-diagonal-soft: rgb(231 225 206 / 3%);
 	--pattern-grid: rgb(231 225 206 / 3%);
@@ -224,13 +222,12 @@ body {
 
 	font-family: "Share Tech Mono", monospace;
 	background-image:
-		radial-gradient(ellipse at center, transparent 52%, var(--pattern-vignette) 100%),
 		repeating-linear-gradient(45deg, transparent 0 250px, var(--pattern-diagonal) 250px 251px, transparent 251px 500px),
 		repeating-linear-gradient(-45deg, transparent 0 340px, var(--pattern-diagonal-soft) 340px 341px, transparent 341px 680px),
 		repeating-linear-gradient(0deg, var(--pattern-grid) 0 1px, transparent 1px 24px),
 		repeating-linear-gradient(90deg, var(--pattern-grid) 0 1px, transparent 1px 24px);
-	background-position: center, center, center, center, center;
-	background-size: auto, auto, auto, 24px 24px, 24px 24px;
+	background-position: center, center, center, center;
+	background-size: auto, auto, 24px 24px, 24px 24px;
 	background-attachment: fixed;
 }
 
