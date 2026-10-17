@@ -42,6 +42,13 @@
 	background-color: var(--source-target-bg);
 }
 
+.source-line.shader-def-inactive,
+.source-line.source-line-inactive {
+	background-color: color-mix(in srgb, var(--section-shadow-color) 12%, transparent);
+	opacity: 0.3 !important;
+	filter: grayscale(0.8);
+}
+
 .source-line-number {
 	flex: 0 0 auto;
 	width: 4ch;

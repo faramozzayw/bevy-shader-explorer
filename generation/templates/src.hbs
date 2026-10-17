@@ -1,10 +1,23 @@
 <html lang="en">
-  {{>head title=seoTitle description=seoDescription canonical=canonicalURL ogImageURL=ogImageURL isShader=false structuredData=structuredData}}
+  {{>head title=seoTitle description=seoDescription canonical=canonicalURL ogImageURL=ogImageURL isShader=true structuredData=structuredData}}
 
   <body>
     {{> header urlPrefix=projectURLPrefix version=version searchScope="package" searchPackage=projectName searchVersion=projectVersion searchIndex=searchIndex }}
 
-    <main class="shader-page shader-page-no-controls source-page">
+    <main class="shader-page{{#unless shaderDefs}} shader-page-no-controls{{/unless}} source-page">
+      {{#if shaderDefs}}
+      <aside class="shader-def-controls">
+        <label class="shader-def-toggle" for="interactive-shader-defs">
+          <input id="interactive-shader-defs" type="checkbox" />
+          <span>Toggle shader defs</span>
+        </label>
+        <div id="shader-def-options" class="shader-def-options" hidden>
+          {{#each shaderDefs}}
+          <label class="shader-def-option"><input type="checkbox" value="{{this}}" checked /><code>{{this}}</code></label>
+          {{/each}}
+        </div>
+      </aside>
+      {{/if}}
       <div class="shader-main-column">
       <header class="shader-page-header">
         <div class="breadcrumbs">
@@ -29,7 +42,7 @@
           <div class="source-back-anchor">
             <a class="site-button site-button-secondary source-back-button" href="{{backLink}}">← Back to declarations</a>
           </div>
-          <pre class="source-code"><code>{{#each lines}}<div class="source-line" id="L{{number}}"><a class="source-line-number" href="#L{{number}}" tabindex="-1" aria-label="Line {{number}}">{{number}}</a><span class="source-line-text">{{{html}}}</span></div>{{/each}}</code></pre>
+          <pre class="source-code"><code>{{#each lines}}<div class="source-line" id="L{{number}}" data-shader-defs='{{{json shaderDefs}}}'><a class="source-line-number" href="#L{{number}}" tabindex="-1" aria-label="Line {{number}}">{{number}}</a><span class="source-line-text">{{{html}}}</span></div>{{/each}}</code></pre>
         </div>
       </div>
       </div>

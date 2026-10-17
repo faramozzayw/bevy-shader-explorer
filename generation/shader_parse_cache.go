@@ -63,7 +63,8 @@ func (cache filesystemShaderParseCache) store(path string, file wgsl.ShaderFile)
 }
 
 func cacheModelIsCurrent(data []byte) bool {
-	// Older cache entries serialized raw definition names. Reparse those once
-	// so the normalized condition model is present in generated documents.
-	return bytes.Contains(data, []byte(`"clauses"`)) || bytes.Contains(data, []byte(`"shaderDefs":[]`))
+	// Cache entries created before source-level shader-definition ranges were
+	// added cannot render variant-aware source pages. The field is serialized
+	// even when empty, so this check invalidates older entries exactly once.
+	return bytes.Contains(data, []byte(`"shaderDefBlocks"`))
 }

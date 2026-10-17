@@ -44,6 +44,9 @@ fn main() {
 	if len(parsed.ShaderDefs) != 1 || parsed.ShaderDefs[0] != "TOP_LEVEL" {
 		t.Fatalf("unexpected definitions: %#v", parsed.ShaderDefs)
 	}
+	if len(parsed.ShaderDefBlocks) != 1 || parsed.ShaderDefBlocks[0].IfLine != 1 || parsed.ShaderDefBlocks[0].EndifLine != 7 {
+		t.Fatalf("unexpected definition source ranges: %#v", parsed.ShaderDefBlocks)
+	}
 }
 
 func TestWESLParserIgnoresDefinitionsInsideFunctionBodies(t *testing.T) {

@@ -26,10 +26,17 @@ func Parse(sourceText string, language Language) (document.File, error) {
 		return document.File{}, err
 	}
 	inputs := make([]extract.ShaderDefBlock, 0, len(definitions))
+	shaderDefBlocks := make([]document.ShaderDefBlock, 0, len(definitions))
 	for _, definition := range definitions {
+		condition := document.NewShaderCondition(definition.Name)
 		inputs = append(inputs, extract.ShaderDefBlock{
-			Condition: document.NewShaderCondition(definition.Name),
+			Condition: condition,
 			Negated:   definition.Negated, IfdefLine: definition.IfLine,
+			ElseLine: definition.ElseLine, EndifLine: definition.EndifLine,
+		})
+		shaderDefBlocks = append(shaderDefBlocks, document.ShaderDefBlock{
+			Condition: condition,
+			Negated:   definition.Negated, IfLine: definition.IfLine,
 			ElseLine: definition.ElseLine, EndifLine: definition.EndifLine,
 		})
 	}
@@ -45,7 +52,7 @@ func Parse(sourceText string, language Language) (document.File, error) {
 		ImportPath: ExtractImportPath(normalized), Consts: declarations.Consts,
 		Bindings: declarations.Bindings, Functions: declarations.Functions,
 		Structures: declarations.Structures, DeclaredImports: declaredImports,
-		ShaderDefs: definitionNames(definitions),
+		ShaderDefs: definitionNames(definitions), ShaderDefBlocks: shaderDefBlocks,
 	}, nil
 }
 

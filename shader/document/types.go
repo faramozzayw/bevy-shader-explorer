@@ -29,15 +29,16 @@ type ShaderTerm struct {
 // File is the parser-owned shader document. Site metadata is kept outside
 // this type so parsing remains independent from rendering and deployment.
 type File struct {
-	ImportPath      *string         `json:"importPath"`
-	Consts          []Const         `json:"consts"`
-	Bindings        []Binding       `json:"bindings"`
-	Functions       []Function      `json:"functions"`
-	Structures      []Structure     `json:"structures"`
-	DeclaredImports DeclaredImports `json:"declaredImports"`
-	ResolvedImports []ImportRef     `json:"resolvedImports,omitempty"`
-	Filename        string          `json:"filename"`
-	ShaderDefs      []string        `json:"shaderDefs"`
+	ImportPath      *string          `json:"importPath"`
+	Consts          []Const          `json:"consts"`
+	Bindings        []Binding        `json:"bindings"`
+	Functions       []Function       `json:"functions"`
+	Structures      []Structure      `json:"structures"`
+	DeclaredImports DeclaredImports  `json:"declaredImports"`
+	ResolvedImports []ImportRef      `json:"resolvedImports,omitempty"`
+	Filename        string           `json:"filename"`
+	ShaderDefs      []string         `json:"shaderDefs"`
+	ShaderDefBlocks []ShaderDefBlock `json:"shaderDefBlocks"`
 }
 
 type DeclaredImports = map[string][]string
@@ -86,6 +87,15 @@ type DefResult struct {
 	Condition  ShaderCondition `json:"condition"`
 	Branch     string          `json:"branch"`
 	LineNumber int             `json:"lineNumber"`
+}
+
+// ShaderDefBlock preserves a top-level shader-definition source range.
+type ShaderDefBlock struct {
+	Condition ShaderCondition `json:"condition"`
+	Negated   bool            `json:"negated,omitempty"`
+	IfLine    int             `json:"ifLine"`
+	ElseLine  *int            `json:"elseLine,omitempty"`
+	EndifLine int             `json:"endifLine"`
 }
 
 type Annotation struct {

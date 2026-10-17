@@ -5,6 +5,7 @@ import (
 
 	"github.com/faramozzayw/bevy-shader-explorer/config"
 	"github.com/faramozzayw/bevy-shader-explorer/shader"
+	"github.com/faramozzayw/bevy-shader-explorer/shader/document"
 	"github.com/faramozzayw/bevy-shader-explorer/shader/highlight"
 )
 
@@ -64,14 +65,16 @@ type homeTemplateModel struct {
 type notFoundTemplateModel struct{}
 
 type sourceLineModel struct {
-	Number int
-	Html   string
+	Number     int
+	Html       string
+	ShaderDefs []document.DefResult
 }
 
 type sourceTemplateModel struct {
 	Filename         string
 	Lines            []sourceLineModel
 	LineCount        int
+	ShaderDefs       []string
 	GithubLink       string
 	BackLink         string
 	ProjectName      string
@@ -92,10 +95,14 @@ func newSourceTemplateModel(file shader.ShaderFile) sourceTemplateModel {
 	lines := highlight.Lines(file.SourceText, file.Filename)
 	modelLines := make([]sourceLineModel, len(lines))
 	for i, line := range lines {
-		modelLines[i] = sourceLineModel{Number: line.Number, Html: line.HTML}
+		modelLines[i] = sourceLineModel{
+			Number: line.Number, Html: line.HTML,
+			ShaderDefs: sourceLineShaderDefs(file.ShaderDefBlocks, line.Number),
+		}
 	}
 	return sourceTemplateModel{
 		Filename: file.Filename, Lines: modelLines, LineCount: len(modelLines),
+		ShaderDefs: file.CollectedShaderDefs(),
 		GithubLink: file.GithubLink, BackLink: "/" + file.Link,
 		ProjectName: file.ProjectName, ProjectVersion: file.ProjectVersion,
 		ProjectURLPrefix: file.ProjectURLPrefix, PackageURLPrefix: file.PackageURLPrefix,
@@ -111,6 +118,24 @@ func newSourceTemplateModel(file shader.ShaderFile) sourceTemplateModel {
 			"url":         file.SourceCanonicalURL,
 		}),
 	}
+}
+
+func sourceLineShaderDefs(blocks []document.ShaderDefBlock, line int) []document.DefResult {
+	var result []document.DefResult
+	for _, block := range blocks {
+		if block.EndifLine == 0 || line <= block.IfLine || line >= block.EndifLine {
+			continue
+		}
+		branch := "if"
+		if block.Negated {
+			branch = "else"
+		}
+		if block.ElseLine != nil && line > *block.ElseLine {
+			branch = "else"
+		}
+		result = append(result, document.DefResult{Condition: block.Condition, Branch: branch, LineNumber: block.IfLine})
+	}
+	return result
 }
 
 func newHomeTemplateModel(cfg config.Config, sections []homeSection, packageCount, shaderCount, projectCount, dependencyCount int, projectVersion string) homeTemplateModel {
