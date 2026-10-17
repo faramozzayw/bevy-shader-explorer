@@ -104,10 +104,11 @@
 		position: absolute;
 		top: auto;
 		bottom: calc(100% + 8px);
-		left: auto;
-		right: 0;
-		width: min(300px, calc(100vw - 16px));
-		max-width: calc(100vw - 16px);
+		left: 0;
+		right: auto;
+		width: min(300px, calc(100vw - 24px));
+		max-width: calc(100vw - 24px);
+		box-sizing: border-box;
 		max-height: min(50vh, 18rem);
 		overflow: auto;
 		transform: none;
