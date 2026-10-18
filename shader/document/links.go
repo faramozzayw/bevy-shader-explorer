@@ -10,6 +10,8 @@ import (
 
 // ResolveTypeLink adds a documentation link after extraction is complete.
 func (typeInfo *TypeInfo) ResolveTypeLink(imports map[string]string, definedStructures []string) {
+	typeInfo.Type = normalizeTypeExpression(typeInfo.Type)
+	typeInfo.FullTypePath = normalizeTypeExpression(typeInfo.FullTypePath)
 	typeInfo.TypeLink = utils.GetTypeLink(typeInfo.Type)
 	if typeInfo.FullTypePath == "" {
 		typeInfo.FullTypePath = typeInfo.Type
@@ -22,6 +24,34 @@ func (typeInfo *TypeInfo) ResolveTypeLink(imports map[string]string, definedStru
 		typeInfo.TypeLink = "#" + typeInfo.Type
 	}
 	typeInfo.TypeParts = resolveTypeParts(typeInfo.Type, imports, definedStructures)
+}
+
+// normalizeTypeExpression keeps the source type readable when a parser emits
+// optional whitespace around generic delimiters. Type expressions are rendered
+// in several templates, so canonicalizing them here also prevents spacing
+// differences between linked and plain types.
+func normalizeTypeExpression(expression string) string {
+	if expression == "" {
+		return ""
+	}
+
+	// Collapse parser-introduced runs of whitespace first, then remove it only
+	// where it is punctuation padding. Spaces after commas remain meaningful
+	// and keep nested generic arguments readable (for example, array<T, 4>).
+	expression = strings.Join(strings.Fields(expression), " ")
+	for {
+		normalized := strings.NewReplacer(
+			" <", "<",
+			"< ", "<",
+			" >", ">",
+			"> ", ">",
+			" ,", ",",
+		).Replace(expression)
+		if normalized == expression {
+			return normalized
+		}
+		expression = normalized
+	}
 }
 
 func resolveTypeParts(expression string, imports map[string]string, definedStructures []string) []TypePart {

@@ -126,7 +126,7 @@
               {{> annotations }}
               <span><span class="keyword">var</span>{{#if bindingType}}&lt;<span class="keyword">{{bindingType}}</span>&gt;{{/if}}</span>
               <span>{{name}}:</span>
-              {{> type }}
+              <span class="type-expression">{{> type }}</span>
             </div>
           </div>
           {{/each}}
@@ -176,8 +176,7 @@
                     <div class="struct-field-row" data-shader-defs='{{{json shaderDefs}}}'>
                     {{> annotations }}
                     <span>{{name}}:</span>
-                    {{> type}}
-                    <span>,</span>
+                    <span class="type-expression">{{~> type~}},</span>
                     {{#if (has-items shaderDefs)}}
                       <span>{{> shader-defs-list }}</span>
                     {{/if}}
@@ -254,13 +253,13 @@
               <span class="keyword">fn</span>
               <span class="item-name no-margin">{{name}}</span>
               ({{#each params}}
-                  <div class="param {{#if @last}}no-margin{{/if}}">{{> annotations }}<span>{{name}}: </span>{{> type}}{{#unless @last}},{{/unless}}</div>
+                  <div class="param {{#if @last}}no-margin{{/if}}">{{> annotations }}<span>{{name}}: </span><span class="type-expression">{{~> type~}}{{#unless @last}},{{/unless}}</span></div>
                 {{/each}})
 
               {{#if (neq returnTypeInfo.type "void")}}
                 <span class="arrow">-></span>
                 {{> annotations annotations=returnTypeInfo.annotations}}
-                {{> type typeInfo=returnTypeInfo }}
+                <span class="type-expression">{{> type typeInfo=returnTypeInfo }}</span>
               {{/if}}
             </div>
             </div>

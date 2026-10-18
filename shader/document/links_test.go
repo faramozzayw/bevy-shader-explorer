@@ -59,6 +59,18 @@ func TestResolveTypeLinksNestedBuiltins(t *testing.T) {
 	}
 }
 
+func TestResolveTypeLinkNormalizesGenericSpacing(t *testing.T) {
+	typeInfo := TypeInfo{Type: "vec2 < f32 > ", FullTypePath: "vec2 < f32 > "}
+	typeInfo.ResolveTypeLink(nil, nil)
+
+	if typeInfo.Type != "vec2<f32>" || typeInfo.FullTypePath != "vec2<f32>" {
+		t.Fatalf("type expression was not normalized: %#v", typeInfo)
+	}
+	if len(typeInfo.TypeParts) != 4 || typeInfo.TypeParts[1].Text != "<" || typeInfo.TypeParts[3].Text != ">" {
+		t.Fatalf("unexpected normalized type parts: %#v", typeInfo.TypeParts)
+	}
+}
+
 func TestResolveTypeLinksWebGPUBuiltins(t *testing.T) {
 	utils.LoadWgslTypes()
 	for _, name := range []string{
