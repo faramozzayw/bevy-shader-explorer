@@ -10,8 +10,20 @@
 }
 .shader-def-pills {
 	display: flex;
+	align-items: center;
 	flex-wrap: wrap;
 	gap: 7px;
+}
+.shader-def-clause {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+.shader-def-operator {
+	color: var(--search-placeholder);
+	font-size: 0.7em;
+	font-weight: 600;
+	letter-spacing: 0.04em;
 }
 .shader-def-pill,
 .attribute-badge {

@@ -1,7 +1,14 @@
 {{#each shaderDefs}}
-  {{#each condition.atoms}}
-    <span class="shader-def-pill {{#if (eq ../branch "if")}}shader-def-pill-if{{else}}shader-def-pill-else{{/if}}">
-      {{#if (eq ../branch "if")}}{{this}}{{else}}!{{this}}{{/if}}
+  {{#each condition.clauses}}
+    <span class="shader-def-clause">
+      {{#each this}}
+        <span class="shader-def-pill {{#if (eq ../../branch "if")}}shader-def-pill-if{{else}}shader-def-pill-else{{/if}}">
+          {{#if negated}}!{{/if}}{{#unless negated}}{{#if (eq ../../branch "else")}}!{{/if}}{{/unless}}{{name}}
+        </span>
+        {{#unless @last}}<span class="shader-def-operator">AND</span>{{/unless}}
+      {{/each}}
     </span>
+    {{#unless @last}}<span class="shader-def-operator">OR</span>{{/unless}}
   {{/each}}
+  {{#unless @last}}<span class="shader-def-operator">AND</span>{{/unless}}
 {{/each}}
