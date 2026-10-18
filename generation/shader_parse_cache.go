@@ -36,6 +36,10 @@ func (cache filesystemShaderParseCache) path(input shaderInput, content []byte) 
 		hash.Write([]byte("\x00"))
 		hash.Write([]byte(value))
 	}
+	// Keep parser-model changes from reusing serialized documents produced by
+	// an older generator. This marker is deliberately part of the key rather
+	// than a user-facing cache-version setting.
+	hash.Write([]byte("\x00shader-def-source-ranges-wesl-fields-declaration-source-defs-wesl-node-ranges-mask-function-attrs"))
 	return filepath.Join(cache.directory, fmt.Sprintf("%x.json", hash.Sum(nil)))
 }
 

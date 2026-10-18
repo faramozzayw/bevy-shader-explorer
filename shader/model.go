@@ -32,10 +32,14 @@ type ShaderFile struct {
 	OutputPrefix       string              `json:"-"`
 	SourceText         string              `json:"-"`
 	SourceLink         string              `json:"sourceLink,omitempty"`
-	SourceCanonicalURL string              `json:"-"`
-	SeoDescription     string              `json:"-"`
-	SeoTitle           string              `json:"-"`
-	CanonicalURL       string              `json:"-"`
-	StructuredData     string              `json:"-"`
-	OgImageURL         string              `json:"-"`
+	// DeclarationShaderDefs contains only definitions attached to rendered
+	// declarations. ShaderDefs remains the complete set found in the source,
+	// which is needed by source pages.
+	DeclarationShaderDefs []string `json:"declarationShaderDefs"`
+	SourceCanonicalURL    string   `json:"-"`
+	SeoDescription        string   `json:"-"`
+	SeoTitle              string   `json:"-"`
+	CanonicalURL          string   `json:"-"`
+	StructuredData        string   `json:"-"`
+	OgImageURL            string   `json:"-"`
 }

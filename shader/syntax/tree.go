@@ -58,12 +58,7 @@ func FunctionRanges(sourceText, parserText string) ([]LineRange, error) {
 
 // WESLFunctionRanges returns the source ranges of WESL function declarations.
 func WESLFunctionRanges(sourceText, parserText string) ([]LineRange, error) {
-	tree, err := ParseWESL(sourceText, parserText)
-	if err != nil {
-		return nil, err
-	}
-	defer tree.Close()
-	return functionRanges(tree), nil
+	return weslFunctionRanges(sourceText), nil
 }
 
 func functionRanges(tree *Tree) []LineRange {
@@ -98,15 +93,168 @@ func (t *Tree) Root() Node { return Node{raw: t.root, tree: t} }
 // declaration, so the declaration boundaries are available directly from the
 // root's named-child sequence without line-oriented source heuristics.
 func WESLConditionalBlocks(source string) ([]ConditionalBlock, error) {
-	tree, err := ParseWESL(source, source)
-	if err != nil {
-		return nil, err
-	}
-	defer tree.Close()
+	return scanWESLConditionals(source), nil
+}
 
-	scanner := weslConditionalScanner{endLine: len(strings.Split(source, "\n")) + 1}
-	scanner.scan(tree.Root().Children())
-	return scanner.blocks, nil
+// WESL's conditional attributes decorate the following syntax node, rather
+// than introducing a preprocessor block. Keeping this scanner source-based is
+// intentional: older tree-sitter-wesl grammars recover malformed nodes when a
+// file contains conditional statements inside functions, which can otherwise
+// make one function consume the rest of the file.
+func scanWESLConditionals(source string) []ConditionalBlock {
+	lines := strings.Split(source, "\n")
+	depths := make([]int, len(lines))
+	depth := 0
+	for i, line := range lines {
+		depths[i] = depth
+		depth += braceDelta(line)
+		if depth < 0 {
+			depth = 0
+		}
+	}
+
+	blocks := make([]ConditionalBlock, 0)
+	pending := make(map[int]int)
+	for index, line := range lines {
+		code := strings.TrimSpace(strings.SplitN(line, "//", 2)[0])
+		for offset := 0; offset < len(code); {
+			at := strings.IndexByte(code[offset:], '@')
+			if at < 0 {
+				break
+			}
+			at += offset
+			kind, expression, end, ok := parseWESLAttribute(code, at)
+			if !ok {
+				offset = at + 1
+				continue
+			}
+			attributeDepth := depths[index] + braceDelta(code[:at])
+			if kind == "if" {
+				_, nodeEnd := decoratedNodeRange(lines, index, end)
+				blocks = append(blocks, ConditionalBlock{Name: expression, IfLine: index + 1, EndifLine: nodeEnd + 1})
+				pending[attributeDepth] = len(blocks) - 1
+			} else if kind == "else" {
+				if blockIndex, exists := pending[attributeDepth]; exists {
+					lineNumber := index + 1
+					_, nodeEnd := decoratedNodeRange(lines, index, end)
+					blocks[blockIndex].ElseLine = &lineNumber
+					blocks[blockIndex].EndifLine = nodeEnd + 1
+				}
+			}
+			offset = end
+		}
+	}
+	return blocks
+}
+
+func parseWESLAttribute(line string, at int) (kind, expression string, end int, ok bool) {
+	rest := line[at:]
+	if strings.HasPrefix(rest, "@else") {
+		return "else", "", at + len("@else"), true
+	}
+	if !strings.HasPrefix(rest, "@if") && !strings.HasPrefix(rest, "@elif") {
+		return "", "", at + 1, false
+	}
+	nameEnd := strings.IndexByte(rest, '(')
+	if nameEnd < 0 {
+		return "", "", at + 1, false
+	}
+	open := at + nameEnd
+	depth := 0
+	for i := open; i < len(line); i++ {
+		switch line[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				kind = "if"
+				if strings.HasPrefix(rest, "@elif") {
+					kind = "else"
+				}
+				return kind, strings.TrimSpace(line[open+1 : i]), i + 1, true
+			}
+		}
+	}
+	return "", "", at + 1, false
+}
+
+func decoratedNodeRange(lines []string, attributeLine, attributeEnd int) (int, int) {
+	start := attributeLine
+	if strings.TrimSpace(lines[attributeLine][attributeEnd:]) == "" {
+		start++
+		for start < len(lines) && strings.TrimSpace(strings.SplitN(lines[start], "//", 2)[0]) == "" {
+			start++
+		}
+	}
+	if start >= len(lines) {
+		return attributeLine + 1, attributeLine + 1
+	}
+	braceSeen, balance := false, 0
+	for line := start; line < len(lines); line++ {
+		code := strings.SplitN(lines[line], "//", 2)[0]
+		if !braceSeen && strings.HasPrefix(strings.TrimSpace(code), "}") {
+			return start, line
+		}
+		for _, char := range code {
+			switch char {
+			case '{':
+				braceSeen = true
+				balance++
+			case '}':
+				if braceSeen {
+					balance--
+				}
+			}
+		}
+		if braceSeen && balance == 0 {
+			return start, line + 1
+		}
+		if !braceSeen && (strings.Contains(code, ";") || strings.Contains(code, ",")) {
+			return start, line + 1
+		}
+	}
+	return start, len(lines)
+}
+
+func braceDelta(line string) int {
+	code := strings.SplitN(line, "//", 2)[0]
+	delta := 0
+	quoted := false
+	for i := 0; i < len(code); i++ {
+		if code[i] == '"' && (i == 0 || code[i-1] != '\\') {
+			quoted = !quoted
+			continue
+		}
+		if quoted {
+			continue
+		}
+		switch code[i] {
+		case '{':
+			delta++
+		case '}':
+			delta--
+		}
+	}
+	return delta
+}
+
+func weslFunctionRanges(source string) []LineRange {
+	lines := strings.Split(source, "\n")
+	depth := 0
+	var ranges []LineRange
+	for index, line := range lines {
+		code := strings.SplitN(line, "//", 2)[0]
+		if strings.Contains(code, "fn ") || strings.HasPrefix(strings.TrimSpace(code), "fn ") {
+			if strings.Contains(code, "{") {
+				_, end := decoratedNodeRange(lines, index, 0)
+				ranges = append(ranges, LineRange{Start: index + 1, End: end})
+			}
+		}
+		depth += braceDelta(line)
+		_ = depth
+	}
+	return ranges
 }
 
 type weslConditionalScanner struct {
@@ -114,7 +262,7 @@ type weslConditionalScanner struct {
 	endLine int
 }
 
-func (scanner *weslConditionalScanner) scan(children []Node) {
+func (scanner *weslConditionalScanner) scan(children []Node, scopeEnd int) {
 	var current *ConditionalBlock
 	branchHasContent := false
 	braced := false
@@ -134,7 +282,7 @@ func (scanner *weslConditionalScanner) scan(children []Node) {
 		text := strings.TrimSpace(child.Text())
 		if block, nextIndex, ok := bracedWESLConditional(children, index); ok {
 			scanner.blocks = append(scanner.blocks, block)
-			scanner.scan(child.Children()[1:])
+			scanner.scan(child.Children()[1:], child.EndLine()+1)
 			index = nextIndex
 			continue
 		}
@@ -162,9 +310,9 @@ func (scanner *weslConditionalScanner) scan(children []Node) {
 				branchHasContent = true
 			}
 		}
-		scanner.scan(child.Children())
+		scanner.scan(child.Children(), child.EndLine()+1)
 	}
-	close(scanner.endLine)
+	close(scopeEnd)
 }
 
 func parseWESLConditional(text string, line int) ConditionalBlock {

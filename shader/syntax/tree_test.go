@@ -17,7 +17,7 @@ const disabled: u32 = 0u;
 	blocks, err := WESLConditionalBlocks(source)
 	require.NoError(t, err)
 	require.Len(t, blocks, 1)
-	assert.Equal(t, ConditionalBlock{Name: "FEATURE", IfLine: 1, ElseLine: intPointer(3), EndifLine: 6}, blocks[0])
+	assert.Equal(t, ConditionalBlock{Name: "FEATURE", IfLine: 1, ElseLine: intPointer(3), EndifLine: 5}, blocks[0])
 }
 
 func TestWESLConditionalBlocksExtractsBracedBranches(t *testing.T) {
@@ -35,6 +35,61 @@ func TestWESLConditionalBlocksExtractsBracedBranches(t *testing.T) {
 	assert.Equal(t, 2, blocks[0].IfLine)
 	assert.NotNil(t, blocks[0].ElseLine)
 	assert.Equal(t, 4, *blocks[0].ElseLine)
+}
+
+func TestWESLConditionalBlocksPairsElseWithDecoratedFunction(t *testing.T) {
+	source := `@if(ARRAY_TEXTURE)
+fn load() {
+    return;
+}
+@else
+fn load() {
+    return;
+}
+@if(SUBGROUP_SUPPORT)
+fn reduce() {
+    return;
+}`
+
+	blocks, err := WESLConditionalBlocks(source)
+	require.NoError(t, err)
+	require.Len(t, blocks, 2)
+	assert.Equal(t, 1, blocks[0].IfLine)
+	assert.Equal(t, 5, *blocks[0].ElseLine)
+	assert.Equal(t, 9, blocks[0].EndifLine)
+	assert.Equal(t, 9, blocks[1].IfLine)
+	assert.Equal(t, 13, blocks[1].EndifLine)
+}
+
+func TestWESLConditionalBlocksBoundsMemberAttributesToTheirDeclaration(t *testing.T) {
+	source := `struct Settings {
+    value: u32,
+    @if(FEATURE)
+    padding: vec3<f32>,
+}`
+
+	blocks, err := WESLConditionalBlocks(source)
+	require.NoError(t, err)
+	require.Len(t, blocks, 1)
+	assert.Equal(t, 3, blocks[0].IfLine)
+	assert.Equal(t, 5, blocks[0].EndifLine)
+}
+
+func TestWESLConditionalBlocksBoundsFinalMemberWithoutComma(t *testing.T) {
+	source := `struct Settings {
+    value: u32,
+    @if(FEATURE)
+    padding: vec3<f32>
+}
+
+fn main() {
+}`
+
+	blocks, err := WESLConditionalBlocks(source)
+	require.NoError(t, err)
+	require.Len(t, blocks, 1)
+	assert.Equal(t, 3, blocks[0].IfLine)
+	assert.Equal(t, 5, blocks[0].EndifLine)
 }
 
 func TestFunctionRangesExcludeOnlyFunctionDeclarations(t *testing.T) {

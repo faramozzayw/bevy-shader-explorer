@@ -14,7 +14,11 @@ import (
 )
 
 type Language struct {
+	// Definitions are the blocks that may be attached to declaration models.
+	// SourceDefinitions may additionally include statement-level conditions
+	// that are intentionally omitted from declaration extraction.
 	Definitions       func(string) ([]conditions.DefinitionBlock, error)
+	SourceDefinitions func(string) ([]conditions.DefinitionBlock, error)
 	ParserSource      func(string) string
 	ParseDeclarations func(string, string, map[int]string, []extract.ShaderDefBlock) (extract.Result, error)
 }
@@ -25,18 +29,28 @@ func Parse(sourceText string, language Language) (document.File, error) {
 	if err != nil {
 		return document.File{}, err
 	}
+	sourceDefinitions := definitions
+	if language.SourceDefinitions != nil {
+		sourceDefinitions, err = language.SourceDefinitions(normalized)
+		if err != nil {
+			return document.File{}, err
+		}
+	}
 	inputs := make([]extract.ShaderDefBlock, 0, len(definitions))
-	shaderDefBlocks := make([]document.ShaderDefBlock, 0, len(definitions))
+	shaderDefBlocks := make([]document.ShaderDefBlock, 0, len(sourceDefinitions))
+	for _, definition := range sourceDefinitions {
+		condition := document.NewShaderCondition(definition.Name)
+		shaderDefBlocks = append(shaderDefBlocks, document.ShaderDefBlock{
+			Condition: condition,
+			Negated:   definition.Negated, IfLine: definition.IfLine,
+			ElseLine: definition.ElseLine, EndifLine: definition.EndifLine,
+		})
+	}
 	for _, definition := range definitions {
 		condition := document.NewShaderCondition(definition.Name)
 		inputs = append(inputs, extract.ShaderDefBlock{
 			Condition: condition,
 			Negated:   definition.Negated, IfdefLine: definition.IfLine,
-			ElseLine: definition.ElseLine, EndifLine: definition.EndifLine,
-		})
-		shaderDefBlocks = append(shaderDefBlocks, document.ShaderDefBlock{
-			Condition: condition,
-			Negated:   definition.Negated, IfLine: definition.IfLine,
 			ElseLine: definition.ElseLine, EndifLine: definition.EndifLine,
 		})
 	}
@@ -52,7 +66,7 @@ func Parse(sourceText string, language Language) (document.File, error) {
 		ImportPath: ExtractImportPath(normalized), Consts: declarations.Consts,
 		Bindings: declarations.Bindings, Functions: declarations.Functions,
 		Structures: declarations.Structures, DeclaredImports: declaredImports,
-		ShaderDefs: definitionNames(definitions), ShaderDefBlocks: shaderDefBlocks,
+		ShaderDefs: definitionNames(definitions), SourceShaderDefs: definitionNames(sourceDefinitions), ShaderDefBlocks: shaderDefBlocks,
 	}, nil
 }
 

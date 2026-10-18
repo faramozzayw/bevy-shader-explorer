@@ -34,8 +34,23 @@ func ParseSource(config *config.Config, source Source) (ShaderFile, error) {
 }
 
 func (shaderFile ShaderFile) CollectedShaderDefs() []string {
-	existing := shaderFile.ShaderDefs
-	shaderDefs := make([]string, 0, len(existing))
+	shaderDefs := shaderFile.collectShaderDefs(true)
+	return shaderDefs
+}
+
+// CollectedDeclarationShaderDefs returns definitions attached to declarations and their
+// members. It intentionally excludes definitions that only occur in source
+// control-flow, so declaration pages do not show unusable toggles.
+func (shaderFile ShaderFile) CollectedDeclarationShaderDefs() []string {
+	return shaderFile.collectShaderDefs(false)
+}
+
+func (shaderFile ShaderFile) collectShaderDefs(includeExisting bool) []string {
+	capacity := len(shaderFile.ShaderDefs)
+	if !includeExisting {
+		capacity = 0
+	}
+	shaderDefs := make([]string, 0, capacity)
 	seen := make(map[string]bool)
 	add := func(defs []DefResult) {
 		for _, def := range defs {
@@ -47,11 +62,13 @@ func (shaderFile ShaderFile) CollectedShaderDefs() []string {
 			}
 		}
 	}
-	for _, def := range existing {
-		for _, name := range document.NewShaderCondition(def).Atoms {
-			if !seen[name] {
-				seen[name] = true
-				shaderDefs = append(shaderDefs, name)
+	if includeExisting {
+		for _, def := range shaderFile.ShaderDefs {
+			for _, name := range document.NewShaderCondition(def).Atoms {
+				if !seen[name] {
+					seen[name] = true
+					shaderDefs = append(shaderDefs, name)
+				}
 			}
 		}
 	}

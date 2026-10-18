@@ -27,6 +27,9 @@ func (Parser) Parse(source document.Source) (document.File, error) {
 			}
 			return filtered, nil
 		},
+		SourceDefinitions: func(source string) ([]conditions.DefinitionBlock, error) {
+			return conditions.Blocks(source), nil
+		},
 		ParserSource: MaskDirectives,
 		ParseDeclarations: func(source, parserSource string, comments map[int]string, definitions []extract.ShaderDefBlock) (extract.Result, error) {
 			return extract.ParseWithParser(source, parserSource, comments, definitions, syntax.Parse)

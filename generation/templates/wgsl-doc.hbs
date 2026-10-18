@@ -4,15 +4,15 @@
   <body>
     {{> header urlPrefix=projectURLPrefix version=version searchScope="package" searchPackage=projectName searchVersion=projectVersion searchIndex=searchIndex }}
 
-    <main class="shader-page{{#unless shaderDefs}} shader-page-no-controls{{/unless}}">
-      {{#if shaderDefs}}
+    <main class="shader-page{{#unless declarationShaderDefs}} shader-page-no-controls{{/unless}}">
+      {{#if declarationShaderDefs}}
         <aside class="shader-def-controls">
           <label class="shader-def-toggle">
             <input id="interactive-shader-defs" type="checkbox" />
             <span>Toggle shader defs</span>
           </label>
           <div id="shader-def-options" class="shader-def-options" hidden>
-            {{#each shaderDefs}}
+            {{#each declarationShaderDefs}}
               <label class="shader-def-option">
                 <input type="checkbox" value="{{this}}" checked />
                 <code>{{this}}</code>

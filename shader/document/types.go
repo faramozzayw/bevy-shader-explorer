@@ -29,16 +29,17 @@ type ShaderTerm struct {
 // File is the parser-owned shader document. Site metadata is kept outside
 // this type so parsing remains independent from rendering and deployment.
 type File struct {
-	ImportPath      *string          `json:"importPath"`
-	Consts          []Const          `json:"consts"`
-	Bindings        []Binding        `json:"bindings"`
-	Functions       []Function       `json:"functions"`
-	Structures      []Structure      `json:"structures"`
-	DeclaredImports DeclaredImports  `json:"declaredImports"`
-	ResolvedImports []ImportRef      `json:"resolvedImports,omitempty"`
-	Filename        string           `json:"filename"`
-	ShaderDefs      []string         `json:"shaderDefs"`
-	ShaderDefBlocks []ShaderDefBlock `json:"shaderDefBlocks"`
+	ImportPath       *string          `json:"importPath"`
+	Consts           []Const          `json:"consts"`
+	Bindings         []Binding        `json:"bindings"`
+	Functions        []Function       `json:"functions"`
+	Structures       []Structure      `json:"structures"`
+	DeclaredImports  DeclaredImports  `json:"declaredImports"`
+	ResolvedImports  []ImportRef      `json:"resolvedImports,omitempty"`
+	Filename         string           `json:"filename"`
+	ShaderDefs       []string         `json:"shaderDefs"`
+	SourceShaderDefs []string         `json:"sourceShaderDefs"`
+	ShaderDefBlocks  []ShaderDefBlock `json:"shaderDefBlocks"`
 }
 
 type DeclaredImports = map[string][]string

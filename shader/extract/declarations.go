@@ -205,8 +205,6 @@ func annotationsForDeclaration(node syntax.Node) []Annotation {
 }
 
 func (e *syntaxExtractor) namedType(node syntax.Node, annotations []Annotation) NamedType {
-	line := e.line(node)
-	shaderDefs := getShaderDefsByLine(e.shaderDefs, line)
 	name := childOfKind(node, "ident")
 	if !name.Valid() {
 		name = childOfKind(node, "member_ident")
@@ -214,6 +212,11 @@ func (e *syntaxExtractor) namedType(node syntax.Node, annotations []Annotation) 
 	if !name.Valid() {
 		name = node.Field("name")
 	}
+	line := e.line(node)
+	if name.Valid() {
+		line = e.line(name)
+	}
+	shaderDefs := getShaderDefsByLine(e.shaderDefs, line)
 	typ := childOfKind(node, "type_specifier")
 	if !typ.Valid() {
 		typ = node.Field("type")
@@ -283,7 +286,7 @@ func (e *syntaxExtractor) structures() []Structure {
 		var fields []NamedType
 		for _, member := range descendantsOfKind(node, "struct_member") {
 			if childOfKind(member, "member_ident").Valid() {
-				fields = append(fields, e.namedType(member, annotationsFrom(member)))
+				fields = append(fields, e.namedType(member, annotationsForDeclaration(member)))
 			}
 		}
 		name := childOfKind(node, "ident")

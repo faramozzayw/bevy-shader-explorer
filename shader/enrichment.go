@@ -52,6 +52,7 @@ func (ShaderFileEnricher) Enrich(file document.File, metadata FileMetadata) (Sha
 		File:       file,
 	}
 	result.ShaderDefs = result.CollectedShaderDefs()
+	result.DeclarationShaderDefs = result.CollectedDeclarationShaderDefs()
 	return result, nil
 }
 

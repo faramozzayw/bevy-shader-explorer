@@ -44,7 +44,7 @@ fn main() {
 	if len(parsed.ShaderDefs) != 1 || parsed.ShaderDefs[0] != "TOP_LEVEL" {
 		t.Fatalf("unexpected definitions: %#v", parsed.ShaderDefs)
 	}
-	if len(parsed.ShaderDefBlocks) != 1 || parsed.ShaderDefBlocks[0].IfLine != 1 || parsed.ShaderDefBlocks[0].EndifLine != 7 {
+	if len(parsed.ShaderDefBlocks) != 2 || parsed.ShaderDefBlocks[0].IfLine != 1 || parsed.ShaderDefBlocks[0].EndifLine != 7 {
 		t.Fatalf("unexpected definition source ranges: %#v", parsed.ShaderDefBlocks)
 	}
 }
@@ -65,5 +65,51 @@ fn main() {
 	}
 	if len(parsed.ShaderDefs) != 1 || parsed.ShaderDefs[0] != "TOP_LEVEL" {
 		t.Fatalf("unexpected definitions: %#v", parsed.ShaderDefs)
+	}
+	if len(parsed.SourceShaderDefs) != 2 || parsed.SourceShaderDefs[1] != "INSIDE_FUNCTION" {
+		t.Fatalf("unexpected source definitions: %#v", parsed.SourceShaderDefs)
+	}
+	if len(parsed.ShaderDefBlocks) != 2 {
+		t.Fatalf("unexpected source definition ranges: %#v", parsed.ShaderDefBlocks)
+	}
+}
+
+func TestWESLConditionalStructMemberIsRenderedAsShaderDefinition(t *testing.T) {
+	source := `struct Settings {
+    value: u32,
+    @if(FEATURE)
+    padding: vec3<f32>,
+}`
+
+	parsed, err := parserFor("shader.wesl").Parse(document.Source{Path: "shader.wesl", Text: source})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(parsed.Structures) != 1 || len(parsed.Structures[0].Fields) != 2 {
+		t.Fatalf("unexpected structures: %#v", parsed.Structures)
+	}
+	field := parsed.Structures[0].Fields[1]
+	if field.Name != "padding" || len(field.Annotations) != 0 || len(field.ShaderDefs) != 1 || field.ShaderDefs[0].Condition.Expression != "FEATURE" {
+		t.Fatalf("unexpected conditional field: %#v", field)
+	}
+}
+
+func TestWESLParserKeepsBothFunctionDeclarationBranches(t *testing.T) {
+	source := `@if(ARRAY_TEXTURE)
+fn load() {
+    @if(INNER)
+    return;
+}
+@else
+fn load() {
+    return;
+}`
+
+	parsed, err := parserFor("shader.wesl").Parse(document.Source{Path: "shader.wesl", Text: source})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(parsed.Functions) != 2 || parsed.Functions[0].Name != "load" || parsed.Functions[1].Name != "load" {
+		t.Fatalf("expected both function branches, got %#v", parsed.Functions)
 	}
 }

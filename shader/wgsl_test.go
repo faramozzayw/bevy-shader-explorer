@@ -55,6 +55,18 @@ func TestCollectedShaderDefsSplitsCompoundRequirements(t *testing.T) {
 	assert.Equal(t, []string{"COMBINE_BIND_GROUP", "SPLIT_BIND_GROUP_FIRST"}, file.ShaderDefs)
 }
 
+func TestDeclarationShaderDefsExcludeDefinitionsWithoutDeclarations(t *testing.T) {
+	file := ShaderFile{
+		File: document.File{
+			Bindings: []Binding{{ShaderDefs: []DefResult{shaderDef("USED", "if", 1)}}},
+		},
+	}
+	file.ShaderDefs = []string{"UNUSED", "USED"}
+
+	assert.Equal(t, []string{"USED"}, file.CollectedDeclarationShaderDefs())
+	assert.Equal(t, []string{"UNUSED", "USED"}, file.CollectedShaderDefs())
+}
+
 func TestGetGithubLinkUsesConfiguredSourceRef(t *testing.T) {
 	cfg := config.Config{SourcePath: "/project", SourceGithubURL: "https://github.com/bevyengine/bevy", SourceGithubRef: "release-0.19.1"}
 	got, err := GetGithubLink(&cfg, "/project/assets/shaders", "extended_material_bindless.wgsl")

@@ -102,7 +102,7 @@ func newSourceTemplateModel(file shader.ShaderFile) sourceTemplateModel {
 	}
 	return sourceTemplateModel{
 		Filename: file.Filename, Lines: modelLines, LineCount: len(modelLines),
-		ShaderDefs: file.CollectedShaderDefs(),
+		ShaderDefs: file.SourceShaderDefs,
 		GithubLink: file.GithubLink, BackLink: "/" + file.Link,
 		ProjectName: file.ProjectName, ProjectVersion: file.ProjectVersion,
 		ProjectURLPrefix: file.ProjectURLPrefix, PackageURLPrefix: file.PackageURLPrefix,
