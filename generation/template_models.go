@@ -70,6 +70,17 @@ type sourceLineModel struct {
 	ShaderDefs []document.DefResult
 }
 
+type sourceTOCItem struct {
+	Name string
+	Line int
+}
+
+type sourceTOCSection struct {
+	Name  string
+	Icon  string
+	Items []sourceTOCItem
+}
+
 type sourceTemplateModel struct {
 	Filename         string
 	Lines            []sourceLineModel
@@ -89,6 +100,7 @@ type sourceTemplateModel struct {
 	CanonicalURL     string
 	OgImageURL       string
 	StructuredData   string
+	TOCSections      []sourceTOCSection
 }
 
 func newSourceTemplateModel(file shader.ShaderFile) sourceTemplateModel {
@@ -99,6 +111,19 @@ func newSourceTemplateModel(file shader.ShaderFile) sourceTemplateModel {
 			Number: line.Number, Html: line.HTML,
 			ShaderDefs: sourceLineShaderDefs(file.ShaderDefBlocks, line.Number),
 		}
+	}
+	tocSections := make([]sourceTOCSection, 0, 4)
+	if items := sourceTOCItems(file.Consts); len(items) > 0 {
+		tocSections = append(tocSections, sourceTOCSection{Name: "Constants", Icon: "constant.svg", Items: items})
+	}
+	if items := sourceTOCItems(file.Bindings); len(items) > 0 {
+		tocSections = append(tocSections, sourceTOCSection{Name: "Bindings", Icon: "binding.svg", Items: items})
+	}
+	if items := sourceTOCItems(file.Structures); len(items) > 0 {
+		tocSections = append(tocSections, sourceTOCSection{Name: "Structures", Icon: "struct.svg", Items: items})
+	}
+	if items := sourceTOCItems(file.Functions); len(items) > 0 {
+		tocSections = append(tocSections, sourceTOCSection{Name: "Functions", Icon: "function.svg", Items: items})
 	}
 	return sourceTemplateModel{
 		Filename: file.Filename, Lines: modelLines, LineCount: len(modelLines),
@@ -117,7 +142,29 @@ func newSourceTemplateModel(file shader.ShaderFile) sourceTemplateModel {
 			"description": fmt.Sprintf("Source for the WGSL shader module %s from %s %s.", file.Filename, file.ProjectName, file.ProjectVersion),
 			"url":         file.SourceCanonicalURL,
 		}),
+		TOCSections: tocSections,
 	}
+}
+
+type sourceTOCLine interface {
+	GetName() string
+}
+
+func sourceTOCItems[T any](items []T) []sourceTOCItem {
+	result := make([]sourceTOCItem, 0, len(items))
+	for _, item := range items {
+		switch value := any(item).(type) {
+		case document.Const:
+			result = append(result, sourceTOCItem{Name: value.Name, Line: value.LineNumber})
+		case document.Binding:
+			result = append(result, sourceTOCItem{Name: value.Name, Line: value.LineNumber})
+		case document.Structure:
+			result = append(result, sourceTOCItem{Name: value.Name, Line: value.LineNumber})
+		case document.Function:
+			result = append(result, sourceTOCItem{Name: value.Name, Line: value.LineNumber})
+		}
+	}
+	return result
 }
 
 func sourceLineShaderDefs(blocks []document.ShaderDefBlock, line int) []document.DefResult {

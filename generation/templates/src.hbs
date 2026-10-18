@@ -46,6 +46,23 @@
         </div>
       </div>
       </div>
+      {{#if TOCSections}}
+      <details class="shader-toc source-toc" open>
+        <summary>Contents</summary>
+        <nav>
+          <ul>
+            {{#each TOCSections}}
+              <li>
+                <a href="#L{{Items.[0].Line}}"><img class="toc-icon" src="/public/icons/{{Icon}}" alt="" aria-hidden="true" />{{Name}}</a>
+                <ul>
+                  {{#each Items}}<li><a href="#L{{Line}}">{{Name}}</a></li>{{/each}}
+                </ul>
+              </li>
+            {{/each}}
+          </ul>
+        </nav>
+      </details>
+      {{/if}}
     </main>
     {{> footer}}
   </body>
