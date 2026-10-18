@@ -304,6 +304,10 @@ a.item-name:hover {
 	flex-wrap: nowrap;
 }
 
+.shader-page-content section[id] {
+	scroll-margin-top: 96px;
+}
+
 .shader-page-header .breadcrumbs {
 	min-width: 0;
 	flex: 1 1 auto;

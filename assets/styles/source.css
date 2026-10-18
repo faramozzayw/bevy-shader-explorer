@@ -31,6 +31,7 @@
 .source-line {
 	display: flex;
 	min-width: max-content;
+	scroll-margin-top: 96px;
 	border-bottom: 1px solid var(--source-line-border-color);
 }
 
